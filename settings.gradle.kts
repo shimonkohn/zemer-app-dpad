@@ -30,6 +30,7 @@ rootProject.name = "Zemer"
 include(":app")
 include(":innertube")
 include(":lrclib")
+include(":simpmusic")
 
 // Use a local copy of NewPipe Extractor by uncommenting the lines below.
 // We assume, that Zemer and NewPipe Extractor have the same parent directory.
