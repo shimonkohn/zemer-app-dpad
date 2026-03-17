@@ -21,6 +21,7 @@ import com.metrolist.innertube.models.YouTubeClient.Companion.IOS
 import com.metrolist.innertube.models.YouTubeClient.Companion.IPADOS
 import com.metrolist.innertube.models.YouTubeClient.Companion.MOBILE
 import com.metrolist.innertube.models.YouTubeClient.Companion.WEB
+import com.metrolist.innertube.models.YouTubeClient.Companion.TVHTML5
 import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_CREATOR
 import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.metrolist.innertube.models.response.PlayerResponse
@@ -42,6 +43,7 @@ object YTPlayerUtils {
     private val MAIN_CLIENT: YouTubeClient = WEB_REMIX
 
     private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
+        TVHTML5,
         ANDROID_VR_1_43_32,
         IOS,
         IPADOS,
@@ -160,9 +162,24 @@ object YTPlayerUtils {
             if (streamPlayerResponse?.playabilityStatus?.status == "OK") {
                 Timber.tag(TAG).d( "Status OK for ${client.clientName}")
 
+                // Pre-process response with NewPipe to get direct URLs (like Metrolist)
+                val responseToUse = try {
+                    val newPipeResponse = YouTube.newPipePlayer(videoId, streamPlayerResponse)
+                    if (newPipeResponse != null) {
+                        Timber.tag(TAG).d("NewPipe pre-processing succeeded for ${client.clientName}")
+                        newPipeResponse
+                    } else {
+                        Timber.tag(TAG).d("NewPipe pre-processing returned null, using original response")
+                        streamPlayerResponse
+                    }
+                } catch (e: Exception) {
+                    Timber.tag(TAG).e(e, "NewPipe pre-processing failed: ${e.message}")
+                    streamPlayerResponse
+                }
+
                 format =
                     findFormat(
-                        streamPlayerResponse,
+                        responseToUse,
                         audioQuality,
                         connectivityManager,
                         preferVideo,
@@ -176,33 +193,40 @@ object YTPlayerUtils {
                 }
                 Timber.tag(TAG).d( "Format: itag=${format.itag}, mime=${format.mimeType}, bitrate=${format.bitrate}, sampleRate=${format.audioSampleRate}")
 
-                streamUrl = findUrlOrNull(format, videoId)
+                streamUrl = findUrlOrNull(format, videoId, responseToUse)
                 if (streamUrl == null) {
                     Timber.tag(TAG).d( "No stream URL for format on ${client.clientName}")
                     continue
                 }
                 Timber.tag(TAG).d( "Stream URL (${client.clientName}): ${streamUrl.take(80)}...")
 
-                // Append streaming PoToken before validation (for web clients)
-                if (client.useWebPoTokens && poTokenResult?.streamingDataPoToken != null) {
-                    val separator = if ("?" in streamUrl) "&" else "?"
-                    streamUrl = "${streamUrl}${separator}pot=${poTokenResult.streamingDataPoToken}"
-                    Timber.tag(TAG).d( "Appended streaming PoToken to URL")
-                }
+                // Apply n-transform and PoToken for web clients (n-transform FIRST, then pot=)
+                val needsNTransform = client.useWebPoTokens ||
+                    client.clientName in listOf("WEB", "WEB_REMIX", "WEB_CREATOR", "TVHTML5")
 
-                // Apply n-transform proactively for web clients (avoids 403 round-trip)
-                if (client.useWebPoTokens) {
-                    Timber.tag(TAG).d("Attempting proactive n-transform...")
+                if (needsNTransform) {
                     try {
-                        val transformed = EjsNTransformSolver.transformNParamInUrl(streamUrl)
-                        if (transformed != streamUrl) {
-                            streamUrl = transformed
-                            Timber.tag(TAG).d("Proactive n-transform applied successfully")
-                        } else {
-                            Timber.tag(TAG).d("Proactive n-transform returned same URL (no change)")
+                        Timber.tag(TAG).d("Applying n-transform to stream URL for ${client.clientName}")
+
+                        // Try CipherDeobfuscator first (uses Pattern 5), fallback to EjsNTransformSolver
+                        val originalUrl = streamUrl
+                        streamUrl = CipherDeobfuscator.transformNParamInUrl(streamUrl)
+
+                        if (streamUrl == originalUrl) {
+                            // CipherDeobfuscator didn't transform, try EjsNTransformSolver as fallback
+                            Timber.tag(TAG).d("CipherDeobfuscator returned same URL, trying EjsNTransformSolver...")
+                            streamUrl = EjsNTransformSolver.transformNParamInUrl(originalUrl)
+                        }
+
+                        // Append pot= parameter AFTER n-transform
+                        if (client.useWebPoTokens && poTokenResult?.streamingDataPoToken != null) {
+                            Timber.tag(TAG).d("Appending pot= parameter to stream URL")
+                            val separator = if ("?" in streamUrl) "&" else "?"
+                            streamUrl = "${streamUrl}${separator}pot=${poTokenResult.streamingDataPoToken}"
                         }
                     } catch (e: Exception) {
-                        Timber.tag(TAG).w("Proactive n-transform failed, will retry if needed: ${e.message}")
+                        Timber.tag(TAG).e(e, "N-transform or pot append failed: ${e.message}")
+                        // Continue with original URL
                     }
                 }
 
@@ -231,47 +255,6 @@ object YTPlayerUtils {
                     break
                 } else {
                     Timber.tag(TAG).d( "Stream validation FAILED for ${client.clientName}")
-
-                    // For web clients: try n-parameter transform and re-validate
-                    if (client.useWebPoTokens) {
-                        var nTransformWorked = false
-
-                        // Try CipherDeobfuscator n-transform first
-                        try {
-                            val nTransformed = CipherDeobfuscator.transformNParamInUrl(streamUrl)
-                            if (nTransformed != streamUrl) {
-                                Timber.tag(TAG).d( "CipherDeobfuscator n-transform applied, re-validating...")
-                                if (validateStatus(nTransformed)) {
-                                    Timber.tag(TAG).d( "N-transformed URL VALIDATED OK!")
-                                    streamUrl = nTransformed
-                                    nTransformWorked = true
-                                    successClient = client.clientName
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Timber.tag(TAG).e( "CipherDeobfuscator n-transform error", e)
-                        }
-
-                        // If CipherDeobfuscator failed, try EjsNTransformSolver
-                        if (!nTransformWorked) {
-                            try {
-                                val ejsTransformed = EjsNTransformSolver.transformNParamInUrl(streamUrl)
-                                if (ejsTransformed != streamUrl) {
-                                    Timber.tag(TAG).d( "EJS n-transform applied, re-validating...")
-                                    if (validateStatus(ejsTransformed)) {
-                                        Timber.tag(TAG).d( "EJS n-transformed URL VALIDATED OK!")
-                                        streamUrl = ejsTransformed
-                                        nTransformWorked = true
-                                        successClient = client.clientName
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                Timber.tag(TAG).e( "EJS n-transform error", e)
-                            }
-                        }
-
-                        if (nTransformWorked) break
-                    }
                 }
             } else {
                 Timber.tag(TAG).d( "Status NOT OK for ${client.clientName}: ${streamPlayerResponse?.playabilityStatus?.status}, reason: ${streamPlayerResponse?.playabilityStatus?.reason}")
@@ -448,19 +431,26 @@ object YTPlayerUtils {
     }
     /**
      * Resolves a playable stream URL from the format.
-     * Tries custom cipher deobfuscation first, then NewPipe extractor as fallback,
-     * and finally the raw format URL if all else fails.
+     * If the response was pre-processed by NewPipe, uses the direct URL.
+     * Otherwise tries custom cipher deobfuscation, then NewPipe extractor as fallback.
      */
     private suspend fun findUrlOrNull(
         format: PlayerResponse.StreamingData.Format,
-        videoId: String
+        videoId: String,
+        response: PlayerResponse
     ): String? {
         Timber.tag(TAG).d( "findUrlOrNull: signatureCipher=${format.signatureCipher != null}, directUrl=${format.url != null}")
 
         var url: String? = null
 
-        // Try custom cipher deobfuscation first (for signatureCipher URLs)
-        if (format.signatureCipher != null) {
+        // If format already has a direct URL (from NewPipe pre-processing), use it
+        if (format.url != null) {
+            Timber.tag(TAG).d( "Using URL from format directly (NewPipe pre-processed)")
+            url = format.url
+        }
+
+        // Try custom cipher deobfuscation (for signatureCipher URLs without direct URL)
+        if (url == null && format.signatureCipher != null) {
             try {
                 val deobfuscated = CipherDeobfuscator.deobfuscateStreamUrl(format.signatureCipher!!, videoId)
                 if (deobfuscated != null) {
@@ -482,13 +472,6 @@ object YTPlayerUtils {
                 .getOrNull()
             if (extractorUrl != null) {
                 url = extractorUrl
-            }
-        }
-
-        // If both failed, use direct format URL
-        if (url == null) {
-            url = format.url?.also {
-                Timber.tag(TAG).d( "Using direct format URL for $videoId (all extractors failed)")
             }
         }
 

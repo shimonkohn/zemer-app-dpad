@@ -85,7 +85,8 @@ data class YouTubeClient(
             userAgent = "Mozilla/5.0(SMART-TV; Linux; Tizen 4.0.0.2) AppleWebkit/605.1.15 (KHTML, like Gecko) SamsungBrowser/9.2 TV Safari/605.1.15",
             loginSupported = true,
             loginRequired = true,
-            useSignatureTimestamp = true
+            useSignatureTimestamp = true,
+            useWebPoTokens = true,
         )
 
         val TVHTML5_SIMPLY_EMBEDDED_PLAYER = YouTubeClient(
@@ -94,7 +95,7 @@ data class YouTubeClient(
             clientId = "85",
             userAgent = "Mozilla/5.0 (PlayStation; PlayStation 4/12.02) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Safari/605.1.15",
             loginSupported = true,
-            loginRequired = true,
+            loginRequired = false,
             useSignatureTimestamp = true,
             isEmbedded = true,
         )

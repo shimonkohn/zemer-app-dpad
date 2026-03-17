@@ -89,3 +89,6 @@ lint/tmp/
 app/release
 output-metadata.json
 
+google-services.json
+*.jks
+*.keystore
