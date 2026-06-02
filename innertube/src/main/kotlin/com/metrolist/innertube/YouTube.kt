@@ -484,20 +484,33 @@ object YouTube {
             ),
             songs = run {
                 val twoColShelf = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer
-                    ?.contents?.firstOrNull()?.musicPlaylistShelfRenderer
+                    ?.contents?.firstOrNull()
+                val twoColContents = twoColShelf?.musicPlaylistShelfRenderer?.contents
+                    ?: twoColShelf?.musicShelfRenderer?.contents
                 val singleColShelf = response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()
-                    ?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicPlaylistShelfRenderer
-                (twoColShelf ?: singleColShelf)?.contents?.getItems()?.mapNotNull {
+                    ?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()
+                val singleColContents = singleColShelf?.musicPlaylistShelfRenderer?.contents
+                    ?: singleColShelf?.musicShelfRenderer?.contents
+                (twoColContents ?: singleColContents)?.getItems()?.mapNotNull {
                     PlaylistPage.fromMusicResponsiveListItemRenderer(it)
                 } ?: emptyList()
             },
             songsContinuation = run {
                 val twoColShelf = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer
-                    ?.contents?.firstOrNull()?.musicPlaylistShelfRenderer
+                    ?.contents?.firstOrNull()
+                val twoColContents = twoColShelf?.musicPlaylistShelfRenderer?.contents
+                    ?: twoColShelf?.musicShelfRenderer?.contents
+                val twoColContinuations = twoColShelf?.musicPlaylistShelfRenderer?.continuations
+                    ?: twoColShelf?.musicShelfRenderer?.continuations
                 val singleColShelf = response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()
-                    ?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicPlaylistShelfRenderer
-                val shelf = twoColShelf ?: singleColShelf
-                shelf?.contents?.getContinuation() ?: shelf?.continuations?.getContinuation()
+                    ?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()
+                val singleColContents = singleColShelf?.musicPlaylistShelfRenderer?.contents
+                    ?: singleColShelf?.musicShelfRenderer?.contents
+                val singleColContinuations = singleColShelf?.musicPlaylistShelfRenderer?.continuations
+                    ?: singleColShelf?.musicShelfRenderer?.continuations
+                val mergedContents = twoColContents ?: singleColContents
+                val mergedContinuations = twoColContinuations ?: singleColContinuations
+                mergedContents?.getContinuation() ?: mergedContinuations?.getContinuation()
             },
             continuation = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer
                 ?.continuations?.getContinuation()
