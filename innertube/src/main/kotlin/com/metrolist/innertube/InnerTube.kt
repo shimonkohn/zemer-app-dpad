@@ -180,13 +180,13 @@ class InnerTube {
         params: String? = null,
         continuation: String? = null,
     ) = httpClient.post("search") {
-        ytClient(client, setLogin = useLoginForBrowse)
+        ytClient(client, setLogin = false)
         setBody(
             SearchBody(
                 context = client.toContext(
                     locale,
                     visitorData,
-                    if (useLoginForBrowse) dataSyncId else null
+                    null
                 ),
                 query = query,
                 params = params
@@ -202,8 +202,9 @@ class InnerTube {
         playlistId: String?,
         signatureTimestamp: Int?,
         webPlayerPot: String? = null,
+        setLogin: Boolean = true,
     ) = httpClient.post("player") {
-        ytClient(client, setLogin = true)
+        ytClient(client, setLogin = setLogin)
         setBody(
             PlayerBody(
                 context = client.toContext(locale, visitorData, dataSyncId).let {

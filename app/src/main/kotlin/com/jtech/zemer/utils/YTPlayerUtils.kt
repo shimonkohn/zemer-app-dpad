@@ -40,6 +40,16 @@ object YTPlayerUtils {
 
     private val poTokenGenerator = PoTokenGenerator()
 
+    // Track videoIds where WEB_REMIX stream URLs 403 on ExoPlayer GET, so the next
+    // resolution falls through to TVHTML5/ANDROID_VR instead of looping.
+    private val webRemixFailedIds = java.util.Collections.newSetFromMap(
+        java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+    )
+
+    fun markWebRemixFailed(videoId: String) {
+        webRemixFailedIds.add(videoId)
+    }
+
     private val MAIN_CLIENT: YouTubeClient = WEB_REMIX
 
     private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
@@ -61,6 +71,7 @@ object YTPlayerUtils {
         val format: PlayerResponse.StreamingData.Format,
         val streamUrl: String,
         val streamExpiresInSeconds: Int,
+        val streamClient: String = "unknown",
     )
     /**
      * Custom player response intended to use for playback.
@@ -162,20 +173,13 @@ object YTPlayerUtils {
             if (streamPlayerResponse?.playabilityStatus?.status == "OK") {
                 Timber.tag(TAG).d( "Status OK for ${client.clientName}")
 
-                // Pre-process response with NewPipe to get direct URLs (like Metrolist)
-                val responseToUse = try {
-                    val newPipeResponse = YouTube.newPipePlayer(videoId, streamPlayerResponse)
-                    if (newPipeResponse != null) {
-                        Timber.tag(TAG).d("NewPipe pre-processing succeeded for ${client.clientName}")
-                        newPipeResponse
-                    } else {
-                        Timber.tag(TAG).d("NewPipe pre-processing returned null, using original response")
-                        streamPlayerResponse
-                    }
-                } catch (e: Exception) {
-                    Timber.tag(TAG).e(e, "NewPipe pre-processing failed: ${e.message}")
-                    streamPlayerResponse
-                }
+                // Use the player response as-is. The old NewPipe StreamInfo.getInfo
+                // pre-processing ran a full second extraction for EVERY song (fetch watch
+                // page + decipher all ~18 formats) — slow with the bundled extractor and
+                // redundant. Direct-url clients (IOS/ANDROID_VR/IPADOS/VISIONOS) already
+                // carry playable URLs; web clients are deciphered per-format by the Zemer
+                // cipher in findUrlOrNull (sig) + transformNParamInUrl (n) below.
+                val responseToUse = streamPlayerResponse
 
                 format =
                     findFormat(
@@ -218,11 +222,11 @@ object YTPlayerUtils {
                             streamUrl = EjsNTransformSolver.transformNParamInUrl(originalUrl)
                         }
 
-                        // Append pot= parameter AFTER n-transform
+                        // Append pot= parameter AFTER n-transform (URI-encode to handle base64 padding)
                         if (client.useWebPoTokens && poTokenResult?.streamingDataPoToken != null) {
                             Timber.tag(TAG).d("Appending pot= parameter to stream URL")
                             val separator = if ("?" in streamUrl) "&" else "?"
-                            streamUrl = "${streamUrl}${separator}pot=${poTokenResult.streamingDataPoToken}"
+                            streamUrl = "${streamUrl}${separator}pot=${android.net.Uri.encode(poTokenResult.streamingDataPoToken)}"
                         }
                     } catch (e: Exception) {
                         Timber.tag(TAG).e(e, "N-transform or pot append failed: ${e.message}")
@@ -244,6 +248,19 @@ object YTPlayerUtils {
 
                 if (clientIndex == fallbackClients.size - 1) {
                     Timber.tag(TAG).d( "Last fallback — skipping validation: ${client.clientName}")
+                    successClient = client.clientName
+                    break
+                }
+
+                // WEB_REMIX authenticated CDN URLs 403 on HEAD but serve correctly
+                // on the actual byte-range GET that ExoPlayer makes. Skip HEAD validation
+                // for streaming UNLESS this videoId already failed on GET (tracked in
+                // webRemixFailedIds), in which case fall through to TVHTML5/ANDROID_VR.
+                // For downloads, always fall through — WEB_REMIX signed URLs don't support
+                // the &range= query-param download pattern.
+                if (client.clientName == "WEB_REMIX" && clientIndex == -1
+                    && !forDownload && !webRemixFailedIds.contains(videoId)) {
+                    Timber.tag(TAG).d("WEB_REMIX — skipping HEAD validation, letting ExoPlayer try directly")
                     successClient = client.clientName
                     break
                 }
@@ -318,6 +335,7 @@ object YTPlayerUtils {
             format,
             streamUrl,
             streamExpiresInSeconds,
+            streamClient = successClient ?: "unknown",
         )
     }
     /**
@@ -397,6 +415,7 @@ object YTPlayerUtils {
                 .head()
                 .url(validatedUrl)
                 .header("User-Agent", YouTubeClient.USER_AGENT_WEB)
+            YouTube.cookie?.let { requestBuilder.addHeader("Cookie", it) }
             val request = try {
                 requestBuilder.build()
             } catch (e: Exception) {

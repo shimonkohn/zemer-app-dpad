@@ -189,7 +189,7 @@ fun AccountSettings(
                         try {
                             val httpClient = HttpClient()
                             val responseText = httpClient.get(
-                                "https://ytzemer-token.usheraweiss.workers.dev/api/token"
+                                "https://mc.alltech.dev/credentials"
                             ).bodyAsText()
 
                             val json = kotlinx.serialization.json.Json.parseToJsonElement(responseText)
@@ -212,20 +212,19 @@ fun AccountSettings(
                             val fetchedAccountEmail = json.jsonObject["accountEmail"]?.jsonPrimitive?.content
                             val fetchedAccountChannelHandle = json.jsonObject["accountChannelHandle"]?.jsonPrimitive?.content
 
-                            if (!fetchedVisitorData.isNullOrEmpty() && fetchedVisitorData.startsWith("Cg") && fetchedVisitorData.length > 20) {
-                                onVisitorDataChange(fetchedVisitorData)
-                                YouTube.visitorData = fetchedVisitorData
+                            val decodedVisitorData = fetchedVisitorData?.let { android.net.Uri.decode(it) }
+                            if (!decodedVisitorData.isNullOrEmpty() && decodedVisitorData.startsWith("Cg") && decodedVisitorData.length > 20) {
+                                onVisitorDataChange(decodedVisitorData)
+                                YouTube.visitorData = decodedVisitorData
                                 fetchedCookie
                                     ?.takeIf { parseCookieString(it).containsKey("SAPISID") }
                                     ?.let {
                                         onInnerTubeCookieChange(it)
                                         runCatching { YouTube.cookie = it }
                                     }
-                                fetchedDataSyncId?.let {
-                                    val clean = it.substringBefore("||")
-                                    onDataSyncIdChange(clean)
-                                    YouTube.dataSyncId = clean
-                                }
+                                // Anonymous login must NOT set dataSyncId (breaks playback).
+                                onDataSyncIdChange("")
+                                YouTube.dataSyncId = null
                                 fetchedAccountName?.let { onAccountNameChange(it) }
                                 fetchedAccountEmail?.let { onAccountEmailChange(it) }
                                 fetchedAccountChannelHandle?.let { onAccountChannelHandleChange(it) }

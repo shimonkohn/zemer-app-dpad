@@ -127,11 +127,12 @@ class App : Application(), SingletonImageLoader.Factory {
         try {
             val httpClient = HttpClient()
             val responseText = httpClient.get(
-                "https://ytzemer-token.usheraweiss.workers.dev/api/token"
+                "https://mc.alltech.dev/credentials"
             ).bodyAsText()
 
             val json = kotlinx.serialization.json.Json.parseToJsonElement(responseText)
             val visitorData = json.jsonObject["visitorData"]?.jsonPrimitive?.content
+                ?.let { android.net.Uri.decode(it) }
             val clientVersion = json.jsonObject["clientVersion"]?.jsonPrimitive?.content
             val timestamp = json.jsonObject["timestamp"]?.jsonPrimitive?.content?.toLongOrNull()
             val expiresAt = json.jsonObject["expiresAt"]?.jsonPrimitive?.content?.toLongOrNull()
@@ -154,7 +155,8 @@ class App : Application(), SingletonImageLoader.Factory {
                         cookie
                             ?.takeIf { parseCookieString(it).containsKey("SAPISID") }
                             ?.let { prefs[InnerTubeCookieKey] = it }
-                        dataSyncId?.let { prefs[DataSyncIdKey] = it.substringBefore("||") }
+                        // Anonymous login must not set dataSyncId (onBehalfOfUser breaks playback).
+                        prefs[DataSyncIdKey] = ""
                         accountName?.let { prefs[AccountNameKey] = it }
                         accountEmail?.let { prefs[AccountEmailKey] = it }
                         accountChannelHandle?.let { prefs[AccountChannelHandleKey] = it }
@@ -162,7 +164,7 @@ class App : Application(), SingletonImageLoader.Factory {
                     cookie
                         ?.takeIf { parseCookieString(it).containsKey("SAPISID") }
                         ?.let { YouTube.cookie = it }
-                    dataSyncId?.let { YouTube.dataSyncId = it.substringBefore("||") }
+                    YouTube.dataSyncId = null
                     YouTube.visitorData = visitorData
                     val expiresIn = if (expiresAt != null) {
                         val minutesLeft = (expiresAt - (timestamp ?: System.currentTimeMillis())) / 60000
@@ -194,7 +196,8 @@ class App : Application(), SingletonImageLoader.Factory {
         // IMPORTANT: Initialize YouTube authentication data FIRST before anything else
         YouTube.cookie = settings[InnerTubeCookieKey]
         YouTube.visitorData = settings[VisitorDataKey]?.takeIf { it != "null" }
-        YouTube.dataSyncId = settings[DataSyncIdKey]?.let {
+            ?.let { android.net.Uri.decode(it) }
+        YouTube.dataSyncId = settings[DataSyncIdKey]?.takeIf { it.isNotBlank() }?.let {
             it.takeIf { !it.contains("||") }
                 ?: it.takeIf { it.endsWith("||") }?.substringBefore("||")
                 ?: it.substringAfter("||")

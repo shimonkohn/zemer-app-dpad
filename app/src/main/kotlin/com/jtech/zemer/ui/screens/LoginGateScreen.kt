@@ -156,11 +156,12 @@ fun LoginGateScreen(
                             try {
                                 val httpClient = HttpClient()
                                 val responseText = httpClient.get(
-                                    "https://ytzemer-token.usheraweiss.workers.dev/api/token"
+                                    "https://mc.alltech.dev/credentials"
                                 ).bodyAsText()
 
                                 val json = Json.parseToJsonElement(responseText)
                                 val fetchedVisitorData = json.jsonObject["visitorData"]?.jsonPrimitive?.content
+                                    ?.let { android.net.Uri.decode(it) }
                                 val fetchedCookie = run {
                                     val raw = json.jsonObject["cookie"]?.jsonPrimitive?.content
                                         ?: json.jsonObject["innerTubeCookie"]?.jsonPrimitive?.content
@@ -188,11 +189,10 @@ fun LoginGateScreen(
                                             innerTubeCookie = it
                                             runCatching { YouTube.cookie = it }
                                         }
-                                    fetchedDataSyncId?.let {
-                                        val clean = it.substringBefore("||")
-                                        dataSyncId = clean
-                                        YouTube.dataSyncId = clean
-                                    }
+                                    // Anonymous login must NOT set dataSyncId — the pooled
+                                    // account's onBehalfOfUser breaks the player request (HTTP 400).
+                                    dataSyncId = ""
+                                    YouTube.dataSyncId = null
                                     fetchedAccountName?.let { accountName = it }
                                     fetchedAccountEmail?.let { accountEmail = it }
                                     fetchedAccountChannelHandle?.let { accountChannelHandle = it }
