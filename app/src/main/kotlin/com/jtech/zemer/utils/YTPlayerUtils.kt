@@ -102,12 +102,10 @@ object YTPlayerUtils {
         val isLoggedIn = currentAuthCookie != null && "SAPISID" in parseCookieString(currentAuthCookie)
         Timber.tag(TAG).d( "Auth: isLoggedIn=$isLoggedIn, dataSyncId=${YouTube.dataSyncId?.take(20)}, visitorData=${YouTube.visitorData?.take(20)}")
 
-        val sessionId = if (isLoggedIn) {
-            YouTube.dataSyncId ?: YouTube.visitorData
-        } else {
-            YouTube.visitorData
-        }
-        Timber.tag(TAG).d( "Using sessionId: ${sessionId?.take(20)}... (from ${if (YouTube.dataSyncId != null) "dataSyncId" else "visitorData"})")
+        // PoToken session must always be visitorData — dataSyncId is an account identifier
+        // and is rejected by YouTube's BotGuard attestation when used as the session context.
+        val sessionId = YouTube.visitorData
+        Timber.tag(TAG).d( "Using sessionId: ${sessionId?.take(20)}... (visitorData)")
 
         // Generate PoToken for web clients
         val poTokenResult: PoTokenResult? = try {
