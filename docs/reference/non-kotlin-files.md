@@ -1,6 +1,6 @@
 # Non-Kotlin file reference
 
-Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `283`.
+Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `284`.
 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
@@ -56,6 +56,8 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `app/src/main/cpp/bento4` | gitlink/non-file | tracked path is not a regular file in this checkout |
 | `app/src/main/ic_launcher-playstore.png` | 23742 bytes | binary `.png` |
 | `app/src/main/kotlin/com/jtech/zemer/viewmodels/OnboardingViewModel.kt.backup` | 215 lines | text `.backup` |
+| `app/src/main/res/drawable-night/widget_background.xml` | 6 lines | text `.xml`; XML root `shape` |
+| `app/src/main/res/drawable-v31/ic_launcher_background_v31.xml` | 7 lines | text `.xml`; XML root `shape` |
 | `app/src/main/res/drawable/account.xml` | 9 lines | text `.xml`; XML root `vector` |
 | `app/src/main/res/drawable/add.xml` | 9 lines | text `.xml`; XML root `vector` |
 | `app/src/main/res/drawable/add_circle.xml` | 9 lines | text `.xml`; XML root `vector` |
@@ -211,8 +213,6 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `app/src/main/res/drawable/widget_background.xml` | 6 lines | text `.xml`; XML root `shape` |
 | `app/src/main/res/drawable/widget_preview.xml` | 18 lines | text `.xml`; XML root `layer-list` |
 | `app/src/main/res/drawable/wifi_proxy.xml` | 9 lines | text `.xml`; XML root `vector` |
-| `app/src/main/res/drawable-night/widget_background.xml` | 6 lines | text `.xml`; XML root `shape` |
-| `app/src/main/res/drawable-v31/ic_launcher_background_v31.xml` | 7 lines | text `.xml`; XML root `shape` |
 | `app/src/main/res/layout/widget_loading.xml` | 45 lines | text `.xml`; XML root `LinearLayout` |
 | `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml` | 5 lines | text `.xml`; XML root `adaptive-icon` |
 | `app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml` | 5 lines | text `.xml`; XML root `adaptive-icon` |
@@ -236,31 +236,31 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `app/src/main/res/raw/loading_dots_blue.lottie` | 1221 bytes | binary `.lottie` |
 | `app/src/main/res/raw/welcome.lottie` | 2138 bytes | binary `.lottie` |
 | `app/src/main/res/resources.properties` | 1 lines | text `.properties` |
-| `app/src/main/res/values/app_name.xml` | 4 lines | text `.xml`; XML root `resources` |
-| `app/src/main/res/values/colors.xml` | 9 lines | text `.xml`; XML root `resources` |
-| `app/src/main/res/values/ic_launcher_background.xml` | 6 lines | text `.xml`; XML root `resources` |
-| `app/src/main/res/values/metrolist_strings.xml` | 279 lines | text `.xml`; XML root `resources` |
-| `app/src/main/res/values/strings.xml` | 560 lines | text `.xml`; XML root `resources` |
-| `app/src/main/res/values/styles.xml` | 14 lines | text `.xml`; XML root `resources` |
-| `app/src/main/res/values/values.xml` | 8 lines | text `.xml`; XML root `resources` |
 | `app/src/main/res/values-iw/metrolist_strings.xml` | 44 lines | text `.xml`; XML root `resources` |
 | `app/src/main/res/values-iw/strings.xml` | 376 lines | text `.xml`; XML root `resources` |
 | `app/src/main/res/values-night/colors.xml` | 6 lines | text `.xml`; XML root `resources` |
+| `app/src/main/res/values/app_name.xml` | 4 lines | text `.xml`; XML root `resources` |
+| `app/src/main/res/values/colors.xml` | 9 lines | text `.xml`; XML root `resources` |
+| `app/src/main/res/values/ic_launcher_background.xml` | 6 lines | text `.xml`; XML root `resources` |
+| `app/src/main/res/values/metrolist_strings.xml` | 300 lines | text `.xml`; XML root `resources` |
+| `app/src/main/res/values/strings.xml` | 560 lines | text `.xml`; XML root `resources` |
+| `app/src/main/res/values/styles.xml` | 14 lines | text `.xml`; XML root `resources` |
+| `app/src/main/res/values/values.xml` | 8 lines | text `.xml`; XML root `resources` |
+| `app/src/main/res/xml-v25/shortcuts.xml` | 23 lines | text `.xml`; XML root `shortcuts` |
 | `app/src/main/res/xml/accessibility_service_config.xml` | 9 lines | text `.xml`; XML root `accessibility-service` |
 | `app/src/main/res/xml/automotive_app_desc.xml` | 4 lines | text `.xml`; XML root `automotiveApp` |
 | `app/src/main/res/xml/backup_rules.xml` | 12 lines | text `.xml`; XML root `full-backup-content` |
 | `app/src/main/res/xml/data_extraction_rules.xml` | 29 lines | text `.xml`; XML root `data-extraction-rules` |
 | `app/src/main/res/xml/music_widget_info.xml` | 18 lines | text `.xml`; XML root `appwidget-provider` |
 | `app/src/main/res/xml/provider_paths.xml` | 12 lines | text `.xml`; XML root `paths` |
-| `app/src/main/res/xml-v25/shortcuts.xml` | 23 lines | text `.xml`; XML root `shortcuts` |
 | `app/universal/release/baselineProfiles/0/app-universal-release.dm` | 10017 bytes | binary `.dm` |
 | `app/universal/release/baselineProfiles/1/app-universal-release.dm` | 9981 bytes | binary `.dm` |
 | `build.gradle.kts` | 35 lines | text `.kts`; plugins `hilt, kotlin.ksp, google.gms.google.services` |
 | `cipher` | gitlink/non-file | tracked path is not a regular file in this checkout |
+| `gradle.properties` | 40 lines | text `.properties` |
 | `gradle/libs.versions.toml` | 141 lines | text `.toml` |
 | `gradle/wrapper/gradle-wrapper.jar` | 45457 bytes | binary `.jar` |
 | `gradle/wrapper/gradle-wrapper.properties` | 8 lines | text `.properties` |
-| `gradle.properties` | 40 lines | text `.properties` |
 | `gradlew` | 248 lines | text `[none]` |
 | `gradlew.bat` | 93 lines | text `.bat` |
 | `innertube/.gitignore` | 1 lines | text `[none]` |
@@ -286,4 +286,5 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `tests/results.json` | 222 lines | text `.json` |
 | `tests/retest-web.mjs` | 58 lines | text `.mjs` |
 | `tests/run.mjs` | 181 lines | text `.mjs` |
+| `tests/web-creator-stream.mjs` | 142 lines | text `.mjs` |
 | `tests/web-remix-stream.mjs` | 277 lines | text `.mjs` |
