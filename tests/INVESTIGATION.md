@@ -37,18 +37,18 @@ must change too (see §6). The mapping:
 | `YouTube.cookie` / `visitorData` (session) | `cred.mjs` | the logged-in session, from `innertube_cookie.txt` |
 | `InnerTube.kt` `player()` + `ytClient()` | `web-remix-stream.mjs` / `pot-probe.mjs` `playerRequest()` | the `/player` POST: context, `X-Goog-*` headers, `SAPISIDHASH`, `signatureTimestamp`, `serviceIntegrityDimensions.poToken` |
 | `models/YouTubeClient.kt` | `clients.mjs` | client name/version/id/UA/flags (WEB_REMIX id 67, IOS id 5, …) |
-| `cipher/.../PlayerJsFetcher.kt` | `cipher.mjs` `fetchPlayerJs()` | iframe_api → `player_ias.vflset/en_GB/base.js`, STS |
+| `cipher/.../PlayerJsFetcher.kt` | `cipher.mjs` `fetchPlayerJs()` | iframe_api -> `player_ias.vflset/en_GB/base.js`, STS |
 | `cipher/.../FunctionNameExtractor.kt` `KNOWN_PLAYER_CONFIGS` | `cipher.mjs` `KNOWN_PLAYER_CONFIGS` | per-player sig expression (`Tl(48,5831,…)` / `Qp(25,37,…)`) + n-trick (`g.W_`/`g.W1`) + STS |
 | `cipher/.../CipherWebView.kt` (Android WebView) | `cipher.mjs` (jsdom) | injects exports into the IIFE `})(_yt_player);`, runs base.js, calls `_cipherSigFunc` / `_nTransformFunc` |
 | `cipher/.../CipherDeobfuscator.kt` | `cipher.mjs` `deobfuscateStreamUrl` / `transformNParamInUrl` | parse `s/sp/url`, apply sig, replace `n=`, append `&pot=` |
-| `cipher/.../potoken/PoTokenGenerator.kt` + `PoTokenWebView.kt` | `potoken.mjs` (bgutils-js) | BotGuard mint: streaming pot ← visitorData, player pot ← videoId, request key `O43z0dpjhgX20SCx4KAo` |
-| `YTPlayerUtils.playerResponseForPlayback()` | `web-remix-stream.mjs` `resolveAppUrl()` | full resolve: player → findFormat → sig → n → pot |
-| `YTPlayerUtils.findFormat()` | `findFormat()` in the scripts | `adaptiveFormats.filter(isAudio && isOriginal).maxBy(bitrate + webm bias)` → itag 251 opus |
+| `cipher/.../potoken/PoTokenGenerator.kt` + `PoTokenWebView.kt` | `potoken.mjs` (bgutils-js) | BotGuard mint: streaming pot <- visitorData, player pot <- videoId, request key `O43z0dpjhgX20SCx4KAo` |
+| `YTPlayerUtils.playerResponseForPlayback()` | `web-remix-stream.mjs` `resolveAppUrl()` | full resolve: player -> findFormat -> sig -> n -> pot |
+| `YTPlayerUtils.findFormat()` | `findFormat()` in the scripts | `adaptiveFormats.filter(isAudio && isOriginal).maxBy(bitrate + webm bias)` -> itag 251 opus |
 | ExoPlayer `DefaultHttpDataSource` + `RetryOn403DataSource` | `fetchRange()` / `drainWhole()` | range GETs on fresh connections; seek = range at a far offset |
 
 > The Node cipher is **not** an approximation. It downloads the same `base.js` and runs it; only
 > the JS host differs (jsdom vs Android WebView). Confirmed identical: the n-transform probe
-> `KdrqFlzJXl9EcCwlmEy → -_L5LE0VOwTkzf` matches on both, and the bgutils pot and the WebView pot
+> `KdrqFlzJXl9EcCwlmEy -> -_L5LE0VOwTkzf` matches on both, and the bgutils pot and the WebView pot
 > both unlock the same URL.
 
 ---
@@ -59,7 +59,7 @@ must change too (see §6). The mapping:
    (gitignored — never commit it). Format in [`README.md` §1](./README.md). `cred.mjs` parses it.
    - To refresh: re-dump from the app/account (the values are `HSID/SAPISID/SID/__Secure-*PSID/…`
      cookies + `VISITOR DATA`). A stale cookie shows up as `playability != OK`.
-2. **Deps** are vendored in `tests/node_modules` (`bgutils-js`, `jsdom`, `youtubei.js`). Node ≥ 20.
+2. **Deps** are vendored in `tests/node_modules` (`bgutils-js`, `jsdom`, `youtubei.js`). Node >= 20.
 3. **Test video:** default `JTF9fLJvniI` (330 s — long enough to cross the 1 MiB wall). Override with
    argv[1] or `VIDEO_ID`.
 
@@ -75,18 +75,18 @@ The story, so the *method* is repeatable even if the specifics change.
 1. **Reproduce, don't trust HEAD.** The old probe checked `Range: bytes=0-1` (2 bytes) and
    declared clients "streamable". That's meaningless for full playback. We instead drove the URL
    like ExoPlayer: sequential range chunks on fresh connections until something 403s.
-   → `web-remix-stream.mjs` found the first failure at **byte 1,048,576 (1 MiB)**, ~the reported
+   -> `web-remix-stream.mjs` found the first failure at **byte 1,048,576 (1 MiB)**, ~the reported
    "45 s drop". Seek (range at 75 %) also 403'd. Both symptoms = the same wall.
 2. **The free window is universal.** Even the IOS direct URL (no pot) 403'd past 1 MiB. So this
    is a googlevideo rule, not WEB_REMIX-specific.
-3. **Isolate the gate.** The pot-variant probe at the failing offset: `no pot → 403`,
-   `visitorData pot → 403`, `videoId pot → 206`. The URL wants a **videoId-bound** pot.
+3. **Isolate the gate.** The pot-variant probe at the failing offset: `no pot -> 403`,
+   `visitorData pot -> 403`, `videoId pot -> 206`. The URL wants a **videoId-bound** pot.
 4. **Kill the alternatives.** `pot-probe.mjs` ran the full matrix (request-pot × url-pot ×
    {none/videoId/visitorData-raw/visitorData-enc}) across two player versions. Only url-pot=videoId
-   served past 1 MiB → full file. visitorData encoding ruled out; request-pot irrelevant.
+   served past 1 MiB -> full file. visitorData encoding ruled out; request-pot irrelevant.
 5. **Find the bug in the app.** `PoTokenGenerator.getWebClientPoToken` returned
    `PoTokenResult(playerPot=generate(videoId), streamingPot=generate(visitorData))`, and
-   `YTPlayerUtils` appends `streamingDataPoToken` (visitorData) to the URL → always 403 past 1 MiB.
+   `YTPlayerUtils` appends `streamingDataPoToken` (visitorData) to the URL -> always 403 past 1 MiB.
    The bindings were swapped relative to what the CDN enforces.
 6. **Fix + verify on-device.** Swapped the mapping in the cipher. Rebuilt, logged the full resolved
    URL on device, curled it from a terminal: **206 at every range, HEAD 200, query-range 200, whole
@@ -167,18 +167,18 @@ hash monitor for exactly this).
   - `nExpr`: the URL-parser trick — `new g.W_('…?n='+n,true).get('n')` (the class name `W_`/`W1`
     changes per player; it's the player's internal URL parser).
   - `sts`: from `signatureTimestamp:(\d+)` in base.js.
-  - Confirm with `node cipher.mjs` → `sig=true n=true`, n probe `changed:true`.
+  - Confirm with `node cipher.mjs` -> `sig=true n=true`, n probe `changed:true`.
 
 ### B. Songs drop after N seconds / 403 mid-playback / seek fails
 The throttle/pot rule changed. Re-derive it empirically:
-1. `node web-remix-stream.mjs` → note the `B continuation` first-failure byte offset (the new "free
+1. `node web-remix-stream.mjs` -> note the `B continuation` first-failure byte offset (the new "free
    window"; was 1,048,576).
-2. `node pot-probe.mjs` → read which `url pot=` column serves past that offset. If it's no longer
+2. `node pot-probe.mjs` -> read which `url pot=` column serves past that offset. If it's no longer
    `videoId`, that's the new required binding.
 3. Apply it in `cipher/.../PoTokenGenerator.kt` (which token goes to `streamingDataPoToken`) and
    re-verify with `URL_POT=… node web-remix-stream.mjs`. Mirror any token-binding change into
    `potoken.mjs`.
-4. If *no* pot works, the gate moved elsewhere — check `c=` client, the `n` transform (wrong n →
+4. If *no* pot works, the gate moved elsewhere — check `c=` client, the `n` transform (wrong n ->
    throttle/403), or a new required URL param.
 
 ### C. A client that used to work now 403s (e.g. IOS broke)
@@ -196,10 +196,10 @@ BotGuard/`bgutils-js` drift, or the web request key changed.
   worked interchangeably, but if only one breaks, suspect that path specifically.
 
 ### E. `playability != OK` (`LOGIN_REQUIRED` / `UNPLAYABLE` / HTTP 400)
-- Cookie expired → refresh `innertube_cookie.txt`.
-- Client version stale → bump in `clients.mjs` *and* `YouTubeClient.kt` (compare against a fresh
+- Cookie expired -> refresh `innertube_cookie.txt`.
+- Client version stale -> bump in `clients.mjs` *and* `YouTubeClient.kt` (compare against a fresh
   `music.youtube.com` to get the current `clientVersion`).
-- HTTP 400 on a logged-in request → check you're not sending `onBehalfOfUser`/`dataSyncId` where it
+- HTTP 400 on a logged-in request -> check you're not sending `onBehalfOfUser`/`dataSyncId` where it
   isn't wanted (historically broke WEB_REMIX; session id must be `visitorData`).
 
 ### F. On-device disagrees with the harness
@@ -244,8 +244,8 @@ of these confirms the harness still resolves a playable stream.
 - **Request key (web BotGuard):** `O43z0dpjhgX20SCx4KAo`.
 - **base.js:** `https://www.youtube.com/s/player/<hash>/player_ias.vflset/en_GB/base.js`, hash from
   `https://www.youtube.com/iframe_api`.
-- **Full-song delivery (this date):** ANDROID_VR ✅ (no pot/cipher), WEB_REMIX ✅ (with videoId pot),
-  IOS/IPADOS ❌ (403 past 1 MiB).
+- **Full-song delivery (this date):** ANDROID_VR yes (no pot/cipher), WEB_REMIX yes (with videoId pot),
+  IOS/IPADOS no (403 past 1 MiB).
 
 ## 8. Gotchas (things that wasted time, so they don't again)
 

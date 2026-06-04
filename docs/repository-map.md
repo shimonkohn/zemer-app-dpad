@@ -17,7 +17,7 @@
 | Compile SDK | `36` |
 | Minimum SDK | `26` |
 | Target SDK | `36` |
-| Version code/name | `25` / `25` |
+| Version code/name | `27` / `27` |
 | Java/Kotlin target | JVM 21 |
 | Compose | Enabled |
 | BuildConfig | Enabled |
@@ -77,39 +77,41 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `657`
+- Files counted: `689`
 - By extension:
   - `.kt`: `394`
   - `.xml`: `182`
-  - `.json`: `32`
+  - `.json`: `35`
+  - `.md`: `17`
   - `.webp`: `15`
+  - `.mjs`: `12`
   - `[none]`: `7`
   - `.kts`: `6`
-  - `.js`: `3`
-  - `.lottie`: `3`
   - `.properties`: `3`
+  - `.lottie`: `3`
+  - `.js`: `3`
+  - `.yml`: `2`
   - `.png`: `2`
   - `.dm`: `2`
-  - `.yml`: `1`
-  - `.md`: `1`
-  - `.pro`: `1`
   - `.txt`: `1`
-  - `.backup`: `1`
   - `.toml`: `1`
+  - `.pro`: `1`
   - `.jar`: `1`
   - `.bat`: `1`
+  - `.backup`: `1`
 
 ### Every counted file
 
 | Path | Lines/bytes | Kind |
 | --- | ---: | --- |
+| `.github/workflows/player-monitor.yml` | 131 lines | `.yml` |
 | `.github/workflows/release-build.yml` | 113 lines | `.yml` |
-| `.gitignore` | 94 lines | `[none]` |
+| `.gitignore` | 103 lines | `[none]` |
 | `.gitmodules` | 6 lines | `[none]` |
 | `LICENSE` | 674 lines | `[none]` |
 | `README.md` | 11 lines | `.md` |
 | `app/.gitignore` | 1 lines | `[none]` |
-| `app/build.gradle.kts` | 258 lines | `.kts` |
+| `app/build.gradle.kts` | 259 lines | `.kts` |
 | `app/lint.xml` | 12 lines | `.xml` |
 | `app/proguard-rules.pro` | 240 lines | `.pro` |
 | `app/schemas/com.jtech.zemer.db.InternalDatabase/1.json` | 297 lines | `.json` |
@@ -407,7 +409,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/utils/WhitelistCache.kt` | 40 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/WhitelistFetcher.kt` | 72 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/WhitelistFilter.kt` | 262 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/utils/YTPlayerUtils.kt` | 517 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/utils/YTPlayerUtils.kt` | 515 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/ZemerLinkBuilder.kt` | 16 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/sabr/EjsNTransformSolver.kt` | 307 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/sabr/SabrException.kt` | 3 lines | `.kt` |
@@ -647,6 +649,20 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/universal/release/baselineProfiles/0/app-universal-release.dm` | 10017 bytes | `.dm` |
 | `app/universal/release/baselineProfiles/1/app-universal-release.dm` | 9981 bytes | `.dm` |
 | `build.gradle.kts` | 35 lines | `.kts` |
+| `docs/README.md` | 28 lines | `.md` |
+| `docs/app/README.md` | 132 lines | `.md` |
+| `docs/app/database.md` | 567 lines | `.md` |
+| `docs/app/playback.md` | 38 lines | `.md` |
+| `docs/app/preferences-sync-auth.md` | 153 lines | `.md` |
+| `docs/app/viewmodels.md` | 40 lines | `.md` |
+| `docs/build-release.md` | 62 lines | `.md` |
+| `docs/innertube/README.md` | 183 lines | `.md` |
+| `docs/reference/kotlin-files.md` | 418 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 289 lines | `.md` |
+| `docs/reference/resource-index.md` | 288 lines | `.md` |
+| `docs/repository-map.md` | 795 lines | `.md` |
+| `docs/ui/README.md` | 329 lines | `.md` |
+| `docs/whitelist/README.md` | 181 lines | `.md` |
 | `gradle.properties` | 40 lines | `.properties` |
 | `gradle/libs.versions.toml` | 141 lines | `.toml` |
 | `gradle/wrapper/gradle-wrapper.jar` | 45457 bytes | `.jar` |
@@ -760,3 +776,20 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `simpmusic/build.gradle.kts` | 15 lines | `.kts` |
 | `simpmusic/src/main/kotlin/com/metrolist/simpmusic/SimpMusicLyrics.kt` | 119 lines | `.kt` |
 | `simpmusic/src/main/kotlin/com/metrolist/simpmusic/models/LyricsResponse.kt` | 32 lines | `.kt` |
+| `tests/INVESTIGATION.md` | 269 lines | `.md` |
+| `tests/README.md` | 154 lines | `.md` |
+| `tests/analyze-player.mjs` | 53 lines | `.mjs` |
+| `tests/cipher-check.mjs` | 67 lines | `.mjs` |
+| `tests/cipher.mjs` | 205 lines | `.mjs` |
+| `tests/client-fulldownload.mjs` | 104 lines | `.mjs` |
+| `tests/clients.mjs` | 69 lines | `.mjs` |
+| `tests/cred.mjs` | 82 lines | `.mjs` |
+| `tests/full-stream.mjs` | 87 lines | `.mjs` |
+| `tests/package-lock.json` | 554 lines | `.json` |
+| `tests/package.json` | 7 lines | `.json` |
+| `tests/pot-probe.mjs` | 139 lines | `.mjs` |
+| `tests/potoken.mjs` | 132 lines | `.mjs` |
+| `tests/results.json` | 222 lines | `.json` |
+| `tests/retest-web.mjs` | 58 lines | `.mjs` |
+| `tests/run.mjs` | 181 lines | `.mjs` |
+| `tests/web-remix-stream.mjs` | 277 lines | `.mjs` |

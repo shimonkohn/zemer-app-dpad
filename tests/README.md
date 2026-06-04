@@ -4,12 +4,12 @@ Node scripts that reproduce the app's streaming pipeline **exactly** (same `/pla
 same cipher, same poTokens) so playback behaviour can be measured against the live CDN without
 building the APK. Source of truth is the terminal output, not guesses.
 
-All scripts run from the repo root or `tests/`. Node ≥ 20. Deps (`bgutils-js`, `jsdom`,
+All scripts run from the repo root or `tests/`. Node >= 20. Deps (`bgutils-js`, `jsdom`,
 `youtubei.js`) are vendored in `tests/node_modules`.
 
 > **When streaming breaks again** (player rotation, pot scheme change, a client stops working),
 > see **[`INVESTIGATION.md`](./INVESTIGATION.md)** — the full methodology + a symptom-indexed
-> runbook ("songs drop after N seconds → run X", "cipher throws no-config → do Y", etc.).
+> runbook ("songs drop after N seconds -> run X", "cipher throws no-config -> do Y", etc.).
 
 ---
 
@@ -46,7 +46,7 @@ different id as the first CLI arg or via `VIDEO_ID`.
 | script | what it does |
 |---|---|
 | `cred.mjs` | Loads cookie/visitorData/dataSyncId from `innertube_cookie.txt` (+ env overrides). |
-| `cipher.mjs` | Faithful Node port of the app's **Zemer cipher** (sig deobfuscation + n-transform + STS). Fetches the **same** `base.js` (iframe_api → `player_ias.vflset/en_GB/base.js`), injects the **same** VM-dispatch expressions (`Tl(48,5831,sig)` / `Qp(25,37,sig)`, `g.W_`/`g.W1` n-trick) into the IIFE, and runs it in jsdom. Byte-identical to `CipherWebView`. |
+| `cipher.mjs` | Faithful Node port of the app's **Zemer cipher** (sig deobfuscation + n-transform + STS). Fetches the **same** `base.js` (iframe_api -> `player_ias.vflset/en_GB/base.js`), injects the **same** VM-dispatch expressions (`Tl(48,5831,sig)` / `Qp(25,37,sig)`, `g.W_`/`g.W1` n-trick) into the IIFE, and runs it in jsdom. Byte-identical to `CipherWebView`. |
 | `potoken.mjs` | BotGuard **poToken** minter (`bgutils-js` + jsdom), request key `O43z0dpjhgX20SCx4KAo`. Mirrors the app's `PoTokenGenerator`: **streaming token bound to visitorData** (minted first), **player token bound to videoId**. |
 | `web-remix-stream.mjs` | Reproduces the WEB_REMIX **45s-drop + seek** bug via the app's exact resolve path, then exercises the URL like ExoPlayer (sequential range chunks on fresh connections, seek, one open GET, re-resolve, pot-variant probe) + an IOS control. |
 | `pot-probe.mjs` | The **definitive poToken-binding matrix**: request-pot × url-pot × {none/videoId/visitorData-raw/visitorData-enc}, fetched past the 1-MiB window. |
@@ -79,17 +79,17 @@ cipher mid-test — the matching STS is sent in the `/player` request, keeping d
 ### Reproduced
 
 The app's exact WEB_REMIX path resolves fine (`playability=OK`, itag 251 opus, sig+n applied,
-`pot=` appended). The CDN URL is `clen=5,878,798` bytes / 330s (≈17.8 KB/s).
+`pot=` appended). The CDN URL is `clen=5,878,798` bytes / 330s (~17.8 KB/s).
 
 ```
 A initial   bytes=0-262143               -> 206
-B continuation (fresh conn / chunk)      -> 403 at byte 1,048,576  (= 1 MiB ≈ 59s)
+B continuation (fresh conn / chunk)      -> 403 at byte 1,048,576  (= 1 MiB ~ 59s)
 C seek @75%                              -> 403 (header AND query range)
 D one open GET bytes=0-                  -> 403, 0 bytes delivered
 ```
 
 - **45s drop** = the CDN serves the first **1 MiB** then 403s every *new connection* (next chunk).
-- **Seek → fallback** = a seek is just a new connection at a far offset; same 403.
+- **Seek -> fallback** = a seek is just a new connection at a far offset; same 403.
 
 Both are the same failure: any connection past the 1-MiB free window is rejected.
 
@@ -100,7 +100,7 @@ Both are the same failure: any connection past the 1-MiB free window is rejected
 ```
                        @1 MiB   @2 MiB
 url pot = none          403      403
-url pot = videoId       206      206   ✓  → full file 5,878,798 B downloads
+url pot = videoId       206      206   OK  -> full file 5,878,798 B downloads
 url pot = visitorData    403      403       (raw "==" AND url-encoded "%3D%3D" both fail)
 ```
 
@@ -112,7 +112,7 @@ The app does the opposite. `PoTokenGenerator.getWebClientPoToken(videoId, sessio
 `PoTokenResult(playerPot = generate(videoId), streamingPot = generate(visitorData))`, and
 `YTPlayerUtils` appends `streamingDataPoToken` (= `streamingPot` = **visitorData-bound**) to the
 URL while sending `playerRequestPoToken` (= **videoId-bound**) in the request. The two are swapped
-relative to what googlevideo enforces, so every WEB_REMIX stream 403s at 1 MiB → fallback restart.
+relative to what googlevideo enforces, so every WEB_REMIX stream 403s at 1 MiB -> fallback restart.
 
 ### Fix — verified end to end
 
@@ -139,9 +139,9 @@ Code fix options (pick one):
 
 | client | full song? | needs |
 |---|---|---|
-| **ANDROID_VR_1_43_32 / _NO_AUTH / _1_61_48** | ✅ whole song | nothing — anon, direct url, no pot/cipher/BotGuard |
-| **WEB_REMIX** | ✅ **only with the videoId-pot fix** | poToken (videoId-bound) + sig/n cipher |
-| **IOS / IPADOS** | ❌ 403 (hits the 1-MiB wall, no pot) | — no longer reliable for full playback |
+| **ANDROID_VR_1_43_32 / _NO_AUTH / _1_61_48** | yes whole song | nothing — anon, direct url, no pot/cipher/BotGuard |
+| **WEB_REMIX** | yes **only with the videoId-pot fix** | poToken (videoId-bound) + sig/n cipher |
+| **IOS / IPADOS** | no 403 (hits the 1-MiB wall, no pot) | — no longer reliable for full playback |
 
 Implications for `STREAM_FALLBACK_CLIENTS` (currently `TVHTML5, ANDROID_VR_1_43_32, IOS, IPADOS, …`):
 - **ANDROID_VR is the reliable no-pot path** — fastest (one anonymous request, no BotGuard, no

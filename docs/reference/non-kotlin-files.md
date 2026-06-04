@@ -1,16 +1,17 @@
 # Non-Kotlin file reference
 
-Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `265`.
+Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `283`.
 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
+| `.github/workflows/player-monitor.yml` | 131 lines | text `.yml` |
 | `.github/workflows/release-build.yml` | 113 lines | text `.yml` |
-| `.gitignore` | 94 lines | text `[none]` |
+| `.gitignore` | 103 lines | text `[none]` |
 | `.gitmodules` | 6 lines | text `[none]` |
 | `LICENSE` | 674 lines | text `[none]` |
 | `README.md` | 11 lines | text `.md` |
 | `app/.gitignore` | 1 lines | text `[none]` |
-| `app/build.gradle.kts` | 258 lines | text `.kts`; plugins `com.android.application, android, hilt, kotlin.ksp, compose.compiler, google.gms.google.services` |
+| `app/build.gradle.kts` | 259 lines | text `.kts`; plugins `com.android.application, android, hilt, kotlin.ksp, compose.compiler, google.gms.google.services` |
 | `app/lint.xml` | 12 lines | text `.xml`; XML root `lint` |
 | `app/proguard-rules.pro` | 240 lines | text `.pro` |
 | `app/schemas/com.jtech.zemer.db.InternalDatabase/1.json` | 297 lines | text `.json`; JSON keys `formatVersion, database` |
@@ -269,3 +270,20 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `lrclib/build.gradle.kts` | 16 lines | text `.kts`; plugins `kotlin.serialization, jvm` |
 | `settings.gradle.kts` | 56 lines | text `.kts`; plugins `org.gradle.toolchains.foojay-resolver-convention` |
 | `simpmusic/build.gradle.kts` | 15 lines | text `.kts`; plugins `kotlin.serialization, jvm` |
+| `tests/INVESTIGATION.md` | 269 lines | text `.md` |
+| `tests/README.md` | 154 lines | text `.md` |
+| `tests/analyze-player.mjs` | 53 lines | text `.mjs` |
+| `tests/cipher-check.mjs` | 67 lines | text `.mjs` |
+| `tests/cipher.mjs` | 205 lines | text `.mjs` |
+| `tests/client-fulldownload.mjs` | 104 lines | text `.mjs` |
+| `tests/clients.mjs` | 69 lines | text `.mjs` |
+| `tests/cred.mjs` | 82 lines | text `.mjs` |
+| `tests/full-stream.mjs` | 87 lines | text `.mjs` |
+| `tests/package-lock.json` | 554 lines | text `.json`; JSON keys `name, lockfileVersion, requires, packages` |
+| `tests/package.json` | 7 lines | text `.json`; JSON keys `dependencies` |
+| `tests/pot-probe.mjs` | 139 lines | text `.mjs` |
+| `tests/potoken.mjs` | 132 lines | text `.mjs` |
+| `tests/results.json` | 222 lines | text `.json` |
+| `tests/retest-web.mjs` | 58 lines | text `.mjs` |
+| `tests/run.mjs` | 181 lines | text `.mjs` |
+| `tests/web-remix-stream.mjs` | 277 lines | text `.mjs` |
