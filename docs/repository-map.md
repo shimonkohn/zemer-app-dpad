@@ -77,7 +77,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `699`
+- Files counted: `700`
 - By extension:
   - `.kt`: `395`
   - `.xml`: `182`
@@ -98,6 +98,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
   - `.jar`: `1`
   - `.pro`: `1`
   - `.py`: `1`
+  - `.sh`: `1`
   - `.toml`: `1`
   - `.txt`: `1`
 
@@ -106,7 +107,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | Path | Lines/bytes | Kind |
 | --- | ---: | --- |
 | `.github/workflows/player-monitor.yml` | 131 lines | `.yml` |
-| `.github/workflows/release-build.yml` | 113 lines | `.yml` |
+| `.github/workflows/release-build.yml` | 123 lines | `.yml` |
 | `.gitignore` | 106 lines | `[none]` |
 | `.gitmodules` | 6 lines | `[none]` |
 | `LICENSE` | 674 lines | `[none]` |
@@ -362,7 +363,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/settings/PrivacySettings.kt` | 208 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/settings/SettingsScreen.kt` | 227 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/settings/StorageSettings.kt` | 440 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/ui/screens/settings/StreamSourceSettings.kt` | 161 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/ui/screens/settings/StreamSourceSettings.kt` | 218 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/settings/UpdaterSettings.kt` | 278 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/settings/integrations/IntegrationScreen.kt` | 49 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/theme/PlayerColorExtractor.kt` | 159 lines | `.kt` |
@@ -637,7 +638,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/res/values/app_name.xml` | 4 lines | `.xml` |
 | `app/src/main/res/values/colors.xml` | 9 lines | `.xml` |
 | `app/src/main/res/values/ic_launcher_background.xml` | 6 lines | `.xml` |
-| `app/src/main/res/values/metrolist_strings.xml` | 302 lines | `.xml` |
+| `app/src/main/res/values/metrolist_strings.xml` | 303 lines | `.xml` |
 | `app/src/main/res/values/strings.xml` | 560 lines | `.xml` |
 | `app/src/main/res/values/styles.xml` | 14 lines | `.xml` |
 | `app/src/main/res/values/values.xml` | 8 lines | `.xml` |
@@ -661,9 +662,9 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/generate.py` | 270 lines | `.py` |
 | `docs/innertube/README.md` | 183 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 418 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 297 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 298 lines | `.md` |
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
-| `docs/repository-map.md` | 806 lines | `.md` |
+| `docs/repository-map.md` | 808 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |
 | `gradle.properties` | 40 lines | `.properties` |
@@ -775,6 +776,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `lrclib/build.gradle.kts` | 16 lines | `.kts` |
 | `lrclib/src/main/kotlin/com/metrolist/lrclib/LrcLib.kt` | 293 lines | `.kt` |
 | `lrclib/src/main/kotlin/com/metrolist/lrclib/models/Track.kt` | 137 lines | `.kt` |
+| `scripts/telegram-chats.sh` | 38 lines | `.sh` |
 | `settings.gradle.kts` | 56 lines | `.kts` |
 | `simpmusic/build.gradle.kts` | 15 lines | `.kts` |
 | `simpmusic/src/main/kotlin/com/metrolist/simpmusic/SimpMusicLyrics.kt` | 119 lines | `.kt` |

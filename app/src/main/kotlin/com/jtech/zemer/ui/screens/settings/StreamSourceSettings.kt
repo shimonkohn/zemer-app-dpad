@@ -1,18 +1,30 @@
 package com.jtech.zemer.ui.screens.settings
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -50,6 +62,19 @@ fun StreamSourceSettings(
     val (webCreatorEnabled, onWebCreatorChange) = rememberPreference(StreamSourceWebCreatorKey, defaultValue = true)
     val (androidCreatorEnabled, onAndroidCreatorChange) = rememberPreference(StreamSourceAndroidCreatorKey, defaultValue = false)
 
+    // Effective stream order shown to the user: WEB_REMIX is the primary client; the rest mirror
+    // YTPlayerUtils.ALL_FALLBACK_CLIENTS (ANDROID_VR variants deduped). Only enabled toggles appear.
+    val streamOrder = listOf(
+        "WEB_REMIX" to webRemixEnabled,
+        "visionOS" to visionosEnabled,
+        "TVHTML5" to tvhtml5Enabled,
+        "Android VR" to androidVREnabled,
+        "iOS" to iosEnabled,
+        "iPadOS" to ipadosEnabled,
+        "ANDROID_CREATOR" to androidCreatorEnabled,
+        "WEB_CREATOR" to webCreatorEnabled,
+    ).filter { it.second }.map { it.first }
+
     val backFocus = remember { FocusRequester() }
     val firstFocus = remember { FocusRequester() }
 
@@ -62,6 +87,38 @@ fun StreamSourceSettings(
             .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
             .verticalScroll(rememberScrollState()),
     ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 12.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.stream_source_order),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+            ) {
+                streamOrder.forEach { name ->
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                    ) {
+                        Text(
+                            text = name,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        )
+                    }
+                }
+            }
+        }
+
         PreferenceGroupTitle(
             title = stringResource(R.string.stream_source_web_clients)
         )
@@ -69,7 +126,7 @@ fun StreamSourceSettings(
         SwitchPreference(
             title = { Text(stringResource(R.string.stream_source_web_remix)) },
             description = stringResource(R.string.stream_source_web_remix_desc),
-            icon = { Icon(painterResource(R.drawable.music_note), null) },
+            icon = { Icon(painterResource(R.drawable.play), null) },
             checked = webRemixEnabled,
             onCheckedChange = onWebRemixChange,
             modifier = Modifier.focusRequester(firstFocus),
@@ -85,6 +142,14 @@ fun StreamSourceSettings(
 
         PreferenceGroupTitle(
             title = stringResource(R.string.stream_source_native_clients)
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.stream_source_visionos)) },
+            description = stringResource(R.string.stream_source_visionos_desc),
+            icon = { Icon(painterResource(R.drawable.play), null) },
+            checked = visionosEnabled,
+            onCheckedChange = onVisionOSChange,
         )
 
         SwitchPreference(
@@ -109,14 +174,6 @@ fun StreamSourceSettings(
             icon = { Icon(painterResource(R.drawable.play), null) },
             checked = ipadosEnabled,
             onCheckedChange = onIPadOSChange,
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.stream_source_visionos)) },
-            description = stringResource(R.string.stream_source_visionos_desc),
-            icon = { Icon(painterResource(R.drawable.play), null) },
-            checked = visionosEnabled,
-            onCheckedChange = onVisionOSChange,
         )
 
         PreferenceGroupTitle(
