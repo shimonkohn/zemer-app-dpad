@@ -16,9 +16,12 @@ import { getCred } from "./cred.mjs";
 const MIB = 1048576;
 const VID = process.argv[3] || "JTF9fLJvniI";
 const STORE = new URL("./_oauth_device.json", import.meta.url);
-// YouTube TV-app OAuth client (public, used by yt-dlp/NewPipe for device-flow login).
-const CLIENT_ID = "861556708454-d6dlm3lh05idd8npek18k6be8ba3oc68.apps.googleusercontent.com";
-const CLIENT_SECRET = "SboVhoG9s0rNafixCSGGKXAT";
+// YouTube TV-app device-flow OAuth client. The client_id is a public identifier; the secret is
+// read from env so NO credential literal lives in the repo / trips secret scanners. These are
+// yt-dlp's published TV-app constants (Google treats installed-app secrets as non-confidential) —
+// look them up in yt-dlp and run:  YT_TV_OAUTH_ID=... YT_TV_OAUTH_SECRET=... node tests/re-oauth.mjs poll
+const CLIENT_ID = process.env.YT_TV_OAUTH_ID || "";
+const CLIENT_SECRET = process.env.YT_TV_OAUTH_SECRET || "";
 const SCOPE = "http://gdata.youtube.com https://www.googleapis.com/auth/youtube";
 
 async function start() {
@@ -106,6 +109,7 @@ async function poll() {
 }
 
 const cmd = process.argv[2];
-if (cmd === "start") await start();
+if (!CLIENT_ID || !CLIENT_SECRET) console.log("set YT_TV_OAUTH_ID and YT_TV_OAUTH_SECRET (yt-dlp's public TV-app device-flow constants) to run this probe");
+else if (cmd === "start") await start();
 else if (cmd === "poll") await poll();
 else console.log("usage: node tests/re-oauth.mjs start|poll");

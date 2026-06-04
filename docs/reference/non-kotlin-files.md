@@ -289,7 +289,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `tests/re-compare.mjs` | 58 lines | text `.mjs` |
 | `tests/re-deep.mjs` | 78 lines | text `.mjs` |
 | `tests/re-ios.mjs` | 68 lines | text `.mjs` |
-| `tests/re-oauth.mjs` | 111 lines | text `.mjs` |
+| `tests/re-oauth.mjs` | 115 lines | text `.mjs` |
 | `tests/results.json` | 222 lines | text `.json` |
 | `tests/retest-web.mjs` | 58 lines | text `.mjs` |
 | `tests/run.mjs` | 181 lines | text `.mjs` |

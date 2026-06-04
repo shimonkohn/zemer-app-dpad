@@ -798,7 +798,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `tests/re-compare.mjs` | 58 lines | `.mjs` |
 | `tests/re-deep.mjs` | 78 lines | `.mjs` |
 | `tests/re-ios.mjs` | 68 lines | `.mjs` |
-| `tests/re-oauth.mjs` | 111 lines | `.mjs` |
+| `tests/re-oauth.mjs` | 115 lines | `.mjs` |
 | `tests/results.json` | 222 lines | `.json` |
 | `tests/retest-web.mjs` | 58 lines | `.mjs` |
 | `tests/run.mjs` | 181 lines | `.mjs` |
