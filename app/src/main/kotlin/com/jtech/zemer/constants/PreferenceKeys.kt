@@ -71,6 +71,15 @@ val LastWhitelistVersionKey = longPreferencesKey("lastWhitelistVersion")
 
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 
+// Stream source toggles — each key maps to whether that client is enabled
+val StreamSourceWebRemixKey   = booleanPreferencesKey("streamSourceWebRemix")
+val StreamSourceTVHTML5Key    = booleanPreferencesKey("streamSourceTVHTML5")
+val StreamSourceAndroidVRKey  = booleanPreferencesKey("streamSourceAndroidVR")
+val StreamSourceIOSKey        = booleanPreferencesKey("streamSourceIOS")
+val StreamSourceIPadOSKey     = booleanPreferencesKey("streamSourceIPadOS")
+val StreamSourceWebCreatorKey = booleanPreferencesKey("streamSourceWebCreator")
+val StreamSourceAndroidCreatorKey = booleanPreferencesKey("streamSourceAndroidCreator")
+
 enum class AudioQuality {
     AUTO,
     HIGH,

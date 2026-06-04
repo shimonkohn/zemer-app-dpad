@@ -4,6 +4,12 @@ import android.net.ConnectivityManager
 import androidx.core.net.toUri
 import androidx.media3.common.PlaybackException
 import com.jtech.zemer.constants.AudioQuality
+import com.jtech.zemer.constants.StreamSourceAndroidVRKey
+import com.jtech.zemer.constants.StreamSourceIOSKey
+import com.jtech.zemer.constants.StreamSourceIPadOSKey
+import com.jtech.zemer.constants.StreamSourceTVHTML5Key
+import com.jtech.zemer.constants.StreamSourceWebRemixKey
+import kotlinx.coroutines.flow.first
 
 import timber.log.Timber
 import com.metrolist.innertube.NewPipeUtils
@@ -50,9 +56,12 @@ object YTPlayerUtils {
         webRemixFailedIds.add(videoId)
     }
 
+    /** Client names disabled by the user in Settings → Stream sources. Updated by MusicService. */
+    var disabledStreamClients: Set<String> = emptySet()
+
     private val MAIN_CLIENT: YouTubeClient = WEB_REMIX
 
-    private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
+    private val ALL_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
         TVHTML5,
         ANDROID_VR_1_43_32,
         IOS,
@@ -64,6 +73,9 @@ object YTPlayerUtils {
         WEB,
         WEB_CREATOR
     )
+
+    private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient>
+        get() = ALL_FALLBACK_CLIENTS.filter { it.clientName !in disabledStreamClients }.toTypedArray()
     data class PlaybackData(
         val audioConfig: PlayerResponse.PlayerConfig.AudioConfig?,
         val videoDetails: PlayerResponse.VideoDetails?,
@@ -87,8 +99,13 @@ object YTPlayerUtils {
         maxVideoBitrateKbps: Int? = null,
         forDownload: Boolean = false,
     ): Result<PlaybackData> = runCatching {
-        val mainClient = MAIN_CLIENT
-        val fallbackClients = STREAM_FALLBACK_CLIENTS
+        val mainClient = if (MAIN_CLIENT.clientName in disabledStreamClients) {
+            STREAM_FALLBACK_CLIENTS.firstOrNull()
+                ?: throw PlaybackException("All stream sources are disabled", null, PlaybackException.ERROR_CODE_REMOTE_ERROR)
+        } else {
+            MAIN_CLIENT
+        }
+        val fallbackClients = STREAM_FALLBACK_CLIENTS.filter { it.clientName != mainClient.clientName }.toTypedArray()
 
         Timber.tag(TAG).d( "=== Stream resolution START for videoId=$videoId ===")
         Timber.tag(TAG).d( "Main client: ${mainClient.clientName}, audioQuality=$audioQuality, preferVideo=$preferVideo")
@@ -122,15 +139,19 @@ object YTPlayerUtils {
         Timber.tag(TAG).d( "PoToken: ${if (poTokenResult != null) "generated" else "unavailable"}")
 
         Timber.tag(TAG).d( "Fetching main player response with client: ${mainClient.clientName}")
+        // Resilient: the chosen main client can fail outright (e.g. ANDROID_CREATOR returns
+        // HTTP 400 with login). Use getOrNull, not getOrThrow, so one bad client never kills the
+        // whole resolution — the stream loop below falls through to the next enabled client, and
+        // metadata is captured from the first client that returns OK.
         val mainPlayerResponse =
             YouTube.player(
                 videoId, playlistId, mainClient, signatureTimestamp,
                 webPlayerPot = if (mainClient.useWebPoTokens) poTokenResult?.playerRequestPoToken else null
-            ).getOrThrow()
-        Timber.tag(TAG).d( "Main response status: ${mainPlayerResponse.playabilityStatus.status}")
-        val audioConfig = mainPlayerResponse.playerConfig?.audioConfig
-        val videoDetails = mainPlayerResponse.videoDetails
-        val playbackTracking = mainPlayerResponse.playbackTracking
+            ).getOrNull()
+        Timber.tag(TAG).d( "Main response status: ${mainPlayerResponse?.playabilityStatus?.status ?: "request failed"}")
+        var audioConfig = mainPlayerResponse?.playerConfig?.audioConfig
+        var videoDetails = mainPlayerResponse?.videoDetails
+        var playbackTracking = mainPlayerResponse?.playbackTracking
         var format: PlayerResponse.StreamingData.Format? = null
         var streamUrl: String? = null
         var streamExpiresInSeconds: Int? = null
@@ -170,6 +191,11 @@ object YTPlayerUtils {
             // process current client response
             if (streamPlayerResponse?.playabilityStatus?.status == "OK") {
                 Timber.tag(TAG).d( "Status OK for ${client.clientName}")
+
+                // Capture metadata from the first OK client (main may have failed/returned null above).
+                if (audioConfig == null) audioConfig = streamPlayerResponse?.playerConfig?.audioConfig
+                if (videoDetails == null) videoDetails = streamPlayerResponse?.videoDetails
+                if (playbackTracking == null) playbackTracking = streamPlayerResponse?.playbackTracking
 
                 // Use the player response as-is. The old NewPipe StreamInfo.getInfo
                 // pre-processing ran a full second extraction for EVERY song (fetch watch
