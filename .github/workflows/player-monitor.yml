@@ -1,0 +1,131 @@
+name: YouTube Player Monitor
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # every hour
+  workflow_dispatch:        # manual trigger
+
+jobs:
+  check-player:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Fetch current player hash from iframe_api
+        id: player
+        run: |
+          HASH=$(curl -s "https://www.youtube.com/iframe_api" | grep -oE 'player.{0,2}[a-f0-9]{8}' | grep -oE '[a-f0-9]{8}' | head -1)
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          echo "Current player: $HASH"
+
+      - name: Check if hash is known in cipher
+        id: known
+        run: |
+          HASH="${{ steps.player.outputs.hash }}"
+          if grep -q "\"$HASH\"" cipher/library/src/main/kotlin/com/zemer/cipher/FunctionNameExtractor.kt; then
+            echo "known=true" >> "$GITHUB_OUTPUT"
+            echo "Hash $HASH is already in KNOWN_PLAYER_CONFIGS ✓"
+          else
+            echo "known=false" >> "$GITHUB_OUTPUT"
+            echo "Hash $HASH is UNKNOWN — cipher update needed!"
+          fi
+
+      - name: Compute MD5 fallback hash
+        id: md5
+        if: steps.known.outputs.known == 'false'
+        run: |
+          HASH="${{ steps.player.outputs.hash }}"
+          URL="https://www.youtube.com/s/player/${HASH}/player_ias.vflset/en_GB/base.js"
+          MD5=$(curl -s "$URL" | head -c 10000 | md5sum | cut -c1-8)
+          echo "md5=$MD5" >> "$GITHUB_OUTPUT"
+          # Check if MD5 alias is known
+          if grep -q "\"$MD5\"" cipher/library/src/main/kotlin/com/zemer/cipher/FunctionNameExtractor.kt; then
+            echo "md5_known=true" >> "$GITHUB_OUTPUT"
+            echo "MD5 alias $MD5 is already known ✓"
+          else
+            echo "md5_known=false" >> "$GITHUB_OUTPUT"
+            echo "MD5 alias $MD5 is also unknown"
+          fi
+
+      - name: Open issue for unknown player
+        if: steps.known.outputs.known == 'false' && steps.md5.outputs.md5_known == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const hash = '${{ steps.player.outputs.hash }}';
+            const md5 = '${{ steps.md5.outputs.md5 }}';
+            const title = `New YouTube player detected: ${hash}`;
+
+            // Check if issue already open for this hash
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'player-update',
+            });
+            const exists = issues.data.some(i => i.title === title);
+            if (exists) {
+              console.log('Issue already open for this hash, skipping.');
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body: [
+                '## New YouTube Player JS Detected',
+                '',
+                `- **Player hash**: \`${hash}\``,
+                `- **MD5 fallback**: \`${md5}\``,
+                `- **iframe_api URL**: https://www.youtube.com/iframe_api`,
+                `- **player_ias URL**: https://www.youtube.com/s/player/${hash}/player_ias.vflset/en_GB/base.js`,
+                '',
+                '## Required action',
+                '',
+                '1. Download and analyze the new `base.js`',
+                '2. Extract sig function (look for `Tl(`, `Qp(`, or other VM-dispatch patterns near `.sp` / `.s`)',
+                '3. Extract n-transform (look for `get("n")` → `W_` or `W1` URL trick)',
+                '4. Extract `signatureTimestamp` value',
+                '5. Add entry to `KNOWN_PLAYER_CONFIGS` in `FunctionNameExtractor.kt`',
+                '6. Also add MD5 fallback alias',
+                '7. Commit to `zemer-cipher` → update submodule pointer in `zemer-app`',
+              ].join('\n'),
+              labels: ['player-update', 'cipher'],
+            });
+            console.log(`Opened issue: ${title}`);
+
+      - name: Send email notification
+        if: steps.known.outputs.known == 'false' && steps.md5.outputs.md5_known == 'false'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "New YouTube player detected: ${{ steps.player.outputs.hash }}"
+          to: dietdroidwp@gmail.com
+          from: Zemer CI <${{ secrets.GMAIL_USERNAME }}>
+          body: |
+            New YouTube player JS detected — cipher update required.
+
+            Player hash: ${{ steps.player.outputs.hash }}
+            MD5 fallback: ${{ steps.md5.outputs.md5 }}
+
+            base.js: https://www.youtube.com/s/player/${{ steps.player.outputs.hash }}/player_ias.vflset/en_GB/base.js
+
+            Steps:
+            1. Download and analyze the new base.js
+            2. Extract sig function (Tl(, Qp(, or other VM-dispatch near .sp/.s)
+            3. Extract n-transform (get("n") → W_ or W1 URL trick)
+            4. Extract signatureTimestamp value
+            5. Add to KNOWN_PLAYER_CONFIGS in FunctionNameExtractor.kt
+            6. Add MD5 fallback alias
+            7. Commit to zemer-cipher → update submodule in zemer-app
+
+            GitHub issue: https://github.com/ZemerTeam/zemer-app/issues
