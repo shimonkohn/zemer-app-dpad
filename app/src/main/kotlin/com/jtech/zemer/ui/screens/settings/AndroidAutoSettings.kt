@@ -42,7 +42,6 @@ import com.jtech.zemer.LocalPlayerAwareWindowInsets
 import com.jtech.zemer.R
 import com.jtech.zemer.constants.AndroidAutoSectionsOrderKey
 import com.jtech.zemer.constants.AndroidAutoTargetPlaylistKey
-import com.jtech.zemer.constants.AndroidAutoYouTubePlaylistsKey
 import com.jtech.zemer.constants.MediaSessionConstants
 import com.jtech.zemer.ui.component.PreferenceEntry
 import com.jtech.zemer.ui.component.PreferenceGroupTitle
@@ -108,10 +107,6 @@ fun AndroidAutoSettings(
         database.playlistsByCreateDateAsc().map { list -> list.map { it.playlist } }
     }.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    val (youtubePlaylistsEnabled, onYoutubePlaylistsChange) = rememberPreference(
-        key = AndroidAutoYouTubePlaylistsKey,
-        defaultValue = false,
-    )
     val (sectionsRaw, onSectionsChange) = rememberPreference(
         key = AndroidAutoSectionsOrderKey,
         defaultValue = serializeSections(AndroidAutoSection.entries.map { it to true }),
@@ -223,18 +218,6 @@ fun AndroidAutoSettings(
             )
         }
 
-        item(key = "youtube_title") {
-            PreferenceGroupTitle(title = stringResource(R.string.mixes))
-        }
-        item(key = "youtube_switch") {
-            SwitchPreference(
-                icon = { Icon(painterResource(R.drawable.queue_music), contentDescription = null) },
-                title = { Text(stringResource(R.string.android_auto_youtube_playlists)) },
-                description = stringResource(R.string.android_auto_youtube_playlists_desc),
-                checked = youtubePlaylistsEnabled,
-                onCheckedChange = onYoutubePlaylistsChange,
-            )
-        }
     }
 
     if (showTargetPlaylistDialog) {
