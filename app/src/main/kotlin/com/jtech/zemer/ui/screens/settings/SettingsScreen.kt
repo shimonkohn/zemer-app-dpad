@@ -56,6 +56,17 @@ fun SettingsScreen(
     LocalUriHandler.current
     val context = LocalContext.current
     Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    // Android Auto app package; declared in <queries> so getPackageInfo is visible on API 30+.
+    val hasAndroidAuto = remember {
+        try {
+            context.packageManager.getPackageInfo(
+                "com.google.android.projection.gearhead", 0
+            )
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
     val firebaseAuth = remember { FirebaseAuth.getInstance() }
     var isLoggedIn by remember { mutableStateOf(firebaseAuth.currentUser != null) }
 
@@ -158,7 +169,21 @@ fun SettingsScreen(
             route = "settings/about"
         )
     )
-    val allSettings = baseSettings + if (isLoggedIn) {
+    val androidAutoSettings = if (hasAndroidAuto) {
+        listOf(
+            SettingItem(
+                id = "android_auto",
+                title = stringResource(R.string.android_auto),
+                description = "Customize browsing & quick-add",
+                icon = R.drawable.ic_android_auto,
+                section = "Android Auto",
+                route = "settings/android_auto"
+            )
+        )
+    } else {
+        emptyList()
+    }
+    val allSettings = baseSettings + androidAutoSettings + if (isLoggedIn) {
         listOf(
             SettingItem(
                 id = "logout",
@@ -201,7 +226,19 @@ fun SettingsScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
             val sections = allSettings.groupBy { it.section }
-            sections.forEach { (sectionTitle, items) ->
+            // Fixed section order; "Android Auto" sits right after "Player & Content" (matches Metrolist).
+            val sectionOrder = listOf(
+                "Interface",
+                "Player & Content",
+                "Android Auto",
+                "Privacy & Security",
+                "Storage & Data",
+                "System & About",
+            )
+            val orderedSectionTitles = sectionOrder.filter { sections.containsKey(it) } +
+                sections.keys.filterNot { it in sectionOrder }
+            orderedSectionTitles.forEach { sectionTitle ->
+                val items = sections[sectionTitle] ?: return@forEach
                 Material3SettingsGroup(
                     title = sectionTitle,
                     items = items.map { setting ->
