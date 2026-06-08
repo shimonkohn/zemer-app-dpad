@@ -46,7 +46,7 @@ different id as the first CLI arg or via `VIDEO_ID`.
 | script | what it does |
 |---|---|
 | `cred.mjs` | Loads cookie/visitorData/dataSyncId from `innertube_cookie.txt` (+ env overrides). |
-| `cipher.mjs` | Faithful Node port of the app's **Zemer cipher** (sig deobfuscation + n-transform + STS). Fetches the **same** `base.js` (iframe_api -> `player_ias.vflset/en_GB/base.js`), injects the **same** VM-dispatch expressions (`Tl(48,5831,sig)` / `Qp(25,37,sig)`, `g.W_`/`g.W1` n-trick) into the IIFE, and runs it in jsdom. Byte-identical to `CipherWebView`. |
+| `cipher.mjs` | Faithful Node port of the app's **Zemer cipher** (sig deobfuscation + n-transform + STS). Fetches the **same** `base.js` (iframe_api -> `player_ias.vflset/en_GB/base.js`), injects the **same** VM-dispatch expressions (`Tl(48,5831,sig)` / `Qp(25,37,sig)` / `v0(35,4499,sig)` / `Jf(20,3699,sig)`, `g.W_`/`g.W1`/`g.uY`/`g.iE` n-trick) into the IIFE, and runs it in jsdom. Byte-identical to `CipherWebView`. |
 | `potoken.mjs` | BotGuard **poToken** minter (`bgutils-js` + jsdom), request key `O43z0dpjhgX20SCx4KAo`. Mirrors the app's `PoTokenGenerator`: **streaming token bound to visitorData** (minted first), **player token bound to videoId**. |
 | `web-remix-stream.mjs` | Reproduces the WEB_REMIX **45s-drop + seek** bug via the app's exact resolve path, then exercises the URL like ExoPlayer (sequential range chunks on fresh connections, seek, one open GET, re-resolve, pot-variant probe) + an IOS control. |
 | `pot-probe.mjs` | The **definitive poToken-binding matrix**: request-pot × url-pot × {none/videoId/visitorData-raw/visitorData-enc}, fetched past the 1-MiB window. |
@@ -65,7 +65,7 @@ node tests/client-fulldownload.mjs                   # per-client whole-song del
 ```
 
 Useful env: `URL_POT=streaming|player|none`, `CHUNK=262144`, `COVER_SECONDS=90`,
-`PLAYER_HASH=4f38b487` (pin a known-configured player so a freshly-rotated player can't break the
+`PLAYER_HASH=9d2ef9ef` (pin a known-configured player so a freshly-rotated player can't break the
 cipher mid-test — the matching STS is sent in the `/player` request, keeping decipher valid).
 
 > When YouTube rotates to a player hash not in `cipher.mjs`'s `KNOWN_PLAYER_CONFIGS` (mirrors the
@@ -104,8 +104,8 @@ url pot = videoId       206      206   OK  -> full file 5,878,798 B downloads
 url pot = visitorData    403      403       (raw "==" AND url-encoded "%3D%3D" both fail)
 ```
 
-- Independent of what's sent in the `/player` request, and reproduced across two player versions
-  (`4f38b487` STS 20602 and `5cabb421` STS 20606). visitorData encoding ruled out.
+- Independent of what's sent in the `/player` request, and reproduced across multiple player versions
+  (`4f38b487` STS 20602, `5cabb421` STS 20606, `9d2ef9ef` STS 20607, `69e2a55d` STS 20611). visitorData encoding ruled out.
 - **The stream URL's `pot=` must be bound to the videoId.**
 
 The app does the opposite. `PoTokenGenerator.getWebClientPoToken(videoId, sessionId)` returns
@@ -143,11 +143,13 @@ Code fix options (pick one):
 | **WEB_REMIX** | yes **only with the videoId-pot fix** | poToken (videoId-bound) + sig/n cipher |
 | **IOS / IPADOS** | no 403 (hits the 1-MiB wall, no pot) | — no longer reliable for full playback |
 
-Implications for `STREAM_FALLBACK_CLIENTS` (currently `TVHTML5, ANDROID_VR_1_43_32, IOS, IPADOS, …`):
-- **ANDROID_VR is the reliable no-pot path** — fastest (one anonymous request, no BotGuard, no
-  decipher) and delivers the whole song. Strong candidate to rank first, or to be the stream client.
-- **IOS/IPADOS 403 past 1 MiB** — they would re-trigger the same hiccup if reached; deprioritise.
-- **TVHTML5** is a web/pot client and hits the same 1-MiB rule — it needs the same videoId-pot fix.
+Current `STREAM_FALLBACK_CLIENTS` order (as of 2026-06-08):
+`WEB_REMIX -> VISIONOS -> WEB_CREATOR -> ANDROID_VR_1_43_32 -> ANDROID_VR_1_61_48 -> TVHTML5 -> IOS -> IPADOS -> ANDROID_CREATOR -> ANDROID_VR_NO_AUTH -> MOBILE -> WEB`
+
+- **VISIONOS / ANDROID_VR are the reliable no-pot paths** — direct url, no BotGuard, no decipher, whole song confirmed via `re-apple.mjs` / `client-fulldownload.mjs`.
+- **WEB_CREATOR** streams the full song with videoId pot (no streaming pot needed) — ranks above TVHTML5.
+- **IOS/IPADOS 403 past 1 MiB** — spc-gated, no pot binding that satisfies it; deprioritised.
+- **TVHTML5** is a web/pot client subject to the same 1-MiB rule — needs videoId-pot fix.
 
 > Note: the earlier "Findings (2026-06-02)" in this file concluded IOS/ANDROID_VR "stream in one
 > request". That was based on `Range: bytes=0-1` (first 2 bytes) and does **not** hold for full

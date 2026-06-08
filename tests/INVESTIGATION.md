@@ -38,7 +38,7 @@ must change too (see §6). The mapping:
 | `InnerTube.kt` `player()` + `ytClient()` | `web-remix-stream.mjs` / `pot-probe.mjs` `playerRequest()` | the `/player` POST: context, `X-Goog-*` headers, `SAPISIDHASH`, `signatureTimestamp`, `serviceIntegrityDimensions.poToken` |
 | `models/YouTubeClient.kt` | `clients.mjs` | client name/version/id/UA/flags (WEB_REMIX id 67, IOS id 5, …) |
 | `cipher/.../PlayerJsFetcher.kt` | `cipher.mjs` `fetchPlayerJs()` | iframe_api -> `player_ias.vflset/en_GB/base.js`, STS |
-| `cipher/.../FunctionNameExtractor.kt` `KNOWN_PLAYER_CONFIGS` | `cipher.mjs` `KNOWN_PLAYER_CONFIGS` | per-player sig expression (`Tl(48,5831,…)` / `Qp(25,37,…)`) + n-trick (`g.W_`/`g.W1`) + STS |
+| `cipher/.../FunctionNameExtractor.kt` `KNOWN_PLAYER_CONFIGS` | `cipher.mjs` `KNOWN_PLAYER_CONFIGS` | per-player sig expression (`Tl(48,5831,…)` / `Qp(25,37,…)` / `v0(35,4499,…)` / `Jf(20,3699,…)`) + n-trick (`g.W_`/`g.W1`/`g.uY`/`g.iE`) + STS |
 | `cipher/.../CipherWebView.kt` (Android WebView) | `cipher.mjs` (jsdom) | injects exports into the IIFE `})(_yt_player);`, runs base.js, calls `_cipherSigFunc` / `_nTransformFunc` |
 | `cipher/.../CipherDeobfuscator.kt` | `cipher.mjs` `deobfuscateStreamUrl` / `transformNParamInUrl` | parse `s/sp/url`, apply sig, replace `n=`, append `&pot=` |
 | `cipher/.../potoken/PoTokenGenerator.kt` + `PoTokenWebView.kt` | `potoken.mjs` (bgutils-js) | BotGuard mint: streaming pot <- visitorData, player pot <- videoId, request key `O43z0dpjhgX20SCx4KAo` |
@@ -135,7 +135,7 @@ this is what tells you the new answer (Runbook B).
 ### `client-fulldownload.mjs` — which clients deliver a whole song
 ```bash
 node client-fulldownload.mjs              # uses the live player
-PLAYER_HASH=4f38b487 node client-fulldownload.mjs   # pin a known player for determinism
+PLAYER_HASH=9d2ef9ef node client-fulldownload.mjs   # pin a known player for determinism
 ```
 Drains the entire file per client. Use it to re-pick the fallback order when a client breaks
 (Runbook C).
@@ -152,20 +152,22 @@ YouTube rotated to a new `player_ias` and neither the app's `FunctionNameExtract
 hash monitor for exactly this).
 
 - **To keep testing immediately:** pin a still-served known player —
-  `PLAYER_HASH=4f38b487 node web-remix-stream.mjs`. The STS you send in the `/player` request makes
+  `PLAYER_HASH=9d2ef9ef node web-remix-stream.mjs`. The STS you send in the `/player` request makes
   YouTube return a signatureCipher compatible with that base.js, so decipher stays valid even if it
   isn't the "current" rotated player. (Verified: pinning 4f38b487 worked while the live player was
-  the unconfigured `0006d355`.)
+  the unconfigured `0006d355`; same principle applies to any known hash.)
 - **To actually support the new player:** add an entry to **both**
   `cipher/library/.../FunctionNameExtractor.kt` `KNOWN_PLAYER_CONFIGS` (app, the real fix) and
   `tests/cipher.mjs` `KNOWN_PLAYER_CONFIGS` (harness mirror), keyed by both the URL hash and the
   MD5-of-first-10000-bytes alias. Each entry needs:
-  - `sigExpr`: the VM-dispatch expression that transforms `s`, e.g. `Tl(48,5831,INPUT)` (player
-    4f38b487/9c249f6f) or `Qp(25,37,INPUT)` (5cabb421). Derive by reversing the new base.js: find
-    the function that consumes `decodeURIComponent(...s)` and note the global dispatch name + its two
-    integer constants.
-  - `nExpr`: the URL-parser trick — `new g.W_('…?n='+n,true).get('n')` (the class name `W_`/`W1`
-    changes per player; it's the player's internal URL parser).
+  - `sigExpr`: the VM-dispatch expression that transforms `s`, e.g. `Tl(48,5831,INPUT)`
+    (4f38b487/9c249f6f), `Qp(25,37,INPUT)` (5cabb421), `v0(35,4499,INPUT)` (9d2ef9ef),
+    `Jf(20,3699,INPUT)` (69e2a55d). Derive by reversing the new base.js: find the URL-assembler
+    function (searches for `set("alr","yes")`), read its sig-transform call chain, confirm the
+    inner call is `decodeURIComponent` (already done by CipherDeobfuscator — INPUT replaces it).
+  - `nExpr`: the URL-parser trick — `new g.CLASS('…?n='+n,true).get('n')` (the class name
+    `W_`/`W1`/`uY`/`iE` changes per player; grep `bIR=\|CVy=` for the n-transform function to
+    find it; or look for `new g.X(url,!0).get("n")` near the n-apply site).
   - `sts`: from `signatureTimestamp:(\d+)` in base.js.
   - Confirm with `node cipher.mjs` -> `sig=true n=true`, n probe `changed:true`.
 
@@ -184,8 +186,8 @@ The throttle/pot rule changed. Re-derive it empirically:
 ### C. A client that used to work now 403s (e.g. IOS broke)
 `node client-fulldownload.mjs` (pin a player for a clean comparison). It shows, per client,
 whether the whole song downloads. Re-rank `STREAM_FALLBACK_CLIENTS` in `YTPlayerUtils.kt` toward
-whatever still returns "WHOLE SONG" (as of this writing: ANDROID_VR with no pot; WEB_REMIX with the
-videoId pot; IOS/IPADOS were broken past 1 MiB).
+whatever still returns "WHOLE SONG" (as of 2026-06-08: VISIONOS and ANDROID_VR with no pot/cipher;
+WEB_REMIX and WEB_CREATOR with videoId pot; IOS/IPADOS broken past 1 MiB).
 
 ### D. `potoken.mjs` errors / poToken rejected (`UNPLAYABLE` even with pot)
 BotGuard/`bgutils-js` drift, or the web request key changed.
@@ -238,14 +240,15 @@ of these confirms the harness still resolves a playable stream.
 - **Required pot binding:** stream URL `&pot=` must be bound to the **videoId**; the `/player`
   request pot is bound to the **session (visitorData)**. (Opposite of the common convention.)
 - **Player rotation:** iframe_api rotates `player_ias` hashes frequently (saw `4f38b487` STS 20602,
-  `5cabb421` STS 20606, and a fresh unconfigured `0006d355` within one session). The MD5-of-first-
-  10000-bytes alias matters because some players have no self-referencing URL inside the JS.
+  `5cabb421` STS 20606, `9d2ef9ef` STS 20607, `69e2a55d` STS 20611, and a fresh unconfigured
+  `0006d355` within one session). The MD5-of-first-10000-bytes alias matters because some players
+  have no self-referencing URL inside the JS.
 - **Chosen format:** itag 251 (opus, webm) — `findFormat` adds a +10240 webm bias.
 - **Request key (web BotGuard):** `O43z0dpjhgX20SCx4KAo`.
 - **base.js:** `https://www.youtube.com/s/player/<hash>/player_ias.vflset/en_GB/base.js`, hash from
   `https://www.youtube.com/iframe_api`.
-- **Full-song delivery (this date):** ANDROID_VR yes (no pot/cipher), WEB_REMIX yes (with videoId pot),
-  IOS/IPADOS no (403 past 1 MiB).
+- **Full-song delivery (2026-06-08):** VISIONOS yes (no pot/cipher), ANDROID_VR yes (no pot/cipher),
+  WEB_REMIX yes (with videoId pot), WEB_CREATOR yes (with videoId pot), IOS/IPADOS no (403 past 1 MiB).
 
 ## 8. Gotchas (things that wasted time, so they don't again)
 

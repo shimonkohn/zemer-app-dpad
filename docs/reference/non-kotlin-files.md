@@ -1,6 +1,6 @@
 # Non-Kotlin file reference
 
-Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `292`.
+Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `293`.
 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
@@ -48,7 +48,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `app/schemas/com.jtech.zemer.db.InternalDatabase/9.json` | 840 lines | text `.json`; JSON keys `formatVersion, database` |
 | `app/src/debug/res/values/app_name.xml` | 4 lines | text `.xml`; XML root `resources` |
 | `app/src/debug/res/xml-v25/shortcuts.xml` | 23 lines | text `.xml`; XML root `shortcuts` |
-| `app/src/main/AndroidManifest.xml` | 264 lines | text `.xml`; XML root `manifest` |
+| `app/src/main/AndroidManifest.xml` | 265 lines | text `.xml`; XML root `manifest` |
 | `app/src/main/assets/solver/astring.js` | 3 lines | text `.js` |
 | `app/src/main/assets/solver/meriyah.js` | 9210 lines | text `.js` |
 | `app/src/main/assets/solver/yt.solver.core.js` | 603 lines | text `.js` |
@@ -113,6 +113,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `app/src/main/res/drawable/history.xml` | 9 lines | text `.xml`; XML root `vector` |
 | `app/src/main/res/drawable/home_filled.xml` | 10 lines | text `.xml`; XML root `vector` |
 | `app/src/main/res/drawable/home_outlined.xml` | 13 lines | text `.xml`; XML root `vector` |
+| `app/src/main/res/drawable/ic_android_auto.xml` | 22 lines | text `.xml`; XML root `vector` |
 | `app/src/main/res/drawable/ic_fullscreen.xml` | 9 lines | text `.xml`; XML root `vector` |
 | `app/src/main/res/drawable/ic_launcher_background.xml` | 74 lines | text `.xml`; XML root `vector` |
 | `app/src/main/res/drawable/ic_launcher_background_v31.xml` | 8 lines | text `.xml`; XML root `shape` |
@@ -242,7 +243,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `app/src/main/res/values/app_name.xml` | 4 lines | text `.xml`; XML root `resources` |
 | `app/src/main/res/values/colors.xml` | 9 lines | text `.xml`; XML root `resources` |
 | `app/src/main/res/values/ic_launcher_background.xml` | 6 lines | text `.xml`; XML root `resources` |
-| `app/src/main/res/values/metrolist_strings.xml` | 303 lines | text `.xml`; XML root `resources` |
+| `app/src/main/res/values/metrolist_strings.xml` | 317 lines | text `.xml`; XML root `resources` |
 | `app/src/main/res/values/strings.xml` | 560 lines | text `.xml`; XML root `resources` |
 | `app/src/main/res/values/styles.xml` | 14 lines | text `.xml`; XML root `resources` |
 | `app/src/main/res/values/values.xml` | 8 lines | text `.xml`; XML root `resources` |
@@ -275,8 +276,8 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `tests/README.md` | 154 lines | text `.md` |
 | `tests/analyze-player.mjs` | 53 lines | text `.mjs` |
 | `tests/broken-clients.mjs` | 142 lines | text `.mjs` |
-| `tests/cipher-check.mjs` | 67 lines | text `.mjs` |
-| `tests/cipher.mjs` | 205 lines | text `.mjs` |
+| `tests/cipher-check.mjs` | 91 lines | text `.mjs` |
+| `tests/cipher.mjs` | 211 lines | text `.mjs` |
 | `tests/client-fulldownload.mjs` | 104 lines | text `.mjs` |
 | `tests/clients.mjs` | 69 lines | text `.mjs` |
 | `tests/cred.mjs` | 82 lines | text `.mjs` |
