@@ -33,6 +33,12 @@ const KNOWN_PLAYER_CONFIGS = {
   // 5cabb421 / 94f9ca52 (2026-06-03, TVHTML5 Q-array)
   "5cabb421": { sigExpr: "Qp(25,37,INPUT)", nExpr: nTrick("W1"), sts: 20606 },
   "94f9ca52": { sigExpr: "Qp(25,37,INPUT)", nExpr: nTrick("W1"), sts: 20606 },
+  // 9d2ef9ef / 6fb43da5 (2026-06-08): v0/uY; sig=v0(35,4499,INPUT); n=uY trick
+  "9d2ef9ef": { sigExpr: "v0(35,4499,INPUT)", nExpr: nTrick("uY"), sts: 20607 },
+  "6fb43da5": { sigExpr: "v0(35,4499,INPUT)", nExpr: nTrick("uY"), sts: 20607 },
+  // 69e2a55d / 70d8066f (2026-06-08): Jf/iE; sig=Jf(20,3699,INPUT); n=iE trick
+  "69e2a55d": { sigExpr: "Jf(20,3699,INPUT)", nExpr: nTrick("iE"), sts: 20611 },
+  "70d8066f": { sigExpr: "Jf(20,3699,INPUT)", nExpr: nTrick("iE"), sts: 20611 },
 };
 
 function nTrick(urlClass) {
