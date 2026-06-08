@@ -67,12 +67,12 @@ fun StreamSourceSettings(
     val streamOrder = listOf(
         "WEB_REMIX" to webRemixEnabled,
         "visionOS" to visionosEnabled,
-        "TVHTML5" to tvhtml5Enabled,
+        "WEB_CREATOR" to webCreatorEnabled,
         "Android VR" to androidVREnabled,
+        "TVHTML5" to tvhtml5Enabled,
         "iOS" to iosEnabled,
         "iPadOS" to ipadosEnabled,
         "ANDROID_CREATOR" to androidCreatorEnabled,
-        "WEB_CREATOR" to webCreatorEnabled,
     ).filter { it.second }.map { it.first }
 
     val backFocus = remember { FocusRequester() }

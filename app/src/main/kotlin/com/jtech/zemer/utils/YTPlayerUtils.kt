@@ -69,16 +69,16 @@ object YTPlayerUtils {
         // (the web poToken can't satisfy iOS attestation) — verified via tests/re-apple.mjs — so
         // they stay only as last-ditch attempts.
         VISIONOS,
-        TVHTML5,
+        WEB_CREATOR,
         ANDROID_VR_1_43_32,
+        ANDROID_VR_1_61_48,
+        TVHTML5,
         IOS,
         IPADOS,
-        ANDROID_VR_1_61_48,
         ANDROID_CREATOR,
         ANDROID_VR_NO_AUTH,
         MOBILE,
-        WEB,
-        WEB_CREATOR
+        WEB
     )
 
     private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient>
