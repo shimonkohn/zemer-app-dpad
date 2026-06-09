@@ -71,6 +71,14 @@ Node ≥20 scripts (deps vendored in `tests/node_modules`, no install needed) th
 - **`:lrclib`** / **`:simpmusic`** (`com.metrolist.*`) — lyrics provider clients (LrcLib.net and api-lyrics.simpmusic.org).
 - **`cipher`** — see "Cipher / player rotation" above.
 
+## Documentation
+
+`docs/` is a **code-derived docset** — most of it is generated, not hand-written:
+
+- `docs/generate.py` regenerates `docs/repository-map.md`, `docs/build-release.md`, and `docs/reference/*.md` from tracked source (file inventory; Gradle / CI / native / JVM-module facts). It is idempotent — converges in one run — and needs PyYAML (`pip install pyyaml`) for `build-release.md`. **Never hand-edit those generated files**; change the source or the generator.
+- `.github/workflows/docs-regenerate.yml` runs the generator on every push to `main` and commits any change back (`[skip ci]`), so the generated docs stay current automatically. Running `python3 docs/generate.py` locally before a commit is still good practice.
+- Hand-authored docs are the exception — this `AGENTS.md`, `docs/ui/standards.md` (the UI rulebook), and prose/rationale carry intent a generator can't derive.
+
 ## Verifying your changes
 
 - **Build both** `:app:assembleDebug` and `:app:assembleRelease` (release catches R8/shrink breakage).

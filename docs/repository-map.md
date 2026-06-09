@@ -77,7 +77,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `732`
+- Files counted: `733`
 - By extension:
   - `.kt`: `396`
   - `.xml`: `183`
@@ -90,9 +90,9 @@ The following inventory is generated from repository files outside `.git`, `.gra
   - `.js`: `3`
   - `.lottie`: `3`
   - `.properties`: `3`
+  - `.yml`: `3`
   - `.dm`: `2`
   - `.png`: `2`
-  - `.yml`: `2`
   - `.backup`: `1`
   - `.bat`: `1`
   - `.jar`: `1`
@@ -106,11 +106,12 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 | Path | Lines/bytes | Kind |
 | --- | ---: | --- |
+| `.github/workflows/docs-regenerate.yml` | 48 lines | `.yml` |
 | `.github/workflows/player-monitor.yml` | 131 lines | `.yml` |
 | `.github/workflows/release-build.yml` | 149 lines | `.yml` |
 | `.gitignore` | 109 lines | `[none]` |
 | `.gitmodules` | 6 lines | `[none]` |
-| `AGENTS.md` | 78 lines | `.md` |
+| `AGENTS.md` | 86 lines | `.md` |
 | `LICENSE` | 674 lines | `[none]` |
 | `README.md` | 11 lines | `.md` |
 | `app/.gitignore` | 1 lines | `[none]` |
@@ -661,13 +662,13 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/app/playback.md` | 38 lines | `.md` |
 | `docs/app/preferences-sync-auth.md` | 153 lines | `.md` |
 | `docs/app/viewmodels.md` | 40 lines | `.md` |
-| `docs/build-release.md` | 63 lines | `.md` |
-| `docs/generate.py` | 270 lines | `.py` |
+| `docs/build-release.md` | 65 lines | `.md` |
+| `docs/generate.py` | 486 lines | `.py` |
 | `docs/innertube/README.md` | 183 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 419 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 328 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 329 lines | `.md` |
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
-| `docs/repository-map.md` | 811 lines | `.md` |
+| `docs/repository-map.md` | 841 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 150 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |

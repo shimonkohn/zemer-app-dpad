@@ -1,25 +1,37 @@
 #!/usr/bin/env python3
-"""Regenerate the code-derived inventory docs from tracked files (hard data only).
+"""Regenerate the code-derived docs from tracked files (hard data only).
 
 Run from the repo root:
 
     python3 docs/generate.py
 
-Rewrites, in place:
+Rewrites, in place (re-running until a fixed point, so one invocation is idempotent):
   - docs/repository-map.md         (the "### Counts" + "### Every counted file" section)
   - docs/reference/kotlin-files.md
   - docs/reference/non-kotlin-files.md
+  - docs/build-release.md          (Gradle / CI / native / JVM-module facts; needs PyYAML —
+                                    `pip install pyyaml` — else it is skipped with a note)
 
 Everything is derived from `git ls-files` and the file contents. No behaviour is inferred.
 Line counts follow `awk 'END{print NR}'` (a final unterminated line still counts). Gitlinks
 (submodules) are excluded from repository-map.md and listed as non-file paths in
 non-kotlin-files.md.
+
+CI (.github/workflows/docs-regenerate.yml) runs this on every push to main and commits any
+change back, so the checked-in docs stay current automatically — do not edit the generated
+docs by hand.
 """
 import json
 import os
 import re
 import subprocess
 import xml.etree.ElementTree as ET
+
+try:
+    import yaml  # PyYAML — parses the release workflow for build-release.md (CI installs it)
+    HAVE_YAML = True
+except ImportError:  # inventory generation still works without it; build-release.md is skipped
+    HAVE_YAML = False
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Project-internal import roots: excluded from "external import roots". com.zemer (the cipher
@@ -259,11 +271,215 @@ def rewrite_repo_map():
         fh.write("".join(head) + inventory)
 
 
-def main():
-    open(os.path.join(ROOT, "docs/reference/kotlin-files.md"), "w", encoding="utf-8").write(gen_kotlin_md())
-    open(os.path.join(ROOT, "docs/reference/non-kotlin-files.md"), "w", encoding="utf-8").write(gen_non_kotlin_md())
+# ---------- build-release.md (derived facts) ----------
+def _text(rel):
+    return read_bytes(rel).decode("utf-8", "replace")
+
+
+def _cell(s):
+    """Make a string safe inside a Markdown table cell."""
+    return str(s).replace("\n", " ").replace("|", "\\|")
+
+
+def _yval(v):
+    """Render a YAML-loaded scalar the way it reads in the file (lowercase booleans)."""
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    return v
+
+
+def _settings_facts():
+    t = _text("settings.gradle.kts")
+    name = (re.search(r'rootProject\.name\s*=\s*"([^"]+)"', t) or [None, "?"])[1]
+    includes = re.findall(r'include\("(:[^"]+)"\)', t)
+    ib = re.search(r'includeBuild\("([^"]+)"\)', t)
+    sub = re.search(r'substitute\(module\("([^"]+)"\)\)\.using\(project\("([^"]+)"\)\)', t)
+    repos = [r for r, tok in [
+        ("mavenLocal", "mavenLocal("), ("Google", "google("),
+        ("Gradle Plugin Portal", "gradlePluginPortal("), ("Maven Central", "mavenCentral("),
+        ("JitPack", "jitpack.io")] if tok in t]
+    facts = f"Root project `{name}`; includes {', '.join('`' + i + '`' for i in includes)}"
+    if ib:
+        facts += f"; composite build `{ib.group(1)}`"
+        if sub:
+            facts += f" substitutes `{sub.group(1)}` with `{sub.group(2)}`"
+    facts += f"; repositories: {', '.join(repos)}."
+    return facts
+
+
+def _root_build_facts():
+    t = _text("build.gradle.kts")
+    plugins = re.findall(r'alias\(libs\.plugins\.([\w.]+)\)', t)
+    classpaths = [c.strip() for c in re.findall(r'(?m)classpath\((.+)\)\s*$', t)]
+    tasks = re.findall(r'tasks\.register<\w+>\("([^"]+)"\)', t)
+    facts = f"Root plugins (apply false): {', '.join('`' + p + '`' for p in plugins)}"
+    if classpaths:
+        facts += f"; buildscript classpath: {', '.join('`' + c + '`' for c in classpaths)}"
+    if tasks:
+        facts += f"; registers task(s): {', '.join('`' + x + '`' for x in tasks)}"
+    if "enableComposeCompilerReports" in t:
+        facts += "; subprojects emit Compose compiler reports/metrics when `enableComposeCompilerReports=true`"
+    return facts + "."
+
+
+def _gradle_properties_facts():
+    pairs = [ln.strip() for ln in _text("gradle.properties").splitlines()
+             if ln.strip() and not ln.strip().startswith("#") and "=" in ln]
+    return "; ".join("`" + p + "`" for p in pairs) + "." if pairs else "No properties set."
+
+
+def _workflow_section():
+    d = yaml.safe_load(_text(".github/workflows/release-build.yml"))
+    on = d.get("on", d.get(True, {})) or {}  # PyYAML parses bare `on:` as the boolean key True
+    push = on.get("push") or {}
+    pr = on.get("pull_request") or {}
+    paths_ignore = push.get("paths-ignore") or pr.get("paths-ignore") or []
+    env = d.get("env", {}) or {}
+    jobs = d.get("jobs", {}) or {}
+    job_name = next(iter(jobs), "?")
+    job = jobs.get(job_name, {}) or {}
+    perms = job.get("permissions", {})
+    out = [f"`.github/workflows/release-build.yml` defines workflow `{d.get('name', '?')}`.", "",
+           "| Workflow fact | Value |", "| --- | --- |",
+           f"| Triggers | {', '.join('`' + str(k) + '`' for k in on.keys()) or 'none'} |",
+           f"| Path filters (`paths-ignore`) | {', '.join('`' + str(p) + '`' for p in paths_ignore) or 'none'} |",
+           f"| Environment | {', '.join(f'`{k}: {_yval(v)}`' for k, v in env.items()) or 'none'} |",
+           f"| Job | `{job_name}` on `{job.get('runs-on', '?')}` |",
+           f"| Permissions | {', '.join(f'`{k}: {v}`' for k, v in perms.items()) if isinstance(perms, dict) and perms else 'default'} |",
+           "", "| Step | Action / command |", "| --- | --- |"]
+    for st in job.get("steps", []) or []:
+        if "uses" in st:
+            action = f"`{st['uses']}`"
+            w = st.get("with", {})
+            extras = ", ".join(f"{k}=`{v}`" for k, v in w.items()
+                               if k in ("java-version", "distribution", "submodules", "path", "key", "name")) if isinstance(w, dict) else ""
+            if extras:
+                action += f" ({extras})"
+        elif "run" in st:
+            action = "run: `" + st["run"].strip().splitlines()[0][:90] + "`"
+        else:
+            action = "—"
+        out.append(f"| {_cell(st.get('name', '(unnamed)'))} | {_cell(action)} |")
+    return "\n".join(out)
+
+
+def _native_section():
+    subs = re.findall(r'\[submodule\s+"([^"]+)"\]\s*\n\s*path\s*=\s*(\S+)\s*\n\s*url\s*=\s*(\S+)', _text(".gitmodules"))
+    cmake = _text("app/src/main/cpp/CMakeLists.txt")
+    cmin = (re.search(r'cmake_minimum_required\(VERSION\s+([\d.]+)\)', cmake) or [None, "?"])[1]
+    proj = (re.search(r'project\(([^)\s]+)', cmake) or [None, "?"])[1]
+    subdir = re.findall(r'add_subdirectory\(([^)\s]+)', cmake)
+    appg = _text("app/build.gradle.kts")
+    cver = (re.search(r'cmake\s*\{[^}]*?version\s*=\s*"([^"]+)"', appg, re.DOTALL) or [None, "?"])[1]
+    ndk = (re.search(r'ndkVersion\s*=\s*"([^"]+)"', appg) or [None, "?"])[1]
+    cpp = (re.search(r'cppFlags\s*\+?=\s*"([^"]+)"', appg) or [None, "?"])[1]
+    sub_facts = "; ".join(f"submodule `{n}` → `{u}` (path `{p}`)" for n, p, u in subs)
+    return "\n".join([
+        "| Path | Hard facts |", "| --- | --- |",
+        f"| `.gitmodules` | {_cell(sub_facts)}. |",
+        f"| `app/src/main/cpp/CMakeLists.txt` | cmake_minimum_required `{cmin}`; project `{proj}`; add_subdirectory {', '.join('`' + s + '`' for s in subdir)}. |",
+        f"| `app/build.gradle.kts` (native) | CMake version `{cver}`; NDK `{ndk}`; cppFlags `{_cell(cpp)}` (used when `USE_PREBUILT_NATIVE` != `true`). |",
+    ])
+
+
+def _modules_section():
+    regular, _ = tracked()
+    rows = ["| Module | Package | Plugins | Dependencies (`libs.*`) | Kotlin files |",
+            "| --- | --- | --- | --- | --- |"]
+    for mod in ["innertube", "lrclib", "simpmusic"]:
+        g = _text(f"{mod}/build.gradle.kts")
+        plugins = re.findall(r'alias\(libs\.plugins\.([\w.]+)\)', g) + re.findall(r'kotlin\("([\w-]+)"\)', g)
+        tc = re.search(r'jvmToolchain\((\d+)\)', g)
+        plugins_str = ", ".join("`" + p + "`" for p in plugins) + (f"; jvmToolchain `{tc.group(1)}`" if tc else "")
+        deps = re.findall(r'(?:implementation|testImplementation)\(libs\.([\w.]+)\)', g)
+        kts = [p for p in regular if p.startswith(mod + "/") and p.endswith(".kt")]
+        pkg, ktcell = "?", "none"
+        if kts:
+            basedir = os.path.dirname(min(kts, key=lambda p: p.count("/")))
+            pkg = basedir.split("src/main/kotlin/", 1)[-1].replace("/", ".")
+            rels = sorted(os.path.relpath(p, basedir) for p in kts)
+            ktcell = ", ".join("`" + r + "`" for r in rels) if len(rels) <= 6 else f"{len(rels)} files (see `reference/kotlin-files.md`)"
+        rows.append(f"| `:{mod}` | `{pkg}` | {plugins_str} | {', '.join('`' + d + '`' for d in deps)} | {_cell(ktcell)} |")
+    return "\n".join(rows)
+
+
+def _solver_section():
+    regular, _ = tracked()
+    solver = [p for p in regular if p.startswith("app/src/main/assets/solver/")]
+    rows = ["| File | Hard fact |", "| --- | --- |"]
+    for p in solver:
+        rows.append(f"| `{os.path.basename(p)}` | Tracked JavaScript asset under Android assets. |")
+    return "\n".join(rows)
+
+
+def gen_build_release_md():
+    parts = [
+        "# Build, CI, native, and auxiliary modules documentation", "",
+        "> Generated by `docs/generate.py` from tracked source files — do not edit by hand.", "",
+        "## Root Gradle and settings facts", "",
+        "| File | Hard facts visible in file |", "| --- | --- |",
+        f"| `settings.gradle.kts` | {_cell(_settings_facts())} |",
+        f"| `build.gradle.kts` | {_cell(_root_build_facts())} |",
+        f"| `gradle.properties` | {_cell(_gradle_properties_facts())} |",
+        "| `gradle/libs.versions.toml` | Central version catalog for plugins and dependencies; see `reference/non-kotlin-files.md`. |", "",
+        "## GitHub Actions release workflow", "",
+        _workflow_section(), "",
+        "## Native code and submodules", "",
+        _native_section(), "",
+        "## Auxiliary JVM modules", "",
+        _modules_section(), "",
+        "## Solver assets", "",
+        "Tracked solver assets under `app/src/main/assets/solver`:", "",
+        _solver_section(),
+    ]
+    return "\n".join(parts).rstrip("\n") + "\n"
+
+
+def write_text(rel, content):
+    with open(os.path.join(ROOT, rel), "w", encoding="utf-8") as fh:
+        fh.write(content)
+
+
+def read_text(rel):
+    with open(os.path.join(ROOT, rel), encoding="utf-8") as fh:
+        return fh.read()
+
+
+def generate_pass():
+    """One full generation. Order matters: write the leaf docs first so repository-map.md
+    (which inventories every file, including those) records their post-write sizes."""
+    write_text("docs/reference/kotlin-files.md", gen_kotlin_md())
+    write_text("docs/reference/non-kotlin-files.md", gen_non_kotlin_md())
+    if HAVE_YAML:
+        write_text("docs/build-release.md", gen_build_release_md())
     rewrite_repo_map()
-    print("Regenerated: repository-map.md, reference/kotlin-files.md, reference/non-kotlin-files.md")
+
+
+# Files generate_pass() rewrites — used to detect convergence.
+GENERATED = [
+    "docs/reference/kotlin-files.md",
+    "docs/reference/non-kotlin-files.md",
+    "docs/build-release.md",
+    "docs/repository-map.md",
+]
+
+
+def main():
+    # repository-map.md lists its own (and the other generated files') line counts, so a single
+    # pass leaves the self-counts one generation stale. Re-run until two consecutive passes are
+    # byte-identical — i.e. a true fixed point — so one invocation is idempotent (required for the
+    # docs-check CI to pass on a clean tree, and to avoid phantom auto-commits).
+    prev = None
+    for _ in range(6):
+        generate_pass()
+        cur = {t: read_text(t) for t in GENERATED}
+        if cur == prev:
+            break
+        prev = cur
+    else:
+        raise SystemExit("generate.py did not converge after 6 passes")
+    note = "" if HAVE_YAML else "  (build-release.md skipped: PyYAML not installed — `pip install pyyaml`)"
+    print("Regenerated docs (converged): repository-map.md, build-release.md, reference/*.md" + note)
 
 
 if __name__ == "__main__":
