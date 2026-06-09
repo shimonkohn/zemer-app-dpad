@@ -14,7 +14,6 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
@@ -173,7 +172,6 @@ import com.jtech.zemer.constants.MiniPlayerHeight
 import com.jtech.zemer.constants.NavigationBarHeight
 import com.jtech.zemer.constants.SlimNavBarHeight
 import com.jtech.zemer.constants.OnboardingCompleteKey
-import com.jtech.zemer.constants.DataSyncIdKey
 import com.jtech.zemer.constants.PauseListenHistoryKey
 import com.jtech.zemer.constants.PauseSearchHistoryKey
 import com.jtech.zemer.constants.PureBlackKey
@@ -510,10 +508,6 @@ class MainActivity : ComponentActivity() {
             val eventCount by database.eventCount().collectAsStateWithLifecycle(initialValue = 0)
             val showHistoryButton = remember(pauseListenHistory, eventCount) {
                 !(pauseListenHistory && eventCount == 0)
-            }
-            val dataSyncIdForHistory by rememberPreference(DataSyncIdKey, defaultValue = "")
-            val isGoogleLoggedIn = remember(dataSyncIdForHistory) {
-                dataSyncIdForHistory.isNotBlank()
             }
 
             var themeColor by rememberSaveable(stateSaver = ColorSaver) {
@@ -1459,21 +1453,10 @@ class MainActivity : ComponentActivity() {
                                             },
                                             actions = {
                                                 val currentRoute = navBackStackEntry?.destination?.route
-                                                val context = LocalContext.current
                                                 if (currentRoute == Screens.Home.route) {
                                                     if (showHistoryButton) {
                                                         IconButton(
-                                                            onClick = {
-                                                                if (isGoogleLoggedIn) {
-                                                                    navController.navigate("history")
-                                                                } else {
-                                                                    Toast.makeText(
-                                                                        context,
-                                                                        context.getString(R.string.login_required_for_history),
-                                                                        Toast.LENGTH_SHORT
-                                                                    ).show()
-                                                                }
-                                                            },
+                                                            onClick = { navController.navigate("history") },
                                                             colors = IconButtonDefaults.iconButtonColors(
                                                                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                                                             ),

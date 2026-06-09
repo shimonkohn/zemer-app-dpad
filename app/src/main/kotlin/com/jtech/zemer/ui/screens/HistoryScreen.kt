@@ -51,8 +51,8 @@ import com.jtech.zemer.LocalDatabase
 import com.jtech.zemer.LocalPlayerAwareWindowInsets
 import com.jtech.zemer.LocalPlayerConnection
 import com.jtech.zemer.R
+import com.jtech.zemer.constants.DataSyncIdKey
 import com.jtech.zemer.constants.HistorySource
-import com.jtech.zemer.constants.InnerTubeCookieKey
 import com.jtech.zemer.db.entities.EventWithSong
 import com.jtech.zemer.extensions.metadata
 import com.jtech.zemer.extensions.toMediaItem
@@ -74,7 +74,6 @@ import com.jtech.zemer.ui.utils.backToMain
 import com.jtech.zemer.utils.rememberPreference
 import com.jtech.zemer.viewmodels.DateAgo
 import com.jtech.zemer.viewmodels.HistoryViewModel
-import com.metrolist.innertube.utils.parseCookieString
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -122,9 +121,9 @@ fun HistoryScreen(
     
     val events by viewModel.events.collectAsState()
 
-    val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
-    val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
+    val dataSyncId by rememberPreference(DataSyncIdKey, "")
+    val isLoggedIn = remember(dataSyncId) {
+        dataSyncId.isNotBlank()
     }
 
     fun dateAgoToString(dateAgo: DateAgo): String {
