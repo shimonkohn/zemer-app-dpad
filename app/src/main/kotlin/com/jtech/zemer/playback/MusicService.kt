@@ -1487,7 +1487,7 @@ class MusicService :
 
         if (playbackStats.totalPlayTimeMs >= (
                     dataStore[HistoryDuration]?.times(1000f)
-                        ?: 30000f
+                        ?: 10000f
                     ) &&
             !dataStore.get(PauseListenHistoryKey, false)
         ) {

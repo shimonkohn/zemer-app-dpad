@@ -14,6 +14,7 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
@@ -84,6 +85,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -171,6 +173,8 @@ import com.jtech.zemer.constants.MiniPlayerHeight
 import com.jtech.zemer.constants.NavigationBarHeight
 import com.jtech.zemer.constants.SlimNavBarHeight
 import com.jtech.zemer.constants.OnboardingCompleteKey
+import com.jtech.zemer.constants.DataSyncIdKey
+import com.jtech.zemer.constants.PauseListenHistoryKey
 import com.jtech.zemer.constants.PauseSearchHistoryKey
 import com.jtech.zemer.constants.PureBlackKey
 import com.jtech.zemer.constants.SYSTEM_DEFAULT
@@ -499,7 +503,17 @@ class MainActivity : ComponentActivity() {
 
             val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
             val pureBlack = remember(pureBlackEnabled, useDarkTheme) {
-                pureBlackEnabled && useDarkTheme 
+                pureBlackEnabled && useDarkTheme
+            }
+
+            val pauseListenHistory by rememberPreference(PauseListenHistoryKey, defaultValue = false)
+            val eventCount by database.eventCount().collectAsStateWithLifecycle(initialValue = 0)
+            val showHistoryButton = remember(pauseListenHistory, eventCount) {
+                !(pauseListenHistory && eventCount == 0)
+            }
+            val dataSyncIdForHistory by rememberPreference(DataSyncIdKey, defaultValue = "")
+            val isGoogleLoggedIn = remember(dataSyncIdForHistory) {
+                dataSyncIdForHistory.isNotBlank()
             }
 
             var themeColor by rememberSaveable(stateSaver = ColorSaver) {
@@ -1445,7 +1459,32 @@ class MainActivity : ComponentActivity() {
                                             },
                                             actions = {
                                                 val currentRoute = navBackStackEntry?.destination?.route
+                                                val context = LocalContext.current
                                                 if (currentRoute == Screens.Home.route) {
+                                                    if (showHistoryButton) {
+                                                        IconButton(
+                                                            onClick = {
+                                                                if (isGoogleLoggedIn) {
+                                                                    navController.navigate("history")
+                                                                } else {
+                                                                    Toast.makeText(
+                                                                        context,
+                                                                        context.getString(R.string.login_required_for_history),
+                                                                        Toast.LENGTH_SHORT
+                                                                    ).show()
+                                                                }
+                                                            },
+                                                            colors = IconButtonDefaults.iconButtonColors(
+                                                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                                                            ),
+                                                            modifier = Modifier.clip(CircleShape)
+                                                        ) {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.history),
+                                                                contentDescription = stringResource(R.string.history)
+                                                            )
+                                                        }
+                                                    }
                                                     IconButton(
                                                         onClick = {
                                                             onActiveChange(true)

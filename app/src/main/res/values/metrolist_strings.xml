@@ -314,4 +314,7 @@
     <string name="android_auto_target_playlist_desc">Choose the playlist where songs are saved when using the quick-add button in Android Auto</string>
     <string name="android_auto_target_playlist_auto">Not set</string>
     <string name="android_auto_target_playlist_not_set">No playlist selected. Choose one in Android Auto settings</string>
+
+    <!-- History -->
+    <string name="login_required_for_history">Please sign in for history. Not available for anon login.</string>
 </resources>
