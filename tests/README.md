@@ -50,7 +50,8 @@ different id as the first CLI arg or via `VIDEO_ID`.
 | `potoken.mjs` | BotGuard **poToken** minter (`bgutils-js` + jsdom), request key `O43z0dpjhgX20SCx4KAo`. Mirrors the app's `PoTokenGenerator`: **streaming token bound to visitorData** (minted first), **player token bound to videoId**. |
 | `web-remix-stream.mjs` | Reproduces the WEB_REMIX **45s-drop + seek** bug via the app's exact resolve path, then exercises the URL like ExoPlayer (sequential range chunks on fresh connections, seek, one open GET, re-resolve, pot-variant probe) + an IOS control. |
 | `pot-probe.mjs` | The **definitive poToken-binding matrix**: request-pot × url-pot × {none/videoId/visitorData-raw/visitorData-enc}, fetched past the 1-MiB window. |
-| `client-fulldownload.mjs` | Drains the **whole** file per client to show which clients actually deliver a full song right now (vs the old 2-byte check). |
+| `client-fulldownload.mjs` | Drains the **whole** file per client to show which clients actually deliver a full song right now (vs the old 2-byte check). Defaults to the app's MAIN+fallback client set; `CLIENTS=A,B` to subset. |
+| `sts-mismatch.mjs` | Regression test for **STS/cipher player coherence**: `/player` with the pinned player's own STS must stream past the wall; another live generation's STS 403s (the A/B-rollout bug — app fix: `CipherDeobfuscator.signatureTimestamp()` feeds `YTPlayerUtils`). |
 | `run.mjs`, `full-stream.mjs`, `retest-web.mjs`, `clients.mjs` | Older player-endpoint probes / client matrix (kept for reference). |
 
 ### Run them
@@ -62,6 +63,7 @@ node tests/web-remix-stream.mjs                      # reproduce the bug (URL_PO
 URL_POT=player node tests/web-remix-stream.mjs       # verify the fix (videoId-bound pot)
 node tests/pot-probe.mjs                             # the binding matrix
 node tests/client-fulldownload.mjs                   # per-client whole-song delivery
+node tests/sts-mismatch.mjs                          # STS/cipher player coherence (403 regression)
 ```
 
 Useful env: `URL_POT=streaming|player|none`, `CHUNK=262144`, `COVER_SECONDS=90`,

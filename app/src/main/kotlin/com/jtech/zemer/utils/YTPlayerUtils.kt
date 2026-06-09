@@ -466,13 +466,27 @@ object YTPlayerUtils {
         return false
     }
     /**
-     * Wrapper around the [NewPipeUtils.getSignatureTimestamp] function which reports exceptions
+     * STS for the /player request. It must come from the same player generation the Zemer
+     * cipher deciphers with: during A/B rollouts NewPipe's independently fetched player can
+     * be a different one, and a sig minted for one player deciphered by another 403s on the
+     * CDN (observed 2026-06-09: NewPipe sts=20611/69e2a55d vs cipher player ce74690f).
+     * NewPipe is only the fallback for when the cipher player fetch fails entirely.
      */
-    private fun getSignatureTimestampOrNull(
+    private suspend fun getSignatureTimestampOrNull(
         videoId: String
     ): Int? {
+        val cipherSts = try {
+            CipherDeobfuscator.signatureTimestamp()
+        } catch (e: Exception) {
+            Timber.tag(TAG).e("Cipher player STS fetch FAILED", e)
+            null
+        }
+        if (cipherSts != null) {
+            Timber.tag(TAG).d("Signature timestamp from cipher player: $cipherSts")
+            return cipherSts
+        }
         return NewPipeUtils.getSignatureTimestamp(videoId)
-            .onSuccess { Timber.tag(TAG).d( "Signature timestamp fetched: $it") }
+            .onSuccess { Timber.tag(TAG).d( "Signature timestamp fetched via NewPipe: $it") }
             .onFailure {
                 Timber.tag(TAG).e( "Signature timestamp fetch FAILED", it)
                 reportException(it)
