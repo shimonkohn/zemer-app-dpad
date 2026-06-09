@@ -4,7 +4,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
-| `.github/workflows/docs-regenerate.yml` | 48 lines | text `.yml` |
+| `.github/workflows/docs-regenerate.yml` | 49 lines | text `.yml` |
 | `.github/workflows/player-monitor.yml` | 131 lines | text `.yml` |
 | `.github/workflows/release-build.yml` | 149 lines | text `.yml` |
 | `.gitignore` | 109 lines | text `[none]` |
