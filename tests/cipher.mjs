@@ -39,6 +39,11 @@ const KNOWN_PLAYER_CONFIGS = {
   // 69e2a55d / 70d8066f (2026-06-08): Jf/iE; sig=Jf(20,3699,INPUT); n=iE trick
   "69e2a55d": { sigExpr: "Jf(20,3699,INPUT)", nExpr: nTrick("iE"), sts: 20611 },
   "70d8066f": { sigExpr: "Jf(20,3699,INPUT)", nExpr: nTrick("iE"), sts: 20611 },
+  // 16ee6936 / ca366632 (2026-06-09): mP/Yx; sig=mP(4,155,INPUT); n=Yx trick; sts 20613.
+  // Empirically validated (tests/validate-player-config.mjs): real signatureCipher deciphered
+  // with mP(4,155,INPUT) + g.Yx n-trick returns 206 from the CDN, n-probe changed=true.
+  "16ee6936": { sigExpr: "mP(4,155,INPUT)", nExpr: nTrick("Yx"), sts: 20613 },
+  "ca366632": { sigExpr: "mP(4,155,INPUT)", nExpr: nTrick("Yx"), sts: 20613 },
 };
 
 function nTrick(urlClass) {
