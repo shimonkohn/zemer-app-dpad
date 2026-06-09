@@ -22,8 +22,21 @@ jobs:
   regenerate:
     runs-on: ubuntu-latest
     steps:
+      # Commit as the Zemer-Dude GitHub App (logo avatar) when it's configured: set repo variable
+      # ZEMER_APP_ID and secret ZEMER_APP_PRIVATE_KEY. Until then this step is skipped and
+      # the job falls back to the default GITHUB_TOKEN / github-actions[bot].
+      - name: Generate Zemer App token
+        id: bot
+        if: ${{ vars.ZEMER_APP_ID != '' }}
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.ZEMER_APP_ID }}
+          private-key: ${{ secrets.ZEMER_APP_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ steps.bot.outputs.token || github.token }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -37,13 +50,25 @@ jobs:
         run: python3 docs/generate.py
 
       - name: Commit if docs changed
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token || github.token }}
+          APP_SLUG: ${{ steps.bot.outputs.app-slug }}
         run: |
           if git diff --quiet -- docs/; then
             echo "Docs already up to date."
             exit 0
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$APP_SLUG" ]; then
+            # The App's bot account: avatar is matched by this noreply email.
+            uid="$(gh api "/users/${APP_SLUG}[bot]" --jq .id)"
+            git config user.name "Zemer-Dude"
+            git config user.email "${uid}+${APP_SLUG}[bot]@users.noreply.github.com"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          fi
           git add docs/
+          # [skip ci] is load-bearing here: App-token pushes DO re-trigger workflows (unlike the
+          # default GITHUB_TOKEN), so this prevents the workflow from re-running on its own commit.
           git commit -m "docs: auto-regenerate code-derived docs [skip ci]"
           git push
