@@ -298,6 +298,8 @@
     <string name="stream_source_visionos_desc">Apple direct-URL client — streams full songs (unlike iOS/iPadOS)</string>
     <string name="stream_source_web_creator">WEB_CREATOR</string>
     <string name="stream_source_web_creator_desc">YouTube Studio web client</string>
+    <string name="stream_source_mweb">MWEB</string>
+    <string name="stream_source_mweb_desc">Mobile web client — same as WEB_REMIX but mobile user agent</string>
     <string name="stream_source_android_creator">ANDROID_CREATOR</string>
     <string name="stream_source_android_creator_desc">YouTube Studio client — needs DroidGuard attestation; off by default</string>
 
