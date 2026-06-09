@@ -13,7 +13,7 @@ export const CLIENTS = [
     userAgent: USER_AGENT_WEB, loginSupported: true, useSignatureTimestamp: true, useWebPoTokens: true },
 
   { key: "WEB_CREATOR", clientName: "WEB_CREATOR", clientVersion: "1.20260213.00.00", clientId: "62",
-    userAgent: USER_AGENT_WEB, loginSupported: true, loginRequired: true, useSignatureTimestamp: true },
+    userAgent: USER_AGENT_WEB, loginSupported: true, loginRequired: true, useSignatureTimestamp: true, useWebPoTokens: true },
 
   { key: "TVHTML5", clientName: "TVHTML5", clientVersion: "7.20260213.00.00", clientId: "7",
     userAgent: "Mozilla/5.0(SMART-TV; Linux; Tizen 4.0.0.2) AppleWebkit/605.1.15 (KHTML, like Gecko) SamsungBrowser/9.2 TV Safari/605.1.15",

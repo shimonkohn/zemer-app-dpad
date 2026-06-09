@@ -15,8 +15,13 @@ import { createMinter } from "./potoken.mjs";
 const VIDEO_ID = process.argv[2] || process.env.VIDEO_ID || "JTF9fLJvniI";
 const dec = (s) => { try { return s && /%[0-9A-Fa-f]{2}/.test(s) ? decodeURIComponent(s) : s; } catch { return s; } };
 const kb = (n) => `${(n / 1024).toFixed(0)}KB`;
-// Clients to test for full delivery: WEB_REMIX (with fix), plus the direct-url fallbacks.
-const TEST = ["WEB_REMIX", "IOS", "IPADOS", "ANDROID_VR_1_43_32", "ANDROID_VR_NO_AUTH", "ANDROID_VR_1_61_48"];
+// Clients to test for full delivery: the app's MAIN_CLIENT + ALL_FALLBACK_CLIENTS in the same
+// order as YTPlayerUtils.kt ("ANDROID" here = the app's MOBILE client). Override with
+// CLIENTS=WEB_REMIX,TVHTML5,... to test a subset.
+const TEST = process.env.CLIENTS?.split(",").map((s) => s.trim()).filter(Boolean) || [
+  "WEB_REMIX", "VISIONOS", "WEB_CREATOR", "ANDROID_VR_1_43_32", "ANDROID_VR_1_61_48",
+  "TVHTML5", "IOS", "IPADOS", "ANDROID_CREATOR", "ANDROID_VR_NO_AUTH", "ANDROID", "WEB",
+];
 
 function sapisidHash(cookie) {
   const m = cookie.match(/(?:^|; )SAPISID=([^;]+)/); if (!m) return null;

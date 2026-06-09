@@ -279,13 +279,13 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `simpmusic/build.gradle.kts` | 15 lines | text `.kts`; plugins `kotlin.serialization, jvm` |
 | `tests/INVESTIGATION.md` | 272 lines | text `.md` |
 | `tests/MWEB-INVESTIGATION.md` | 83 lines | text `.md` |
-| `tests/README.md` | 156 lines | text `.md` |
+| `tests/README.md` | 158 lines | text `.md` |
 | `tests/analyze-player.mjs` | 53 lines | text `.mjs` |
 | `tests/broken-clients.mjs` | 142 lines | text `.mjs` |
 | `tests/check-live-player.mjs` | 81 lines | text `.mjs` |
 | `tests/cipher-check.mjs` | 91 lines | text `.mjs` |
-| `tests/cipher.mjs` | 216 lines | text `.mjs` |
-| `tests/client-fulldownload.mjs` | 104 lines | text `.mjs` |
+| `tests/cipher.mjs` | 221 lines | text `.mjs` |
+| `tests/client-fulldownload.mjs` | 109 lines | text `.mjs` |
 | `tests/clients.mjs` | 69 lines | text `.mjs` |
 | `tests/cred.mjs` | 82 lines | text `.mjs` |
 | `tests/derive-player-config.mjs` | 89 lines | text `.mjs` |
