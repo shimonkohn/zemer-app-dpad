@@ -337,30 +337,6 @@ fun AccountSettings(
             )
         }
 
-        PreferenceEntry(
-            title = {
-                Text(
-                    when {
-                        !isLoggedIn -> stringResource(R.string.advanced_login)
-                        showToken -> stringResource(R.string.token_shown)
-                        else -> stringResource(R.string.token_hidden)
-                    }
-                )
-            },
-            icon = { Icon(painterResource(R.drawable.token), null) },
-            onClick = {
-                if (!isLoggedIn) showTokenEditor = true
-                else if (!showToken) showToken = true
-                else showTokenEditor = true
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surface)
-        )
-
-        Spacer(Modifier.height(4.dp))
-
         if (isLoggedIn) {
             SwitchPreference(
                 title = { Text(stringResource(R.string.more_content)) },
