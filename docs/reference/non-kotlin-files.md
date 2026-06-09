@@ -1,12 +1,13 @@
 # Non-Kotlin file reference
 
-Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `323`.
+Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `326`.
 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
 | `.github/workflows/docs-regenerate.yml` | 49 lines | text `.yml` |
 | `.github/workflows/player-monitor.yml` | 131 lines | text `.yml` |
 | `.github/workflows/release-build.yml` | 149 lines | text `.yml` |
+| `.github/workflows/ui-audit.yml` | 28 lines | text `.yml` |
 | `.gitignore` | 109 lines | text `[none]` |
 | `.gitmodules` | 6 lines | text `[none]` |
 | `AGENTS.md` | 86 lines | text `.md` |
@@ -272,6 +273,8 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `lrclib/.gitignore` | 1 lines | text `[none]` |
 | `lrclib/build.gradle.kts` | 16 lines | text `.kts`; plugins `kotlin.serialization, jvm` |
 | `scripts/telegram-chats.sh` | 38 lines | text `.sh` |
+| `scripts/ui-audit-baseline.tsv` | 22 lines | text `.tsv` |
+| `scripts/ui-audit.sh` | 79 lines | text `.sh` |
 | `settings.gradle.kts` | 56 lines | text `.kts`; plugins `org.gradle.toolchains.foojay-resolver-convention` |
 | `simpmusic/build.gradle.kts` | 15 lines | text `.kts`; plugins `kotlin.serialization, jvm` |
 | `tests/INVESTIGATION.md` | 272 lines | text `.md` |

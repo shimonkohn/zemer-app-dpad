@@ -1,0 +1,28 @@
+name: UI audit
+
+# Enforces docs/ui/standards.md section 8 (theme & color) with a ratcheting check: it fails
+# only on NEW raw `fontSize`/`Color(0x..)` in ui/ (outside theme/), beyond the committed
+# baseline (scripts/ui-audit-baseline.tsv). Cheap (grep only). Runs when UI code or the audit
+# itself changes.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'app/src/main/kotlin/com/jtech/zemer/ui/**'
+      - 'scripts/ui-audit*'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'app/src/main/kotlin/com/jtech/zemer/ui/**'
+      - 'scripts/ui-audit*'
+
+jobs:
+  ui-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: UI standards audit (Rule 8, ratcheting)
+        run: bash scripts/ui-audit.sh

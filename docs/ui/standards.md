@@ -1,8 +1,9 @@
 # UI standards and rules
 
-How to build UI in this app so new screens look and behave like the existing ones. These are the
-conventions the codebase already follows; match them rather than inventing parallel patterns. All
-UI is Jetpack Compose + Material 3.
+How to build UI in this app so new screens look and behave like the existing ones. Match these
+conventions rather than inventing parallel patterns. All UI is Jetpack Compose + Material 3.
+Most of the codebase follows them; some older screens predate parts of this doc (section 8 in
+particular), so `scripts/ui-audit.sh` ratchets the known gaps down without blocking you.
 
 ## 1. Reuse before building
 
@@ -137,6 +138,12 @@ Use these; do not hand-roll equivalents.
   secondary text are `bodyMedium`/`bodySmall` in `onSurfaceVariant`.
 - Theme setup lives in `ui/theme/` (`Theme.kt`, `Type.kt`); dynamic/player colors in
   `PlayerColorExtractor.kt`.
+- Enforcement: `scripts/ui-audit.sh` (ratcheting) fails CI on *new* raw `fontSize = N.sp` or
+  `Color(0x..)` under `ui/` (outside `theme/`); the current known cases are baselined in
+  `scripts/ui-audit-baseline.tsv` and can only shrink (run `--update` after fixing some). A few
+  fixed values are genuinely required and stay baselined: AMOLED pure-black (`0xFF0A0A0A`), the
+  lyric-image *export* (it renders a shareable bitmap, not themed UI), and color-picker swatches.
+  Keep such cases minimal.
 
 ## 9. Icons
 

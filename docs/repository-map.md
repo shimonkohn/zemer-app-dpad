@@ -77,7 +77,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `733`
+- Files counted: `736`
 - By extension:
   - `.kt`: `396`
   - `.xml`: `183`
@@ -87,19 +87,20 @@ The following inventory is generated from repository files outside `.git`, `.gra
   - `.webp`: `15`
   - `[none]`: `7`
   - `.kts`: `6`
+  - `.yml`: `4`
   - `.js`: `3`
   - `.lottie`: `3`
   - `.properties`: `3`
-  - `.yml`: `3`
   - `.dm`: `2`
   - `.png`: `2`
+  - `.sh`: `2`
   - `.backup`: `1`
   - `.bat`: `1`
   - `.jar`: `1`
   - `.pro`: `1`
   - `.py`: `1`
-  - `.sh`: `1`
   - `.toml`: `1`
+  - `.tsv`: `1`
   - `.txt`: `1`
 
 ### Every counted file
@@ -109,6 +110,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `.github/workflows/docs-regenerate.yml` | 49 lines | `.yml` |
 | `.github/workflows/player-monitor.yml` | 131 lines | `.yml` |
 | `.github/workflows/release-build.yml` | 149 lines | `.yml` |
+| `.github/workflows/ui-audit.yml` | 28 lines | `.yml` |
 | `.gitignore` | 109 lines | `[none]` |
 | `.gitmodules` | 6 lines | `[none]` |
 | `AGENTS.md` | 86 lines | `.md` |
@@ -666,11 +668,11 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/generate.py` | 486 lines | `.py` |
 | `docs/innertube/README.md` | 183 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 419 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 329 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 332 lines | `.md` |
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
-| `docs/repository-map.md` | 841 lines | `.md` |
+| `docs/repository-map.md` | 845 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
-| `docs/ui/standards.md` | 150 lines | `.md` |
+| `docs/ui/standards.md` | 157 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |
 | `gradle.properties` | 40 lines | `.properties` |
 | `gradle/libs.versions.toml` | 141 lines | `.toml` |
@@ -782,6 +784,8 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `lrclib/src/main/kotlin/com/metrolist/lrclib/LrcLib.kt` | 293 lines | `.kt` |
 | `lrclib/src/main/kotlin/com/metrolist/lrclib/models/Track.kt` | 137 lines | `.kt` |
 | `scripts/telegram-chats.sh` | 38 lines | `.sh` |
+| `scripts/ui-audit-baseline.tsv` | 22 lines | `.tsv` |
+| `scripts/ui-audit.sh` | 79 lines | `.sh` |
 | `settings.gradle.kts` | 56 lines | `.kts` |
 | `simpmusic/build.gradle.kts` | 15 lines | `.kts` |
 | `simpmusic/src/main/kotlin/com/metrolist/simpmusic/SimpMusicLyrics.kt` | 119 lines | `.kt` |
