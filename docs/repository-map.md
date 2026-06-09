@@ -77,11 +77,11 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `736`
+- Files counted: `737`
 - By extension:
   - `.kt`: `396`
   - `.xml`: `183`
-  - `.mjs`: `47`
+  - `.mjs`: `48`
   - `.json`: `35`
   - `.md`: `20`
   - `.webp`: `15`
@@ -668,9 +668,9 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/generate.py` | 486 lines | `.py` |
 | `docs/innertube/README.md` | 183 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 419 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 332 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 333 lines | `.md` |
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
-| `docs/repository-map.md` | 845 lines | `.md` |
+| `docs/repository-map.md` | 846 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 157 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |
@@ -839,6 +839,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `tests/results.json` | 222 lines | `.json` |
 | `tests/retest-web.mjs` | 58 lines | `.mjs` |
 | `tests/run.mjs` | 181 lines | `.mjs` |
+| `tests/sts-mismatch.mjs` | 125 lines | `.mjs` |
 | `tests/test-mweb-cipher.mjs` | 142 lines | `.mjs` |
 | `tests/validate-player-config.mjs` | 163 lines | `.mjs` |
 | `tests/web-creator-stream.mjs` | 142 lines | `.mjs` |
