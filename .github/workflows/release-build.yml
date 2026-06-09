@@ -4,16 +4,34 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
+    # Skip the heavy, signing release build for changes that can't affect the APK
+    # (docs, the tests/ harness, repo meta). Use workflow_dispatch to build these manually.
     paths-ignore:
       - 'docs/**'
       - 'tests/**'
       - '**.md'
+      - 'scripts/**'
+      - '.github/**'
+      - '.idea/**'
+      - '.vscode/**'
+      - '.gitignore'
+      - '.gitattributes'
+      - '.editorconfig'
+      - 'LICENSE'
   pull_request:
     branches: [ main ]
     paths-ignore:
       - 'docs/**'
       - 'tests/**'
       - '**.md'
+      - 'scripts/**'
+      - '.github/**'
+      - '.idea/**'
+      - '.vscode/**'
+      - '.gitignore'
+      - '.gitattributes'
+      - '.editorconfig'
+      - 'LICENSE'
 
 env:
   USE_PREBUILT_NATIVE: true

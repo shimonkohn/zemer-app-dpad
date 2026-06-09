@@ -1,13 +1,14 @@
 # Non-Kotlin file reference
 
-Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `293`.
+Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `322`.
 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
 | `.github/workflows/player-monitor.yml` | 131 lines | text `.yml` |
-| `.github/workflows/release-build.yml` | 123 lines | text `.yml` |
-| `.gitignore` | 106 lines | text `[none]` |
+| `.github/workflows/release-build.yml` | 149 lines | text `.yml` |
+| `.gitignore` | 109 lines | text `[none]` |
 | `.gitmodules` | 6 lines | text `[none]` |
+| `AGENTS.md` | 78 lines | text `.md` |
 | `LICENSE` | 674 lines | text `[none]` |
 | `README.md` | 11 lines | text `.md` |
 | `app/.gitignore` | 1 lines | text `[none]` |
@@ -272,21 +273,47 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `scripts/telegram-chats.sh` | 38 lines | text `.sh` |
 | `settings.gradle.kts` | 56 lines | text `.kts`; plugins `org.gradle.toolchains.foojay-resolver-convention` |
 | `simpmusic/build.gradle.kts` | 15 lines | text `.kts`; plugins `kotlin.serialization, jvm` |
-| `tests/INVESTIGATION.md` | 269 lines | text `.md` |
-| `tests/README.md` | 154 lines | text `.md` |
+| `tests/INVESTIGATION.md` | 272 lines | text `.md` |
+| `tests/MWEB-INVESTIGATION.md` | 83 lines | text `.md` |
+| `tests/README.md` | 156 lines | text `.md` |
 | `tests/analyze-player.mjs` | 53 lines | text `.mjs` |
 | `tests/broken-clients.mjs` | 142 lines | text `.mjs` |
+| `tests/check-live-player.mjs` | 81 lines | text `.mjs` |
 | `tests/cipher-check.mjs` | 91 lines | text `.mjs` |
-| `tests/cipher.mjs` | 211 lines | text `.mjs` |
+| `tests/cipher.mjs` | 216 lines | text `.mjs` |
 | `tests/client-fulldownload.mjs` | 104 lines | text `.mjs` |
 | `tests/clients.mjs` | 69 lines | text `.mjs` |
 | `tests/cred.mjs` | 82 lines | text `.mjs` |
+| `tests/derive-player-config.mjs` | 89 lines | text `.mjs` |
 | `tests/discover-clients.mjs` | 116 lines | text `.mjs` |
 | `tests/full-stream.mjs` | 87 lines | text `.mjs` |
+| `tests/inspect-player.mjs` | 48 lines | text `.mjs` |
 | `tests/package-lock.json` | 554 lines | text `.json`; JSON keys `name, lockfileVersion, requires, packages` |
 | `tests/package.json` | 7 lines | text `.json`; JSON keys `dependencies` |
 | `tests/pot-probe.mjs` | 139 lines | text `.mjs` |
 | `tests/potoken.mjs` | 132 lines | text `.mjs` |
+| `tests/probe-all-ids.mjs` | 126 lines | text `.mjs` |
+| `tests/probe-client-auth.mjs` | 208 lines | text `.mjs` |
+| `tests/probe-client-detail.mjs` | 156 lines | text `.mjs` |
+| `tests/probe-client-v2.mjs` | 203 lines | text `.mjs` |
+| `tests/probe-client-v3.mjs` | 179 lines | text `.mjs` |
+| `tests/probe-clients.mjs` | 98 lines | text `.mjs` |
+| `tests/probe-extended.mjs` | 221 lines | text `.mjs` |
+| `tests/probe-mweb-app-exact.mjs` | 201 lines | text `.mjs` |
+| `tests/probe-mweb-deobfuscate.mjs` | 200 lines | text `.mjs` |
+| `tests/probe-mweb-drain.mjs` | 158 lines | text `.mjs` |
+| `tests/probe-mweb-full.mjs` | 171 lines | text `.mjs` |
+| `tests/probe-mweb-itag140.mjs` | 116 lines | text `.mjs` |
+| `tests/probe-mweb-nopot.mjs` | 105 lines | text `.mjs` |
+| `tests/probe-mweb-pervideo.mjs` | 129 lines | text `.mjs` |
+| `tests/probe-mweb-playerjs.mjs` | 46 lines | text `.mjs` |
+| `tests/probe-mweb-reqpot.mjs` | 108 lines | text `.mjs` |
+| `tests/probe-mweb-stream.mjs` | 111 lines | text `.mjs` |
+| `tests/probe-mweb-verdict.mjs` | 156 lines | text `.mjs` |
+| `tests/probe-mweb-wall-absolute.mjs` | 95 lines | text `.mjs` |
+| `tests/probe-mweb.mjs` | 136 lines | text `.mjs` |
+| `tests/probe-proper.mjs` | 202 lines | text `.mjs` |
+| `tests/probe-yt-endpoint.mjs` | 203 lines | text `.mjs` |
 | `tests/re-apple.mjs` | 51 lines | text `.mjs` |
 | `tests/re-compare.mjs` | 58 lines | text `.mjs` |
 | `tests/re-deep.mjs` | 78 lines | text `.mjs` |
@@ -295,5 +322,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `tests/results.json` | 222 lines | text `.json` |
 | `tests/retest-web.mjs` | 58 lines | text `.mjs` |
 | `tests/run.mjs` | 181 lines | text `.mjs` |
+| `tests/test-mweb-cipher.mjs` | 142 lines | text `.mjs` |
+| `tests/validate-player-config.mjs` | 163 lines | text `.mjs` |
 | `tests/web-creator-stream.mjs` | 142 lines | text `.mjs` |
 | `tests/web-remix-stream.mjs` | 277 lines | text `.mjs` |

@@ -77,13 +77,13 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `703`
+- Files counted: `732`
 - By extension:
   - `.kt`: `396`
   - `.xml`: `183`
+  - `.mjs`: `47`
   - `.json`: `35`
-  - `.mjs`: `20`
-  - `.md`: `18`
+  - `.md`: `20`
   - `.webp`: `15`
   - `[none]`: `7`
   - `.kts`: `6`
@@ -107,9 +107,10 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | Path | Lines/bytes | Kind |
 | --- | ---: | --- |
 | `.github/workflows/player-monitor.yml` | 131 lines | `.yml` |
-| `.github/workflows/release-build.yml` | 123 lines | `.yml` |
-| `.gitignore` | 106 lines | `[none]` |
+| `.github/workflows/release-build.yml` | 149 lines | `.yml` |
+| `.gitignore` | 109 lines | `[none]` |
 | `.gitmodules` | 6 lines | `[none]` |
+| `AGENTS.md` | 78 lines | `.md` |
 | `LICENSE` | 674 lines | `[none]` |
 | `README.md` | 11 lines | `.md` |
 | `app/.gitignore` | 1 lines | `[none]` |
@@ -161,7 +162,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/dpi/DensityConfiguration.kt` | 87 lines | `.kt` |
 | `app/src/main/kotlin/com/dpi/DensityScaler.kt` | 46 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/App.kt` | 412 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/MainActivity.kt` | 2140 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/MainActivity.kt` | 2162 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/accessibility/ButtonMapperAccessibilityService.kt` | 45 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/auth/AuthState.kt` | 57 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/auth/UserAuthManager.kt` | 145 lines | `.kt` |
@@ -173,7 +174,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/constants/PreferenceKeys.kt` | 567 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/constants/StatPeriod.kt` | 97 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/db/Converters.kt` | 20 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/db/DatabaseDao.kt` | 1678 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/db/DatabaseDao.kt` | 1681 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/db/MusicDatabase.kt` | 590 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/db/entities/Album.kt` | 33 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/db/entities/AlbumArtistMap.kt` | 29 lines | `.kt` |
@@ -315,7 +316,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/BrowseScreen.kt` | 143 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/ChartsScreen.kt` | 307 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/ExploreScreen.kt` | 400 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/ui/screens/HistoryScreen.kt` | 518 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/ui/screens/HistoryScreen.kt` | 517 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/HomeScreen.kt` | 1037 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/KidZoneScreen.kt` | 336 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/LoginGateScreen.kt` | 253 lines | `.kt` |
@@ -352,7 +353,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/search/OnlineSearchResult.kt` | 441 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/search/OnlineSearchScreen.kt` | 458 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/settings/AboutScreen.kt` | 191 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/ui/screens/settings/AccountSettings.kt` | 453 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/ui/screens/settings/AccountSettings.kt` | 429 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/settings/AndroidAutoSettings.kt` | 268 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/settings/AppearanceSettings.kt` | 1028 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/settings/BackupAndRestore.kt` | 190 lines | `.kt` |
@@ -660,13 +661,13 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/app/playback.md` | 38 lines | `.md` |
 | `docs/app/preferences-sync-auth.md` | 153 lines | `.md` |
 | `docs/app/viewmodels.md` | 40 lines | `.md` |
-| `docs/build-release.md` | 62 lines | `.md` |
+| `docs/build-release.md` | 63 lines | `.md` |
 | `docs/generate.py` | 270 lines | `.py` |
 | `docs/innertube/README.md` | 183 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 419 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 299 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 328 lines | `.md` |
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
-| `docs/repository-map.md` | 808 lines | `.md` |
+| `docs/repository-map.md` | 811 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 150 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |
@@ -784,21 +785,47 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `simpmusic/build.gradle.kts` | 15 lines | `.kts` |
 | `simpmusic/src/main/kotlin/com/metrolist/simpmusic/SimpMusicLyrics.kt` | 119 lines | `.kt` |
 | `simpmusic/src/main/kotlin/com/metrolist/simpmusic/models/LyricsResponse.kt` | 32 lines | `.kt` |
-| `tests/INVESTIGATION.md` | 269 lines | `.md` |
-| `tests/README.md` | 154 lines | `.md` |
+| `tests/INVESTIGATION.md` | 272 lines | `.md` |
+| `tests/MWEB-INVESTIGATION.md` | 83 lines | `.md` |
+| `tests/README.md` | 156 lines | `.md` |
 | `tests/analyze-player.mjs` | 53 lines | `.mjs` |
 | `tests/broken-clients.mjs` | 142 lines | `.mjs` |
+| `tests/check-live-player.mjs` | 81 lines | `.mjs` |
 | `tests/cipher-check.mjs` | 91 lines | `.mjs` |
-| `tests/cipher.mjs` | 211 lines | `.mjs` |
+| `tests/cipher.mjs` | 216 lines | `.mjs` |
 | `tests/client-fulldownload.mjs` | 104 lines | `.mjs` |
 | `tests/clients.mjs` | 69 lines | `.mjs` |
 | `tests/cred.mjs` | 82 lines | `.mjs` |
+| `tests/derive-player-config.mjs` | 89 lines | `.mjs` |
 | `tests/discover-clients.mjs` | 116 lines | `.mjs` |
 | `tests/full-stream.mjs` | 87 lines | `.mjs` |
+| `tests/inspect-player.mjs` | 48 lines | `.mjs` |
 | `tests/package-lock.json` | 554 lines | `.json` |
 | `tests/package.json` | 7 lines | `.json` |
 | `tests/pot-probe.mjs` | 139 lines | `.mjs` |
 | `tests/potoken.mjs` | 132 lines | `.mjs` |
+| `tests/probe-all-ids.mjs` | 126 lines | `.mjs` |
+| `tests/probe-client-auth.mjs` | 208 lines | `.mjs` |
+| `tests/probe-client-detail.mjs` | 156 lines | `.mjs` |
+| `tests/probe-client-v2.mjs` | 203 lines | `.mjs` |
+| `tests/probe-client-v3.mjs` | 179 lines | `.mjs` |
+| `tests/probe-clients.mjs` | 98 lines | `.mjs` |
+| `tests/probe-extended.mjs` | 221 lines | `.mjs` |
+| `tests/probe-mweb-app-exact.mjs` | 201 lines | `.mjs` |
+| `tests/probe-mweb-deobfuscate.mjs` | 200 lines | `.mjs` |
+| `tests/probe-mweb-drain.mjs` | 158 lines | `.mjs` |
+| `tests/probe-mweb-full.mjs` | 171 lines | `.mjs` |
+| `tests/probe-mweb-itag140.mjs` | 116 lines | `.mjs` |
+| `tests/probe-mweb-nopot.mjs` | 105 lines | `.mjs` |
+| `tests/probe-mweb-pervideo.mjs` | 129 lines | `.mjs` |
+| `tests/probe-mweb-playerjs.mjs` | 46 lines | `.mjs` |
+| `tests/probe-mweb-reqpot.mjs` | 108 lines | `.mjs` |
+| `tests/probe-mweb-stream.mjs` | 111 lines | `.mjs` |
+| `tests/probe-mweb-verdict.mjs` | 156 lines | `.mjs` |
+| `tests/probe-mweb-wall-absolute.mjs` | 95 lines | `.mjs` |
+| `tests/probe-mweb.mjs` | 136 lines | `.mjs` |
+| `tests/probe-proper.mjs` | 202 lines | `.mjs` |
+| `tests/probe-yt-endpoint.mjs` | 203 lines | `.mjs` |
 | `tests/re-apple.mjs` | 51 lines | `.mjs` |
 | `tests/re-compare.mjs` | 58 lines | `.mjs` |
 | `tests/re-deep.mjs` | 78 lines | `.mjs` |
@@ -807,5 +834,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `tests/results.json` | 222 lines | `.json` |
 | `tests/retest-web.mjs` | 58 lines | `.mjs` |
 | `tests/run.mjs` | 181 lines | `.mjs` |
+| `tests/test-mweb-cipher.mjs` | 142 lines | `.mjs` |
+| `tests/validate-player-config.mjs` | 163 lines | `.mjs` |
 | `tests/web-creator-stream.mjs` | 142 lines | `.mjs` |
 | `tests/web-remix-stream.mjs` | 277 lines | `.mjs` |

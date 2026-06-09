@@ -16,6 +16,7 @@
 | Workflow fact | Value |
 | --- | --- |
 | Triggers | `workflow_dispatch`, push to `main`, pull request to `main` |
+| Path filters | push and pull_request skip when all changed paths match `paths-ignore`: `docs/**`, `tests/**`, `**.md`, `scripts/**`, `.github/**`, `.idea/**`, `.vscode/**`, `.gitignore`, `.gitattributes`, `.editorconfig`, `LICENSE` |
 | Environment | `USE_PREBUILT_NATIVE: true` |
 | Job | `assemble-release` on `ubuntu-latest` |
 | Permissions | `contents: write` |
@@ -36,7 +37,7 @@
 
 | Path | Hard facts |
 | --- | --- |
-| `.gitmodules` | Tracks submodule `app/src/main/cpp/bento4` from `https://github.com/ZemerTeam/zemer-bento4.git` and submodule `cipher` from `https://github.com/zemerteam/cipher.git`. |
+| `.gitmodules` | Tracks submodule `app/src/main/cpp/bento4` from `https://github.com/ZemerTeam/zemer-bento4.git` and submodule `cipher` from `https://github.com/ZemerTeam/zemer-cipher.git`. |
 | `app/src/main/cpp/CMakeLists.txt` | Minimum CMake `3.18`; project name `coverart-wrapper`; calls `add_subdirectory(bento4)`. |
 | `app/build.gradle.kts` | If `USE_PREBUILT_NATIVE` is not `true`, configures CMake file `src/main/cpp/CMakeLists.txt`, CMake version `3.22.1`, NDK version `27.0.12077973`, and C++17 flags. |
 | `app/src/main/cpp/bento4` | Tracked as a gitlink/submodule path in this checkout, not a regular source file. |
