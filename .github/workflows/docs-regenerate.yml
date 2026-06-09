@@ -7,6 +7,7 @@ name: Regenerate docs
 # further workflow runs, and carries [skip ci] — so there is no loop.
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
 
