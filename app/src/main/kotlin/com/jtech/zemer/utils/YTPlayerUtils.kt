@@ -29,7 +29,6 @@ import com.metrolist.innertube.models.YouTubeClient.Companion.VISIONOS
 import com.metrolist.innertube.models.YouTubeClient.Companion.MOBILE
 import com.metrolist.innertube.models.YouTubeClient.Companion.WEB
 import com.metrolist.innertube.models.YouTubeClient.Companion.TVHTML5
-import com.metrolist.innertube.models.YouTubeClient.Companion.MWEB
 import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_CREATOR
 import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.metrolist.innertube.models.response.PlayerResponse
@@ -71,7 +70,6 @@ object YTPlayerUtils {
         // they stay only as last-ditch attempts.
         VISIONOS,
         WEB_CREATOR,
-        MWEB,
         ANDROID_VR_1_43_32,
         ANDROID_VR_1_61_48,
         TVHTML5,

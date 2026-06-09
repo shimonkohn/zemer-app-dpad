@@ -37,7 +37,6 @@ import com.jtech.zemer.constants.StreamSourceAndroidCreatorKey
 import com.jtech.zemer.constants.StreamSourceAndroidVRKey
 import com.jtech.zemer.constants.StreamSourceIOSKey
 import com.jtech.zemer.constants.StreamSourceIPadOSKey
-import com.jtech.zemer.constants.StreamSourceMwebKey
 import com.jtech.zemer.constants.StreamSourceVisionOSKey
 import com.jtech.zemer.constants.StreamSourceTVHTML5Key
 import com.jtech.zemer.constants.StreamSourceWebCreatorKey
@@ -61,7 +60,6 @@ fun StreamSourceSettings(
     val (ipadosEnabled, onIPadOSChange)         = rememberPreference(StreamSourceIPadOSKey,     defaultValue = false)
     val (visionosEnabled, onVisionOSChange)     = rememberPreference(StreamSourceVisionOSKey,   defaultValue = true)
     val (webCreatorEnabled, onWebCreatorChange) = rememberPreference(StreamSourceWebCreatorKey, defaultValue = true)
-    val (mwebEnabled, onMwebChange) = rememberPreference(StreamSourceMwebKey, defaultValue = true)
     val (androidCreatorEnabled, onAndroidCreatorChange) = rememberPreference(StreamSourceAndroidCreatorKey, defaultValue = false)
 
     // Effective stream order shown to the user: WEB_REMIX is the primary client; the rest mirror
@@ -70,7 +68,6 @@ fun StreamSourceSettings(
         "WEB_REMIX" to webRemixEnabled,
         "visionOS" to visionosEnabled,
         "WEB_CREATOR" to webCreatorEnabled,
-        "MWEB" to mwebEnabled,
         "Android VR" to androidVREnabled,
         "TVHTML5" to tvhtml5Enabled,
         "iOS" to iosEnabled,
@@ -141,14 +138,6 @@ fun StreamSourceSettings(
             icon = { Icon(painterResource(R.drawable.play), null) },
             checked = tvhtml5Enabled,
             onCheckedChange = onTVHTML5Change,
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.stream_source_mweb)) },
-            description = stringResource(R.string.stream_source_mweb_desc),
-            icon = { Icon(painterResource(R.drawable.play), null) },
-            checked = mwebEnabled,
-            onCheckedChange = onMwebChange,
         )
 
         PreferenceGroupTitle(

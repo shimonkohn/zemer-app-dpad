@@ -83,20 +83,6 @@ data class YouTubeClient(
             useWebPoTokens = true,
         )
 
-        /**
-         * Mobile web YouTube client.
-         * Returns ciphered URLs like WEB_REMIX — needs signature deobfuscation.
-         */
-        val MWEB = YouTubeClient(
-            clientName = "MWEB",
-            clientVersion = "2.20260213.00.00",
-            clientId = "2",
-            userAgent = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
-            loginSupported = true,
-            useSignatureTimestamp = true,
-            useWebPoTokens = true,
-        )
-
         val TVHTML5 = YouTubeClient(
             clientName = "TVHTML5",
             clientVersion = "7.20260213.00.00",
