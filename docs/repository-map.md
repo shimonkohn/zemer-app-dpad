@@ -77,7 +77,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `742`
+- Files counted: `743`
 - By extension:
   - `.kt`: `398`
   - `.xml`: `183`
@@ -91,9 +91,9 @@ The following inventory is generated from repository files outside `.git`, `.gra
   - `.js`: `3`
   - `.lottie`: `3`
   - `.properties`: `3`
+  - `.sh`: `3`
   - `.dm`: `2`
   - `.png`: `2`
-  - `.sh`: `2`
   - `.backup`: `1`
   - `.bat`: `1`
   - `.jar`: `1`
@@ -670,9 +670,9 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/generate.py` | 487 lines | `.py` |
 | `docs/innertube/README.md` | 183 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 421 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 336 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 337 lines | `.md` |
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
-| `docs/repository-map.md` | 851 lines | `.md` |
+| `docs/repository-map.md` | 852 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 157 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |
@@ -785,6 +785,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `lrclib/build.gradle.kts` | 16 lines | `.kts` |
 | `lrclib/src/main/kotlin/com/metrolist/lrclib/LrcLib.kt` | 293 lines | `.kt` |
 | `lrclib/src/main/kotlin/com/metrolist/lrclib/models/Track.kt` | 137 lines | `.kt` |
+| `scripts/check-16kb-alignment.sh` | 67 lines | `.sh` |
 | `scripts/telegram-chats.sh` | 38 lines | `.sh` |
 | `scripts/ui-audit-baseline.tsv` | 22 lines | `.tsv` |
 | `scripts/ui-audit.sh` | 79 lines | `.sh` |

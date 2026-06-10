@@ -1,6 +1,6 @@
 # Non-Kotlin file reference
 
-Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `330`.
+Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `331`.
 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
@@ -272,6 +272,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `lint.xml` | 6 lines | text `.xml`; XML root `lint` |
 | `lrclib/.gitignore` | 1 lines | text `[none]` |
 | `lrclib/build.gradle.kts` | 16 lines | text `.kts`; plugins `kotlin.serialization, jvm` |
+| `scripts/check-16kb-alignment.sh` | 67 lines | text `.sh` |
 | `scripts/telegram-chats.sh` | 38 lines | text `.sh` |
 | `scripts/ui-audit-baseline.tsv` | 22 lines | text `.tsv` |
 | `scripts/ui-audit.sh` | 79 lines | text `.sh` |
