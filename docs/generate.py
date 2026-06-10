@@ -135,27 +135,28 @@ def kotlin_row(path):
     compose = "yes" if "@Composable" in text else "no"
     imports = re.findall(r"(?m)^\s*import\s+([\w.]+)", text)
     decls = declarations(strip_kotlin(text))
-    more = len(decls) - 30
-    dstr = ", ".join(decls[:30]) + (f", … +{more} more" if more > 0 else "")
     roots = ", ".join(external_roots(imports))
-    return f"| `{path}` | {nr} | `{pkg}` | {compose} | {len(imports)} | {dstr} | {roots} |"
+    return f"| `{path}` | {nr} | `{pkg}` | {compose} | {len(imports)} | {len(decls)} | {roots} |"
 
 
 def gen_kotlin_md():
     regular, _ = tracked()
     kt = [p for p in regular if p.endswith(".kt")]
     out = ["# Kotlin file reference", "",
-           "Every tracked Kotlin file is listed with hard metadata extracted from the file text. "
-           "Declaration extraction is regex-based (after stripping comments and string literals) "
-           "and intentionally reports names visible in source rather than inferred behavior.", ""]
+           "Every tracked Kotlin file is listed with hard metadata extracted from the file text: "
+           "line count, package, whether it declares any `@Composable`, import count, top-level "
+           "declaration count (`Decls` — a high value flags a god-file), and the external import "
+           "roots it depends on. Declaration counting is regex-based (after stripping comments and "
+           "string literals). For the actual declaration names, read the file or use your editor's "
+           "outline — they are not duplicated here.", ""]
     for mod in KOTLIN_MODULES:
         files = [p for p in kt if p.split("/", 1)[0] == mod]
         if not files:
             continue
         out.append(f"## `{mod}` Kotlin files ({len(files)})")
         out.append("")
-        out.append("| File | Lines | Package | Compose | Imports | Declarations | External import roots |")
-        out.append("| --- | ---: | --- | --- | ---: | --- | --- |")
+        out.append("| File | Lines | Package | Compose | Imports | Decls | External import roots |")
+        out.append("| --- | ---: | --- | --- | ---: | ---: | --- |")
         out += [kotlin_row(p) for p in files]
         out.append("")
     return "\n".join(out).rstrip("\n") + "\n"

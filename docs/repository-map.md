@@ -665,7 +665,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/app/preferences-sync-auth.md` | 153 lines | `.md` |
 | `docs/app/viewmodels.md` | 40 lines | `.md` |
 | `docs/build-release.md` | 65 lines | `.md` |
-| `docs/generate.py` | 486 lines | `.py` |
+| `docs/generate.py` | 487 lines | `.py` |
 | `docs/innertube/README.md` | 183 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 419 lines | `.md` |
 | `docs/reference/non-kotlin-files.md` | 333 lines | `.md` |
