@@ -6,20 +6,20 @@ import timber.log.Timber
 import java.util.Locale
 
 /**
- * Reports an exception for debugging/crash reporting.
- * Logs the exception with Timber and prints stack trace.
+ * Reports a caught exception. Logged at ERROR through Timber, which the
+ * [CrashReportingTree] turns into a Crashlytics non-fatal issue (with the
+ * recent log breadcrumbs attached) in addition to local logcat output in
+ * debug builds.
  *
  * @param throwable The exception to report
  * @param context Optional context message for debugging
  */
 fun reportException(throwable: Throwable, context: String? = null) {
     if (context != null) {
-        "[Exception] $context - ${throwable.javaClass.simpleName}: ${throwable.message} - thread: ${Thread.currentThread().name}"
+        Timber.e(throwable, "[Exception] %s - thread: %s", context, Thread.currentThread().name)
     } else {
-        "[Exception] ${throwable.javaClass.simpleName}: ${throwable.message} - thread: ${Thread.currentThread().name}"
+        Timber.e(throwable)
     }
-    Timber.e(throwable)
-    throwable.printStackTrace()
 }
 
 @Suppress("DEPRECATION", "AppBundleLocaleChanges")

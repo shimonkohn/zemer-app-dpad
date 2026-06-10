@@ -24,7 +24,9 @@ import com.jtech.zemer.constants.*
 import com.jtech.zemer.di.ApplicationScope
 import com.jtech.zemer.extensions.toEnum
 import com.jtech.zemer.extensions.toInetSocketAddress
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.jtech.zemer.utils.ContentFilterConfig
+import com.jtech.zemer.utils.CrashReportingTree
 import com.jtech.zemer.utils.ContentFilterState
 import com.jtech.zemer.utils.IsraeliArtistRegistry
 import com.jtech.zemer.utils.SyncUtils
@@ -73,7 +75,15 @@ class App : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
 
-        // Initialize Timber for logging
+        // Initialize Timber for logging. The Crashlytics tree runs in all builds:
+        // every log becomes a crash-report breadcrumb, ERROR throwables become
+        // non-fatal issues.
+        Timber.plant(
+            CrashReportingTree(
+                logBreadcrumb = { FirebaseCrashlytics.getInstance().log(it) },
+                recordNonFatal = { FirebaseCrashlytics.getInstance().recordException(it) },
+            )
+        )
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }

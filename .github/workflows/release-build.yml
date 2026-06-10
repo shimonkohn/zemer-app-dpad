@@ -97,6 +97,9 @@ jobs:
       - name: Assemble signed release
         run: ./gradlew assembleRelease
 
+      - name: Upload Crashlytics native symbols
+        run: ./gradlew :app:uploadCrashlyticsSymbolFileRelease
+
       - name: Upload APK artifact
         id: upload-artifact
         uses: actions/upload-artifact@v4
