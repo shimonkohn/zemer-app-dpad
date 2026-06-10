@@ -71,6 +71,13 @@ test("config-covers CLI: covered / uncovered / invalid-file verdicts", () => {
   assert.throws(() => execFileSync("node", [COVERS_CLI, "abcd1234", invalid], { encoding: "utf8", stdio: "pipe" }));
 });
 
+test("missing config file names the submodule fix", () => {
+  assert.throws(
+    () => loadRawPlayerConfigs("/nonexistent/player_configs.json"),
+    /git submodule update --init/,
+  );
+});
+
 test("committed bundled file passes validation and alias expansion", () => {
   const raw = loadRawPlayerConfigs();
   const known = loadKnownPlayerConfigs();

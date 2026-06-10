@@ -24,7 +24,14 @@ const PLAYER_JS_URL = (hash) =>
 
 // Loaded from cipher/library/src/main/assets/player_configs.json — the same file the app
 // bundles and fetches remotely. Keyed by BOTH the URL hash and the MD5 fallback alias.
-const KNOWN_PLAYER_CONFIGS = loadKnownPlayerConfigs();
+// Lazy + memoized: ~14 scripts import this module, and a missing submodule or a bad
+// config file should fail the scripts that USE configs (with the loader's actionable
+// message), not kill every import at module-load time.
+let knownPlayerConfigsCache = null;
+function knownPlayerConfigs() {
+  knownPlayerConfigsCache ??= loadKnownPlayerConfigs();
+  return knownPlayerConfigsCache;
+}
 
 const SIG_TS_PATTERNS = [/signatureTimestamp['":\s]+(\d+)/, /\bsts['":\s]+(\d+)/];
 
@@ -46,7 +53,7 @@ function extractHashesFromJs(playerJs) {
 
 export function extractSignatureTimestamp(playerJs, hashes = []) {
   for (const p of SIG_TS_PATTERNS) { const m = playerJs.match(p); if (m) return Number(m[1]); }
-  for (const h of hashes) if (KNOWN_PLAYER_CONFIGS[h]) return KNOWN_PLAYER_CONFIGS[h].sts;
+  for (const h of hashes) if (knownPlayerConfigs()[h]) return knownPlayerConfigs()[h].sts;
   return null;
 }
 
@@ -75,8 +82,8 @@ export async function createCipher({ verbose = false } = {}) {
   const { playerJs, urlHash } = await fetchPlayerJs();
   const hashes = [urlHash, ...extractHashesFromJs(playerJs)];
   const uniq = [...new Set(hashes)];
-  const cfgKey = uniq.find((h) => KNOWN_PLAYER_CONFIGS[h]);
-  const cfg = cfgKey ? KNOWN_PLAYER_CONFIGS[cfgKey] : null;
+  const cfgKey = uniq.find((h) => knownPlayerConfigs()[h]);
+  const cfg = cfgKey ? knownPlayerConfigs()[cfgKey] : null;
   const sts = extractSignatureTimestamp(playerJs, uniq);
 
   if (verbose) {

@@ -142,8 +142,15 @@ async function main() {
     pairs = c.pairs;
     // If this player is already committed to player_configs.json (by hash or md5 alias),
     // validate the committed pair FIRST — the common case is re-checking a shipped config.
-    const committed = Object.entries(loadRawPlayerConfigs())
-      .find(([h, e]) => h === hash || h === md5 || (e.aliases ?? []).includes(hash) || (e.aliases ?? []).includes(md5));
+    // A broken committed file must not kill this tool: it is the one needed to FIX that
+    // file, so fall back to extracted candidates with a warning.
+    let committed = null;
+    try {
+      committed = Object.entries(loadRawPlayerConfigs())
+        .find(([h, e]) => h === hash || h === md5 || (e.aliases ?? []).includes(hash) || (e.aliases ?? []).includes(md5));
+    } catch (e) {
+      console.warn(`warning: committed player_configs.json unusable (${e.message}) — validating extracted candidates only`);
+    }
     if (committed) {
       const [, e] = committed;
       console.log(`committed config found in player_configs.json: sig=${e.sig} nClass=${e.nClass}`);

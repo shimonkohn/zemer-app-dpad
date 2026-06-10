@@ -64,8 +64,19 @@ export function parsePlayerConfigs(jsonText, label = "player_configs.json") {
 }
 
 /** Raw, validated file content of the submodule's bundled copy, keyed by primary hash. */
-export function loadRawPlayerConfigs() {
-  return parsePlayerConfigs(readFileSync(CONFIG_PATH, "utf8"));
+export function loadRawPlayerConfigs(path = CONFIG_PATH) {
+  let text;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch (e) {
+    if (e.code === "ENOENT") {
+      throw new Error(
+        `player_configs.json not found at ${path} — the cipher submodule is not checked out. Run: git submodule update --init`,
+      );
+    }
+    throw e;
+  }
+  return parsePlayerConfigs(text);
 }
 
 /**
