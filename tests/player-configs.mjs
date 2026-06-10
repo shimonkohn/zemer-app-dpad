@@ -28,28 +28,44 @@ export function nTrick(urlClass) {
   return `(function(n){try{var u=new g.${urlClass}('https://x.googlevideo.com/videoplayback?n='+n,true);var t=u.get('n');return(t&&t!==n)?t:n;}catch(e){return n;}})(INPUT)`;
 }
 
-/** Raw, validated file content: { hash: { sig, nClass, sts, aliases } } keyed by primary hash. */
-export function loadRawPlayerConfigs() {
-  const root = JSON.parse(readFileSync(CONFIG_PATH, "utf8"));
+/**
+ * Validates raw JSON text and returns the players map: { hash: { sig, nClass, sts, aliases } }.
+ * Exported so callers (player-monitor workflow, tests) can validate ANY copy of the file —
+ * e.g. the live remote one — with the exact rules the harness applies to the bundled copy.
+ */
+export function parsePlayerConfigs(jsonText, label = "player_configs.json") {
+  const root = JSON.parse(jsonText);
   if (root === null || typeof root !== "object" || Array.isArray(root)) {
-    throw new Error("player_configs.json: root is not an object");
+    throw new Error(`${label}: root is not an object`);
   }
   if (!Number.isInteger(root.schemaVersion) || root.schemaVersion !== SUPPORTED_SCHEMA_VERSION) {
-    throw new Error(`player_configs.json: unsupported schemaVersion ${root.schemaVersion}`);
+    throw new Error(`${label}: unsupported schemaVersion ${root.schemaVersion}`);
   }
   if (root.players === null || typeof root.players !== "object" || Array.isArray(root.players)) {
-    throw new Error("player_configs.json: players missing or not an object");
+    throw new Error(`${label}: players missing or not an object`);
   }
+  const seen = new Set();
   for (const [hash, entry] of Object.entries(root.players)) {
-    if (!HASH_RE.test(hash)) throw new Error(`player_configs.json: bad hash key "${hash}"`);
-    if (!SIG_RE.test(entry.sig)) throw new Error(`player_configs.json: ${hash}: bad sig "${entry.sig}"`);
-    if (!NCLASS_RE.test(entry.nClass)) throw new Error(`player_configs.json: ${hash}: bad nClass "${entry.nClass}"`);
-    if (!Number.isInteger(entry.sts) || entry.sts <= 0) throw new Error(`player_configs.json: ${hash}: bad sts ${entry.sts}`);
+    if (!HASH_RE.test(hash)) throw new Error(`${label}: bad hash key "${hash}"`);
+    if (!SIG_RE.test(entry.sig)) throw new Error(`${label}: ${hash}: bad sig "${entry.sig}"`);
+    if (!NCLASS_RE.test(entry.nClass)) throw new Error(`${label}: ${hash}: bad nClass "${entry.nClass}"`);
+    if (!Number.isInteger(entry.sts) || entry.sts <= 0) throw new Error(`${label}: ${hash}: bad sts ${entry.sts}`);
     for (const alias of entry.aliases ?? []) {
-      if (!HASH_RE.test(alias)) throw new Error(`player_configs.json: ${hash}: bad alias "${alias}"`);
+      if (!HASH_RE.test(alias)) throw new Error(`${label}: ${hash}: bad alias "${alias}"`);
+    }
+    // A collision (alias duplicating another entry's hash/alias, or its own primary) makes
+    // the table ambiguous — mirror PlayerConfigParser and reject the whole file.
+    for (const key of [hash, ...(entry.aliases ?? [])]) {
+      if (seen.has(key)) throw new Error(`${label}: duplicate hash/alias "${key}" (entry ${hash})`);
+      seen.add(key);
     }
   }
   return root.players;
+}
+
+/** Raw, validated file content of the submodule's bundled copy, keyed by primary hash. */
+export function loadRawPlayerConfigs() {
+  return parsePlayerConfigs(readFileSync(CONFIG_PATH, "utf8"));
 }
 
 /**
