@@ -39,16 +39,25 @@ jobs:
             cp cipher/library/src/main/assets/player_configs.json /tmp/player_configs.json
           fi
 
+      # "Known" means "a device would accept and use it": the file is run through the
+      # harness loader (same validation as the app's PlayerConfigParser) and the hash is
+      # matched against actual keys + aliases. A textual grep would stay green when a
+      # pushed entry exists but fails validation — i.e. exactly during a fleet outage.
       - name: Check if hash is known in player_configs.json
         id: known
         run: |
           HASH="${{ steps.player.outputs.hash }}"
-          if grep -q "\"$HASH\"" /tmp/player_configs.json; then
-            echo "known=true" >> "$GITHUB_OUTPUT"
-            echo "Hash $HASH is already in player_configs.json ✓"
+          if VERDICT=$(node tests/config-covers.mjs "$HASH" /tmp/player_configs.json); then
+            if [ "$VERDICT" = "covered" ]; then
+              echo "known=true" >> "$GITHUB_OUTPUT"
+              echo "Hash $HASH is covered by player_configs.json ✓"
+            else
+              echo "known=false" >> "$GITHUB_OUTPUT"
+              echo "Hash $HASH is UNKNOWN — config update needed!"
+            fi
           else
+            echo "::warning::player_configs.json failed validation — devices reject such a file wholesale; treating $HASH as unknown"
             echo "known=false" >> "$GITHUB_OUTPUT"
-            echo "Hash $HASH is UNKNOWN — config update needed!"
           fi
 
       - name: Compute MD5 fallback hash
@@ -59,7 +68,7 @@ jobs:
           URL="https://www.youtube.com/s/player/${HASH}/player_ias.vflset/en_GB/base.js"
           MD5=$(curl -s "$URL" | head -c 10000 | md5sum | cut -c1-8)
           echo "md5=$MD5" >> "$GITHUB_OUTPUT"
-          if grep -q "\"$MD5\"" /tmp/player_configs.json; then
+          if VERDICT=$(node tests/config-covers.mjs "$MD5" /tmp/player_configs.json) && [ "$VERDICT" = "covered" ]; then
             echo "md5_known=true" >> "$GITHUB_OUTPUT"
             echo "MD5 alias $MD5 is already known ✓"
           else

@@ -4,7 +4,14 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { writeFileSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parsePlayerConfigs, loadRawPlayerConfigs, loadKnownPlayerConfigs } from "./player-configs.mjs";
+
+const COVERS_CLI = join(dirname(fileURLToPath(import.meta.url)), "config-covers.mjs");
 
 const entry = (over = {}) => ({ sig: "mP(4,155,INPUT)", nClass: "Yx", sts: 20613, ...over });
 const file = (players) => JSON.stringify({ schemaVersion: 1, players });
@@ -46,6 +53,22 @@ test("unsupported schemaVersion throws", () => {
     () => parsePlayerConfigs(JSON.stringify({ schemaVersion: 2, players: {} })),
     /unsupported schemaVersion/,
   );
+});
+
+test("config-covers CLI: covered / uncovered / invalid-file verdicts", () => {
+  const dir = mkdtempSync(join(tmpdir(), "covers-"));
+  const valid = join(dir, "valid.json");
+  writeFileSync(valid, file({ abcd1234: entry({ aliases: ["ffff0000"] }) }));
+
+  assert.equal(execFileSync("node", [COVERS_CLI, "abcd1234", valid], { encoding: "utf8" }).trim(), "covered");
+  assert.equal(execFileSync("node", [COVERS_CLI, "ffff0000", valid], { encoding: "utf8" }).trim(), "covered", "aliases count as covered");
+  assert.equal(execFileSync("node", [COVERS_CLI, "deadbeef", valid], { encoding: "utf8" }).trim(), "uncovered");
+
+  // An invalid file must exit nonzero — a textually-present hash in a file devices
+  // reject wholesale is NOT covered.
+  const invalid = join(dir, "invalid.json");
+  writeFileSync(invalid, JSON.stringify({ schemaVersion: 1, players: { abcd1234: { sig: "evil()", nClass: "Yx", sts: 1 } } }));
+  assert.throws(() => execFileSync("node", [COVERS_CLI, "abcd1234", invalid], { encoding: "utf8", stdio: "pipe" }));
 });
 
 test("committed bundled file passes validation and alias expansion", () => {
