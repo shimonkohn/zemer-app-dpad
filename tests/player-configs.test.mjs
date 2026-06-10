@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { writeFileSync, mkdtempSync } from "node:fs";
+import { writeFileSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -69,6 +69,26 @@ test("config-covers CLI: covered / uncovered / invalid-file verdicts", () => {
   const invalid = join(dir, "invalid.json");
   writeFileSync(invalid, JSON.stringify({ schemaVersion: 1, players: { abcd1234: { sig: "evil()", nClass: "Yx", sts: 1 } } }));
   assert.throws(() => execFileSync("node", [COVERS_CLI, "abcd1234", invalid], { encoding: "utf8", stdio: "pipe" }));
+});
+
+test("parity fixtures: file-level verdicts match the Kotlin parser's", () => {
+  // Same golden files ConfigParityFixturesTest runs in the cipher repo — file-level
+  // accept/reject must agree between the two readers. (Entry-level handling differs by
+  // design: the app skips bad entries, the harness throws.)
+  const fixtureDir = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "..", "cipher", "library", "src", "test", "resources", "config-parity",
+  );
+  const names = readdirSync(fixtureDir);
+  assert.ok(names.some((n) => n.startsWith("accept-")) && names.some((n) => n.startsWith("reject-")));
+  for (const name of names) {
+    const text = readFileSync(join(fixtureDir, name), "utf8");
+    if (name.startsWith("accept-")) {
+      assert.doesNotThrow(() => parsePlayerConfigs(text, name), `${name} must be accepted`);
+    } else if (name.startsWith("reject-")) {
+      assert.throws(() => parsePlayerConfigs(text, name), undefined, `${name} must be rejected`);
+    }
+  }
 });
 
 test("missing config file names the submodule fix", () => {

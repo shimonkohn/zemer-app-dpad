@@ -38,7 +38,9 @@ export function parsePlayerConfigs(jsonText, label = "player_configs.json") {
   if (root === null || typeof root !== "object" || Array.isArray(root)) {
     throw new Error(`${label}: root is not an object`);
   }
-  if (!Number.isInteger(root.schemaVersion) || root.schemaVersion !== SUPPORTED_SCHEMA_VERSION) {
+  // Mirrors PlayerConfigParser exactly: integer (never a string), 1..SUPPORTED — a v1
+  // file must stay readable by both readers after a future schemaVersion bump.
+  if (!Number.isInteger(root.schemaVersion) || root.schemaVersion <= 0 || root.schemaVersion > SUPPORTED_SCHEMA_VERSION) {
     throw new Error(`${label}: unsupported schemaVersion ${root.schemaVersion}`);
   }
   if (root.players === null || typeof root.players !== "object" || Array.isArray(root.players)) {
