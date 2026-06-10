@@ -44,6 +44,10 @@ const KNOWN_PLAYER_CONFIGS = {
   // with mP(4,155,INPUT) + g.Yx n-trick returns 206 from the CDN, n-probe changed=true.
   "16ee6936": { sigExpr: "mP(4,155,INPUT)", nExpr: nTrick("Yx"), sts: 20613 },
   "ca366632": { sigExpr: "mP(4,155,INPUT)", nExpr: nTrick("Yx"), sts: 20613 },
+  // 6b8eecd5 / 6ea478fa (2026-06-10): 16ee6936's generation under a new URL hash — same mP/Yx,
+  // sts 20613. Empirically validated (tests/validate-player-config.mjs): 206 from the CDN.
+  "6b8eecd5": { sigExpr: "mP(4,155,INPUT)", nExpr: nTrick("Yx"), sts: 20613 },
+  "6ea478fa": { sigExpr: "mP(4,155,INPUT)", nExpr: nTrick("Yx"), sts: 20613 },
   // ce74690f / a5669e32 (2026-06-09): $9/cV; sig=$9(2,6487,INPUT); n=cV trick; sts 20612.
   // Empirically validated (tests/validate-player-config.mjs): real signatureCipher deciphered
   // with $9(2,6487,INPUT) + g.cV n-trick returns 206 from the CDN, n-probe changed=true.
