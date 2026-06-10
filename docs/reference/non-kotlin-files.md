@@ -1,11 +1,11 @@
 # Non-Kotlin file reference
 
-Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `327`.
+Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `330`.
 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
 | `.github/workflows/docs-regenerate.yml` | 74 lines | text `.yml` |
-| `.github/workflows/player-monitor.yml` | 134 lines | text `.yml` |
+| `.github/workflows/player-monitor.yml` | 152 lines | text `.yml` |
 | `.github/workflows/release-build.yml` | 152 lines | text `.yml` |
 | `.github/workflows/ui-audit.yml` | 28 lines | text `.yml` |
 | `.gitignore` | 109 lines | text `[none]` |
@@ -284,9 +284,10 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `tests/broken-clients.mjs` | 142 lines | text `.mjs` |
 | `tests/check-live-player.mjs` | 81 lines | text `.mjs` |
 | `tests/cipher-check.mjs` | 86 lines | text `.mjs` |
-| `tests/cipher.mjs` | 190 lines | text `.mjs` |
+| `tests/cipher.mjs` | 197 lines | text `.mjs` |
 | `tests/client-fulldownload.mjs` | 109 lines | text `.mjs` |
 | `tests/clients.mjs` | 69 lines | text `.mjs` |
+| `tests/config-covers.mjs` | 24 lines | text `.mjs` |
 | `tests/cred.mjs` | 82 lines | text `.mjs` |
 | `tests/derive-player-config.mjs` | 89 lines | text `.mjs` |
 | `tests/discover-clients.mjs` | 116 lines | text `.mjs` |
@@ -294,6 +295,8 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `tests/inspect-player.mjs` | 48 lines | text `.mjs` |
 | `tests/package-lock.json` | 554 lines | text `.json`; JSON keys `name, lockfileVersion, requires, packages` |
 | `tests/package.json` | 7 lines | text `.json`; JSON keys `dependencies` |
+| `tests/player-configs.mjs` | 96 lines | text `.mjs` |
+| `tests/player-configs.test.mjs` | 120 lines | text `.mjs` |
 | `tests/pot-probe.mjs` | 139 lines | text `.mjs` |
 | `tests/potoken.mjs` | 132 lines | text `.mjs` |
 | `tests/probe-all-ids.mjs` | 126 lines | text `.mjs` |
@@ -328,6 +331,6 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `tests/run.mjs` | 181 lines | text `.mjs` |
 | `tests/sts-mismatch.mjs` | 125 lines | text `.mjs` |
 | `tests/test-mweb-cipher.mjs` | 142 lines | text `.mjs` |
-| `tests/validate-player-config.mjs` | 177 lines | text `.mjs` |
+| `tests/validate-player-config.mjs` | 186 lines | text `.mjs` |
 | `tests/web-creator-stream.mjs` | 142 lines | text `.mjs` |
 | `tests/web-remix-stream.mjs` | 277 lines | text `.mjs` |

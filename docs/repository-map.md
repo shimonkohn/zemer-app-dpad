@@ -77,13 +77,13 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `743`
+- Files counted: `742`
 - By extension:
   - `.kt`: `398`
   - `.xml`: `183`
-  - `.mjs`: `48`
+  - `.mjs`: `51`
   - `.json`: `35`
-  - `.md`: `24`
+  - `.md`: `20`
   - `.webp`: `15`
   - `[none]`: `7`
   - `.kts`: `6`
@@ -108,7 +108,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | Path | Lines/bytes | Kind |
 | --- | ---: | --- |
 | `.github/workflows/docs-regenerate.yml` | 74 lines | `.yml` |
-| `.github/workflows/player-monitor.yml` | 134 lines | `.yml` |
+| `.github/workflows/player-monitor.yml` | 152 lines | `.yml` |
 | `.github/workflows/release-build.yml` | 152 lines | `.yml` |
 | `.github/workflows/ui-audit.yml` | 28 lines | `.yml` |
 | `.gitignore` | 109 lines | `[none]` |
@@ -670,13 +670,9 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/generate.py` | 487 lines | `.py` |
 | `docs/innertube/README.md` | 183 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 421 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 333 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 333 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 333 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 336 lines | `.md` |
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
-| `docs/repository-map.md` | 852 lines | `.md` |
-| `docs/repository-map.md` | 852 lines | `.md` |
-| `docs/repository-map.md` | 852 lines | `.md` |
+| `docs/repository-map.md` | 851 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 157 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |
@@ -803,9 +799,10 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `tests/broken-clients.mjs` | 142 lines | `.mjs` |
 | `tests/check-live-player.mjs` | 81 lines | `.mjs` |
 | `tests/cipher-check.mjs` | 86 lines | `.mjs` |
-| `tests/cipher.mjs` | 190 lines | `.mjs` |
+| `tests/cipher.mjs` | 197 lines | `.mjs` |
 | `tests/client-fulldownload.mjs` | 109 lines | `.mjs` |
 | `tests/clients.mjs` | 69 lines | `.mjs` |
+| `tests/config-covers.mjs` | 24 lines | `.mjs` |
 | `tests/cred.mjs` | 82 lines | `.mjs` |
 | `tests/derive-player-config.mjs` | 89 lines | `.mjs` |
 | `tests/discover-clients.mjs` | 116 lines | `.mjs` |
@@ -813,6 +810,8 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `tests/inspect-player.mjs` | 48 lines | `.mjs` |
 | `tests/package-lock.json` | 554 lines | `.json` |
 | `tests/package.json` | 7 lines | `.json` |
+| `tests/player-configs.mjs` | 96 lines | `.mjs` |
+| `tests/player-configs.test.mjs` | 120 lines | `.mjs` |
 | `tests/pot-probe.mjs` | 139 lines | `.mjs` |
 | `tests/potoken.mjs` | 132 lines | `.mjs` |
 | `tests/probe-all-ids.mjs` | 126 lines | `.mjs` |
@@ -847,6 +846,6 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `tests/run.mjs` | 181 lines | `.mjs` |
 | `tests/sts-mismatch.mjs` | 125 lines | `.mjs` |
 | `tests/test-mweb-cipher.mjs` | 142 lines | `.mjs` |
-| `tests/validate-player-config.mjs` | 177 lines | `.mjs` |
+| `tests/validate-player-config.mjs` | 186 lines | `.mjs` |
 | `tests/web-creator-stream.mjs` | 142 lines | `.mjs` |
 | `tests/web-remix-stream.mjs` | 277 lines | `.mjs` |
