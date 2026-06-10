@@ -314,4 +314,7 @@
     <string name="android_auto_target_playlist_desc">Choose the playlist where songs are saved when using the quick-add button in Android Auto</string>
     <string name="android_auto_target_playlist_auto">Not set</string>
     <string name="android_auto_target_playlist_not_set">No playlist selected. Choose one in Android Auto settings</string>
+
+    <!-- Onboarding privacy policy (supersedes onboarding_privacy_body: discloses Crashlytics) -->
+    <string name="onboarding_privacy_body_crash_reporting">Preferences and logins stay on your device, and network calls only fetch what you choose to play. We don\'t collect personal data or usage analytics, and nothing is sold or shared for marketing.\n\nTo keep the app working, automatic crash and error reports are sent to Google Firebase Crashlytics. These reports contain device information (such as model and Android version) and recent technical logs from the app, and are used only to diagnose and fix problems.</string>
 </resources>

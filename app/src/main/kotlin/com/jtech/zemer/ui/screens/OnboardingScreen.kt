@@ -448,7 +448,7 @@ private fun WelcomeScreen(
                     if (kind == LegalKind.TOS) R.string.onboarding_tos_title else R.string.onboarding_privacy_title
                 ),
                 body = stringResource(
-                    if (kind == LegalKind.TOS) R.string.onboarding_tos_body else R.string.onboarding_privacy_body
+                    if (kind == LegalKind.TOS) R.string.onboarding_tos_body else R.string.onboarding_privacy_body_crash_reporting
                 ),
                 onDismiss = { legal = null }
             )
