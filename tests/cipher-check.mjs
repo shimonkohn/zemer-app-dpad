@@ -73,19 +73,14 @@ if (!playerVer) {
 console.log(`\ndetected player hash: ${playerVer}`);
 
 // --- hardcoded fallback availability ---
-// Keep in sync with KNOWN_PLAYER_CONFIGS in FunctionNameExtractor.kt
-const KNOWN = [
-  "74edf1a3",
-  "9c249f6f", "a6fc27c5",   // 2026-05-31 VM-dispatch (Tl/W_)
-  "4f38b487", "1215646b",   // 2026-06-03 VM-dispatch (Tl/W_)
-  "5cabb421", "94f9ca52",   // 2026-06-03 TVHTML5 VM-dispatch (Qp/W1)
-  "9d2ef9ef", "6fb43da5",   // 2026-06-08 VM-dispatch (v0/uY)
-  "69e2a55d", "70d8066f",   // 2026-06-08 VM-dispatch (Jf/iE)
-];
+// Loaded from cipher/library/src/main/assets/player_configs.json — the single source of truth
+// the app bundles, devices fetch remotely, and the rest of the harness reads.
+const { loadKnownPlayerConfigs } = await import("./player-configs.mjs");
+const KNOWN = Object.keys(loadKnownPlayerConfigs());
 console.log(`hardcoded config for ${playerVer}: ${KNOWN.includes(playerVer) ? "YES" : "NO (only " + KNOWN.join(", ") + ")"}`);
 
 console.log("\n=== VERDICT ===");
 const ok = sigName || KNOWN.includes(playerVer);
 const nOk = nName || KNOWN.includes(playerVer);
 if (ok && nOk) console.log(`Cipher OK for ${playerVer}: sig=${sigName ?? "hardcoded"}, n=${nName ?? "hardcoded"}, sts=${sts}`);
-else console.log(`Cipher FAIL for ${playerVer}: sig=${ok ? "ok" : "FAIL"}, n=${nOk ? "ok" : "FAIL"} — add to KNOWN_PLAYER_CONFIGS in FunctionNameExtractor.kt`);
+else console.log(`Cipher FAIL for ${playerVer}: sig=${ok ? "ok" : "FAIL"}, n=${nOk ? "ok" : "FAIL"} — add to cipher/library/src/main/assets/player_configs.json`);

@@ -12,6 +12,7 @@
 import crypto from "node:crypto";
 import { JSDOM } from "jsdom";
 import { getCred, describeCred } from "./cred.mjs";
+import { loadRawPlayerConfigs } from "./player-configs.mjs";
 
 const ORIGIN = "https://music.youtube.com";
 const WEB_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0";
@@ -135,7 +136,20 @@ async function main() {
 
   let pairs;
   if (fixedSig && fixedN) pairs = [{ sigExpr: fixedSig, nClass: fixedN }];
-  else { const c = candidates(js); console.log(`candidates: sig=[${c.sigExprs.join(", ")}]  nClass=[${c.nClasses.join(", ")}]`); pairs = c.pairs; }
+  else {
+    const c = candidates(js);
+    console.log(`candidates: sig=[${c.sigExprs.join(", ")}]  nClass=[${c.nClasses.join(", ")}]`);
+    pairs = c.pairs;
+    // If this player is already committed to player_configs.json (by hash or md5 alias),
+    // validate the committed pair FIRST — the common case is re-checking a shipped config.
+    const committed = Object.entries(loadRawPlayerConfigs())
+      .find(([h, e]) => h === hash || h === md5 || (e.aliases ?? []).includes(hash) || (e.aliases ?? []).includes(md5));
+    if (committed) {
+      const [, e] = committed;
+      console.log(`committed config found in player_configs.json: sig=${e.sig} nClass=${e.nClass}`);
+      pairs = [{ sigExpr: e.sig, nClass: e.nClass }, ...pairs.filter((p) => p.sigExpr !== e.sig || p.nClass !== e.nClass)];
+    }
+  }
   if (!pairs.length) { console.error("no candidates extracted"); process.exit(1); }
 
   let winner = null;
@@ -153,8 +167,8 @@ async function main() {
   if (winner) {
     console.log(`✓ VALIDATED CONFIG for ${hash}:`);
     console.log(`    urlHash=${winner.urlHash}  md5Alias=${winner.md5}  sts=${winner.sts}`);
-    console.log(`    sigJsExpression = "${winner.sigExpr}"`);
-    console.log(`    nClass          = "${winner.nClass}"  (g.${winner.nClass} URL-param trick)`);
+    console.log(`    paste into cipher/library/src/main/assets/player_configs.json under "players":`);
+    console.log(`    "${winner.urlHash}": { "sig": "${winner.sigExpr}", "nClass": "${winner.nClass}", "sts": ${winner.sts}, "aliases": ["${winner.md5}"] }`);
   } else {
     console.log(`✗ no candidate produced a 206 with a working n-transform — inspect manually`);
   }

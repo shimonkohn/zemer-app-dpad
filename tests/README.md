@@ -70,9 +70,12 @@ Useful env: `URL_POT=streaming|player|none`, `CHUNK=262144`, `COVER_SECONDS=90`,
 `PLAYER_HASH=9d2ef9ef` (pin a known-configured player so a freshly-rotated player can't break the
 cipher mid-test — the matching STS is sent in the `/player` request, keeping decipher valid).
 
-> When YouTube rotates to a player hash not in `cipher.mjs`'s `KNOWN_PLAYER_CONFIGS` (mirrors the
-> app's `FunctionNameExtractor.KNOWN_PLAYER_CONFIGS`), `cipher.mjs` throws — the app would also
-> need a new config (its hourly hash monitor exists for this). Pin a known hash to keep testing.
+> Player configs come from `cipher/library/src/main/assets/player_configs.json` (loaded by
+> `tests/player-configs.mjs`) — the SAME file the app bundles and fetches remotely from cipher
+> `master` at runtime, so harness and app cannot drift. When YouTube rotates to a hash not in it,
+> `cipher.mjs` throws — derive + validate with `node tests/validate-player-config.mjs <hash>`
+> (prints a paste-ready JSON entry), add it to the JSON, push cipher `master` → deployed apps
+> self-heal without an APK update. Pin a known hash (`PLAYER_HASH=`) to keep testing meanwhile.
 
 ---
 

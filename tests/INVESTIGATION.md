@@ -38,7 +38,7 @@ must change too (see §6). The mapping:
 | `InnerTube.kt` `player()` + `ytClient()` | `web-remix-stream.mjs` / `pot-probe.mjs` `playerRequest()` | the `/player` POST: context, `X-Goog-*` headers, `SAPISIDHASH`, `signatureTimestamp`, `serviceIntegrityDimensions.poToken` |
 | `models/YouTubeClient.kt` | `clients.mjs` | client name/version/id/UA/flags (WEB_REMIX id 67, IOS id 5, …) |
 | `cipher/.../PlayerJsFetcher.kt` | `cipher.mjs` `fetchPlayerJs()` | iframe_api -> `player_ias.vflset/en_GB/base.js`, STS |
-| `cipher/.../FunctionNameExtractor.kt` `KNOWN_PLAYER_CONFIGS` | `cipher.mjs` `KNOWN_PLAYER_CONFIGS` | per-player sig expression (`Tl(48,5831,…)` / `Qp(25,37,…)` / `v0(35,4499,…)` / `Jf(20,3699,…)`) + n-trick (`g.W_`/`g.W1`/`g.uY`/`g.iE`) + STS |
+| `cipher/library/src/main/assets/player_configs.json` (single source: bundled in APK + fetched from cipher `master` at runtime) | `player-configs.mjs` reads the SAME file | per-player sig expression (`Tl(48,5831,…)` / `Qp(25,37,…)` / `v0(35,4499,…)` / `Jf(20,3699,…)`) + n-trick class (`W_`/`W1`/`uY`/`iE`) + STS + MD5 alias |
 | `cipher/.../CipherWebView.kt` (Android WebView) | `cipher.mjs` (jsdom) | injects exports into the IIFE `})(_yt_player);`, runs base.js, calls `_cipherSigFunc` / `_nTransformFunc` |
 | `cipher/.../CipherDeobfuscator.kt` | `cipher.mjs` `deobfuscateStreamUrl` / `transformNParamInUrl` | parse `s/sp/url`, apply sig, replace `n=`, append `&pot=` |
 | `cipher/.../potoken/PoTokenGenerator.kt` + `PoTokenWebView.kt` | `potoken.mjs` (bgutils-js) | BotGuard mint: streaming pot <- visitorData, player pot <- videoId, request key `O43z0dpjhgX20SCx4KAo` |
@@ -156,20 +156,24 @@ hash monitor for exactly this).
   YouTube return a signatureCipher compatible with that base.js, so decipher stays valid even if it
   isn't the "current" rotated player. (Verified: pinning 4f38b487 worked while the live player was
   the unconfigured `0006d355`; same principle applies to any known hash.)
-- **To actually support the new player:** add an entry to **both**
-  `cipher/library/.../FunctionNameExtractor.kt` `KNOWN_PLAYER_CONFIGS` (app, the real fix) and
-  `tests/cipher.mjs` `KNOWN_PLAYER_CONFIGS` (harness mirror), keyed by both the URL hash and the
-  MD5-of-first-10000-bytes alias. Each entry needs:
-  - `sigExpr`: the VM-dispatch expression that transforms `s`, e.g. `Tl(48,5831,INPUT)`
+- **To actually support the new player:** add ONE entry to
+  `cipher/library/src/main/assets/player_configs.json` — the single source of truth the app
+  bundles, deployed apps fetch from cipher `master` at runtime (self-heal, no APK release), and
+  the harness reads via `player-configs.mjs`. Easiest path:
+  `node tests/validate-player-config.mjs <hash>` auto-derives candidates, proves the winner
+  against the live CDN (HTTP 206), and prints the paste-ready JSON entry. Fields:
+  - `sig`: the VM-dispatch expression that transforms `s`, e.g. `Tl(48,5831,INPUT)`
     (4f38b487/9c249f6f), `Qp(25,37,INPUT)` (5cabb421), `v0(35,4499,INPUT)` (9d2ef9ef),
-    `Jf(20,3699,INPUT)` (69e2a55d). Derive by reversing the new base.js: find the URL-assembler
-    function (searches for `set("alr","yes")`), read its sig-transform call chain, confirm the
+    `Jf(20,3699,INPUT)` (69e2a55d). Derived by reversing the new base.js: find the URL-assembler
+    function (search for `set("alr","yes")`), read its sig-transform call chain, confirm the
     inner call is `decodeURIComponent` (already done by CipherDeobfuscator — INPUT replaces it).
-  - `nExpr`: the URL-parser trick — `new g.CLASS('…?n='+n,true).get('n')` (the class name
-    `W_`/`W1`/`uY`/`iE` changes per player; grep `bIR=\|CVy=` for the n-transform function to
-    find it; or look for `new g.X(url,!0).get("n")` near the n-apply site).
+  - `nClass`: the URL-parser class for the n-trick — `new g.CLASS('…?n='+n,true).get('n')` (the
+    class name `W_`/`W1`/`uY`/`iE` changes per player; grep `bIR=\|CVy=` for the n-transform
+    function to find it; or look for `new g.X(url,!0).get("n")` near the n-apply site).
   - `sts`: from `signatureTimestamp:(\d+)` in base.js.
-  - Confirm with `node cipher.mjs` -> `sig=true n=true`, n probe `changed:true`.
+  - `aliases`: the MD5-of-first-10000-bytes fallback hash (validate-player-config prints it).
+  - Confirm with `node cipher.mjs` -> `sig=true n=true`, n probe `changed:true`, then push the
+    cipher repo (`master`) so live apps pick it up; bump the zemer-app submodule pointer after.
 
 ### B. Songs drop after N seconds / 403 mid-playback / seek fails
 The throttle/pot rule changed. Re-derive it empirically:
@@ -222,7 +226,7 @@ The Node mirror duplicates app constants on purpose. When these app files change
 | App change | Update in harness |
 |---|---|
 | `YouTubeClient.kt` client versions/UAs | `clients.mjs` |
-| `FunctionNameExtractor.kt` `KNOWN_PLAYER_CONFIGS` (new player) | `cipher.mjs` `KNOWN_PLAYER_CONFIGS` |
+| new player config | nothing — `player_configs.json` in the cipher submodule is read by both app and harness (`player-configs.mjs`) |
 | `PoTokenGenerator.kt` token bindings | `potoken.mjs` `mintWebPoTokens` + the `URL_POT` mapping in `web-remix-stream.mjs` |
 | `PoTokenWebView.kt` `REQUEST_KEY` | `potoken.mjs` `WEB_REQUEST_KEY` |
 | `YTPlayerUtils.findFormat()` selection | `findFormat()` in the scripts |

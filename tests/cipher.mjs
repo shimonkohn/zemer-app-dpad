@@ -16,50 +16,15 @@
 
 import crypto from "node:crypto";
 import { JSDOM } from "jsdom";
+import { loadKnownPlayerConfigs } from "./player-configs.mjs";
 
 const IFRAME_API_URL = "https://www.youtube.com/iframe_api";
 const PLAYER_JS_URL = (hash) =>
   `https://www.youtube.com/s/player/${hash}/player_ias.vflset/en_GB/base.js`;
 
-// Ported from FunctionNameExtractor.KNOWN_PLAYER_CONFIGS (expression-based, current players).
-// Keyed by BOTH the URL hash and the MD5-of-first-10000 fallback alias.
-const KNOWN_PLAYER_CONFIGS = {
-  // 9c249f6f / a6fc27c5 (2026-05-31)
-  "9c249f6f": { sigExpr: "Tl(48,5831,INPUT)", nExpr: nTrick("W_"), sts: 20602 },
-  "a6fc27c5": { sigExpr: "Tl(48,5831,INPUT)", nExpr: nTrick("W_"), sts: 20602 },
-  // 4f38b487 / 1215646b (2026-06-03)
-  "4f38b487": { sigExpr: "Tl(48,5831,INPUT)", nExpr: nTrick("W_"), sts: 20602 },
-  "1215646b": { sigExpr: "Tl(48,5831,INPUT)", nExpr: nTrick("W_"), sts: 20602 },
-  // 5cabb421 / 94f9ca52 (2026-06-03, TVHTML5 Q-array)
-  "5cabb421": { sigExpr: "Qp(25,37,INPUT)", nExpr: nTrick("W1"), sts: 20606 },
-  "94f9ca52": { sigExpr: "Qp(25,37,INPUT)", nExpr: nTrick("W1"), sts: 20606 },
-  // 9d2ef9ef / 6fb43da5 (2026-06-08): v0/uY; sig=v0(35,4499,INPUT); n=uY trick
-  "9d2ef9ef": { sigExpr: "v0(35,4499,INPUT)", nExpr: nTrick("uY"), sts: 20607 },
-  "6fb43da5": { sigExpr: "v0(35,4499,INPUT)", nExpr: nTrick("uY"), sts: 20607 },
-  // 69e2a55d / 70d8066f (2026-06-08): Jf/iE; sig=Jf(20,3699,INPUT); n=iE trick
-  "69e2a55d": { sigExpr: "Jf(20,3699,INPUT)", nExpr: nTrick("iE"), sts: 20611 },
-  "70d8066f": { sigExpr: "Jf(20,3699,INPUT)", nExpr: nTrick("iE"), sts: 20611 },
-  // 16ee6936 / ca366632 (2026-06-09): mP/Yx; sig=mP(4,155,INPUT); n=Yx trick; sts 20613.
-  // Empirically validated (tests/validate-player-config.mjs): real signatureCipher deciphered
-  // with mP(4,155,INPUT) + g.Yx n-trick returns 206 from the CDN, n-probe changed=true.
-  "16ee6936": { sigExpr: "mP(4,155,INPUT)", nExpr: nTrick("Yx"), sts: 20613 },
-  "ca366632": { sigExpr: "mP(4,155,INPUT)", nExpr: nTrick("Yx"), sts: 20613 },
-  // 6b8eecd5 / 6ea478fa (2026-06-10): 16ee6936's generation under a new URL hash — same mP/Yx,
-  // sts 20613. Empirically validated (tests/validate-player-config.mjs): 206 from the CDN.
-  "6b8eecd5": { sigExpr: "mP(4,155,INPUT)", nExpr: nTrick("Yx"), sts: 20613 },
-  "6ea478fa": { sigExpr: "mP(4,155,INPUT)", nExpr: nTrick("Yx"), sts: 20613 },
-  // ce74690f / a5669e32 (2026-06-09): $9/cV; sig=$9(2,6487,INPUT); n=cV trick; sts 20612.
-  // Empirically validated (tests/validate-player-config.mjs): real signatureCipher deciphered
-  // with $9(2,6487,INPUT) + g.cV n-trick returns 206 from the CDN, n-probe changed=true.
-  "ce74690f": { sigExpr: "$9(2,6487,INPUT)", nExpr: nTrick("cV"), sts: 20612 },
-  "a5669e32": { sigExpr: "$9(2,6487,INPUT)", nExpr: nTrick("cV"), sts: 20612 },
-};
-
-function nTrick(urlClass) {
-  // The app's nJsExpression: parse a fake googlevideo URL with the player's own URL class and
-  // read back the VM-transformed "n" query param.
-  return `(function(n){try{var u=new g.${urlClass}('https://x.googlevideo.com/videoplayback?n='+n,true);var t=u.get('n');return(t&&t!==n)?t:n;}catch(e){return n;}})(INPUT)`;
-}
+// Loaded from cipher/library/src/main/assets/player_configs.json — the same file the app
+// bundles and fetches remotely. Keyed by BOTH the URL hash and the MD5 fallback alias.
+const KNOWN_PLAYER_CONFIGS = loadKnownPlayerConfigs();
 
 const SIG_TS_PATTERNS = [/signatureTimestamp['":\s]+(\d+)/, /\bsts['":\s]+(\d+)/];
 
@@ -119,8 +84,8 @@ export async function createCipher({ verbose = false } = {}) {
   }
   if (!cfg) {
     throw new Error(
-      `no hardcoded cipher config for live player (hashes: ${uniq.join(", ")}). ` +
-      `The app would also need a new config for this player — update KNOWN_PLAYER_CONFIGS.`,
+      `no cipher config for live player (hashes: ${uniq.join(", ")}). ` +
+      `The app also needs this player — add it to cipher/library/src/main/assets/player_configs.json.`,
     );
   }
 

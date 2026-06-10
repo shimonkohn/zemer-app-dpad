@@ -5,12 +5,12 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
 | `.github/workflows/docs-regenerate.yml` | 74 lines | text `.yml` |
-| `.github/workflows/player-monitor.yml` | 131 lines | text `.yml` |
+| `.github/workflows/player-monitor.yml` | 134 lines | text `.yml` |
 | `.github/workflows/release-build.yml` | 152 lines | text `.yml` |
 | `.github/workflows/ui-audit.yml` | 28 lines | text `.yml` |
 | `.gitignore` | 109 lines | text `[none]` |
 | `.gitmodules` | 6 lines | text `[none]` |
-| `AGENTS.md` | 86 lines | text `.md` |
+| `AGENTS.md` | 87 lines | text `.md` |
 | `LICENSE` | 674 lines | text `[none]` |
 | `README.md` | 11 lines | text `.md` |
 | `app/.gitignore` | 1 lines | text `[none]` |
@@ -277,14 +277,14 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `scripts/ui-audit.sh` | 79 lines | text `.sh` |
 | `settings.gradle.kts` | 56 lines | text `.kts`; plugins `org.gradle.toolchains.foojay-resolver-convention` |
 | `simpmusic/build.gradle.kts` | 15 lines | text `.kts`; plugins `kotlin.serialization, jvm` |
-| `tests/INVESTIGATION.md` | 272 lines | text `.md` |
+| `tests/INVESTIGATION.md` | 276 lines | text `.md` |
 | `tests/MWEB-INVESTIGATION.md` | 83 lines | text `.md` |
-| `tests/README.md` | 158 lines | text `.md` |
+| `tests/README.md` | 161 lines | text `.md` |
 | `tests/analyze-player.mjs` | 53 lines | text `.mjs` |
 | `tests/broken-clients.mjs` | 142 lines | text `.mjs` |
 | `tests/check-live-player.mjs` | 81 lines | text `.mjs` |
-| `tests/cipher-check.mjs` | 91 lines | text `.mjs` |
-| `tests/cipher.mjs` | 225 lines | text `.mjs` |
+| `tests/cipher-check.mjs` | 86 lines | text `.mjs` |
+| `tests/cipher.mjs` | 190 lines | text `.mjs` |
 | `tests/client-fulldownload.mjs` | 109 lines | text `.mjs` |
 | `tests/clients.mjs` | 69 lines | text `.mjs` |
 | `tests/cred.mjs` | 82 lines | text `.mjs` |
@@ -328,6 +328,6 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `tests/run.mjs` | 181 lines | text `.mjs` |
 | `tests/sts-mismatch.mjs` | 125 lines | text `.mjs` |
 | `tests/test-mweb-cipher.mjs` | 142 lines | text `.mjs` |
-| `tests/validate-player-config.mjs` | 163 lines | text `.mjs` |
+| `tests/validate-player-config.mjs` | 177 lines | text `.mjs` |
 | `tests/web-creator-stream.mjs` | 142 lines | text `.mjs` |
 | `tests/web-remix-stream.mjs` | 277 lines | text `.mjs` |

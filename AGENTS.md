@@ -50,11 +50,12 @@ Two hard-won facts that govern this area — always verify against the live CDN 
 
 The `cipher` submodule (package `com.zemer.cipher`, repo `ZemerTeam/zemer-cipher`) deciphers YouTube's `player_ias` signatures in an Android WebView and mints poTokens. It's wired **two ways**: a git submodule *and* a Gradle composite build — `includeBuild("cipher")` in `settings.gradle.kts` substitutes `com.zemer:cipher` → the local `:library`, so the app always builds the working tree.
 
-YouTube rotates `player_ias` frequently. Each player needs an entry in `cipher/.../FunctionNameExtractor.kt` `KNOWN_PLAYER_CONFIGS` — the sig JS expression (e.g. `mP(4,155,INPUT)`), the n-transform URL class (e.g. `g.Yx`), and the STS — keyed by **both** the URL hash **and** the md5-of-first-10000-bytes alias. When adding one:
-- **Validate empirically**: `node tests/validate-player-config.mjs <hash>` deciphers a real stream and checks the CDN returns **HTTP 206**. That 206 is ground truth, not regex extraction — multiple constant pairs can decipher correctly, only the live response confirms which the server accepts.
-- Mirror the entry into **both** `FunctionNameExtractor.kt` (app) and `tests/cipher.mjs` (harness).
-- **Submodule push order**: commit + push `zemer-cipher` **first**, then bump the pointer in `zemer-app`. Reverse that and the app's gitlink references an unfetchable commit → fresh clones / CI break.
-- `.github/workflows/player-monitor.yml` checks hourly and opens an issue + emails on an unknown hash, but does **not** auto-commit — the config is added by hand.
+YouTube rotates `player_ias` frequently. Player configs live in **one JSON file**: `cipher/library/src/main/assets/player_configs.json` — per player the sig call expression (e.g. `mP(4,155,INPUT)`), the n-transform URL class (e.g. `Yx`), the STS, and the md5-of-first-10000-bytes alias. That single file is (1) bundled in the APK as the offline default, (2) **fetched at runtime from raw zemer-cipher `master`** by `PlayerConfigStore` (6 h TTL + ETag, plus a forced refresh + one retry the moment an unknown hash breaks deciphering), and (3) read by the `tests/` harness — so **a config pushed to cipher `master` fixes deployed apps within minutes, no APK release**. Parsing/validation is `PlayerConfigParser` (strict regexes; the n-IIFE is built from a local template — remote data can never inject free-form JS into the WebView; invalid entries are skipped, invalid files are rejected wholesale and the previous table kept). When adding a config:
+- **Validate empirically**: `node tests/validate-player-config.mjs <hash>` deciphers a real stream and checks the CDN returns **HTTP 206**. That 206 is ground truth, not regex extraction — multiple constant pairs can decipher correctly, only the live response confirms which the server accepts. It prints a paste-ready JSON entry (and re-validates the committed entry first if one exists).
+- Add the entry (with its MD5 alias) to `player_configs.json` only — there are no Kotlin/harness mirrors to sync anymore; unit tests in `cipher/library/src/test/` guard the file's shape.
+- **Push to cipher `master` is the deploy**: that is the URL devices fetch. Bump the submodule pointer in `zemer-app` afterwards so bundled defaults stay fresh (push order: `zemer-cipher` first, then the pointer — reverse breaks fresh clones / CI).
+- A cipher *scheme* change (new config shape, not just a new hash) still needs code + an APK; bump `schemaVersion` only on breaking shape changes — old apps reject newer schema files and keep their last-good table.
+- `.github/workflows/player-monitor.yml` checks hourly against the live raw `master` file and opens an issue + emails on an unknown hash, but does **not** auto-commit — the config is added by hand.
 
 ### tests/ — the hard-data streaming harness
 
@@ -62,7 +63,7 @@ Node ≥20 scripts (deps vendored in `tests/node_modules`, no install needed) th
 
 - Run one: `node tests/cipher.mjs` (live player health), `node tests/validate-player-config.mjs <hash>`, `node tests/web-remix-stream.mjs`. Pin a player with `PLAYER_HASH=<hash>`.
 - `tests/README.md` + `tests/INVESTIGATION.md` are the methodology and the symptom-indexed runbook — read them first when streaming breaks.
-- The harness mirrors app constants on purpose; when `YouTubeClient.kt` / `FunctionNameExtractor.kt` / `PoTokenGenerator.kt` change, update the matching mirror (`clients.mjs` / `cipher.mjs` / `potoken.mjs`).
+- The harness mirrors app constants on purpose; when `YouTubeClient.kt` / `PoTokenGenerator.kt` change, update the matching mirror (`clients.mjs` / `potoken.mjs`). Player configs are **not** mirrored — `tests/player-configs.mjs` reads the same `player_configs.json` the app bundles.
 
 ### Modules & app layout
 

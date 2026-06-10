@@ -77,13 +77,13 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `739`
+- Files counted: `743`
 - By extension:
   - `.kt`: `398`
   - `.xml`: `183`
   - `.mjs`: `48`
   - `.json`: `35`
-  - `.md`: `20`
+  - `.md`: `24`
   - `.webp`: `15`
   - `[none]`: `7`
   - `.kts`: `6`
@@ -108,12 +108,12 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | Path | Lines/bytes | Kind |
 | --- | ---: | --- |
 | `.github/workflows/docs-regenerate.yml` | 74 lines | `.yml` |
-| `.github/workflows/player-monitor.yml` | 131 lines | `.yml` |
+| `.github/workflows/player-monitor.yml` | 134 lines | `.yml` |
 | `.github/workflows/release-build.yml` | 152 lines | `.yml` |
 | `.github/workflows/ui-audit.yml` | 28 lines | `.yml` |
 | `.gitignore` | 109 lines | `[none]` |
 | `.gitmodules` | 6 lines | `[none]` |
-| `AGENTS.md` | 86 lines | `.md` |
+| `AGENTS.md` | 87 lines | `.md` |
 | `LICENSE` | 674 lines | `[none]` |
 | `README.md` | 11 lines | `.md` |
 | `app/.gitignore` | 1 lines | `[none]` |
@@ -671,8 +671,12 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/innertube/README.md` | 183 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 421 lines | `.md` |
 | `docs/reference/non-kotlin-files.md` | 333 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 333 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 333 lines | `.md` |
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
-| `docs/repository-map.md` | 848 lines | `.md` |
+| `docs/repository-map.md` | 852 lines | `.md` |
+| `docs/repository-map.md` | 852 lines | `.md` |
+| `docs/repository-map.md` | 852 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 157 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |
@@ -792,14 +796,14 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `simpmusic/build.gradle.kts` | 15 lines | `.kts` |
 | `simpmusic/src/main/kotlin/com/metrolist/simpmusic/SimpMusicLyrics.kt` | 119 lines | `.kt` |
 | `simpmusic/src/main/kotlin/com/metrolist/simpmusic/models/LyricsResponse.kt` | 32 lines | `.kt` |
-| `tests/INVESTIGATION.md` | 272 lines | `.md` |
+| `tests/INVESTIGATION.md` | 276 lines | `.md` |
 | `tests/MWEB-INVESTIGATION.md` | 83 lines | `.md` |
-| `tests/README.md` | 158 lines | `.md` |
+| `tests/README.md` | 161 lines | `.md` |
 | `tests/analyze-player.mjs` | 53 lines | `.mjs` |
 | `tests/broken-clients.mjs` | 142 lines | `.mjs` |
 | `tests/check-live-player.mjs` | 81 lines | `.mjs` |
-| `tests/cipher-check.mjs` | 91 lines | `.mjs` |
-| `tests/cipher.mjs` | 225 lines | `.mjs` |
+| `tests/cipher-check.mjs` | 86 lines | `.mjs` |
+| `tests/cipher.mjs` | 190 lines | `.mjs` |
 | `tests/client-fulldownload.mjs` | 109 lines | `.mjs` |
 | `tests/clients.mjs` | 69 lines | `.mjs` |
 | `tests/cred.mjs` | 82 lines | `.mjs` |
@@ -843,6 +847,6 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `tests/run.mjs` | 181 lines | `.mjs` |
 | `tests/sts-mismatch.mjs` | 125 lines | `.mjs` |
 | `tests/test-mweb-cipher.mjs` | 142 lines | `.mjs` |
-| `tests/validate-player-config.mjs` | 163 lines | `.mjs` |
+| `tests/validate-player-config.mjs` | 177 lines | `.mjs` |
 | `tests/web-creator-stream.mjs` | 142 lines | `.mjs` |
 | `tests/web-remix-stream.mjs` | 277 lines | `.mjs` |
