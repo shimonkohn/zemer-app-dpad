@@ -67,12 +67,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: app/src/main/jniLibs
-          key: bento4-libs-v1.0.0
+          key: bento4-libs-v1.0.1
 
       - name: Download prebuilt native libs
         if: steps.cache-native.outputs.cache-hit != 'true'
         run: |
-          gh release download v1.0.0 --repo ZemerTeam/zemer-bento4 --pattern 'bento4-libs.zip'
+          gh release download v1.0.1 --repo ZemerTeam/zemer-bento4 --pattern 'bento4-libs.zip'
           unzip bento4-libs.zip -d app/src/main
         env:
           GH_TOKEN: ${{ github.token }}
@@ -96,6 +96,9 @@ jobs:
 
       - name: Assemble signed release
         run: ./gradlew assembleRelease
+
+      - name: Check 16 KB page-size alignment
+        run: bash scripts/check-16kb-alignment.sh app/build/outputs/apk/release/app-release.apk
 
       - name: Upload Crashlytics native symbols
         run: ./gradlew :app:uploadCrashlyticsSymbolFileRelease

@@ -6,7 +6,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | --- | ---: | --- |
 | `.github/workflows/docs-regenerate.yml` | 74 lines | text `.yml` |
 | `.github/workflows/player-monitor.yml` | 152 lines | text `.yml` |
-| `.github/workflows/release-build.yml` | 152 lines | text `.yml` |
+| `.github/workflows/release-build.yml` | 155 lines | text `.yml` |
 | `.github/workflows/ui-audit.yml` | 28 lines | text `.yml` |
 | `.gitignore` | 109 lines | text `[none]` |
 | `.gitmodules` | 6 lines | text `[none]` |
@@ -14,7 +14,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `LICENSE` | 674 lines | text `[none]` |
 | `README.md` | 11 lines | text `.md` |
 | `app/.gitignore` | 1 lines | text `[none]` |
-| `app/build.gradle.kts` | 268 lines | text `.kts`; plugins `com.android.application, android, hilt, kotlin.ksp, compose.compiler, google.gms.google.services, firebase.crashlytics` |
+| `app/build.gradle.kts` | 270 lines | text `.kts`; plugins `com.android.application, android, hilt, kotlin.ksp, compose.compiler, google.gms.google.services, firebase.crashlytics` |
 | `app/lint.xml` | 12 lines | text `.xml`; XML root `lint` |
 | `app/proguard-rules.pro` | 240 lines | text `.pro` |
 | `app/schemas/com.jtech.zemer.db.InternalDatabase/1.json` | 297 lines | text `.json`; JSON keys `formatVersion, database` |

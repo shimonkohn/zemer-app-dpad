@@ -29,12 +29,13 @@
 | Set up JDK 21 | `actions/setup-java@v4` (distribution=`temurin`, java-version=`21`) |
 | Setup Gradle | `gradle/actions/setup-gradle@v4` |
 | Set up Android SDK | `android-actions/setup-android@v3` |
-| Cache native libs | `actions/cache@v4` (path=`app/src/main/jniLibs`, key=`bento4-libs-v1.0.0`) |
-| Download prebuilt native libs | run: `gh release download v1.0.0 --repo ZemerTeam/zemer-bento4 --pattern 'bento4-libs.zip'` |
+| Cache native libs | `actions/cache@v4` (path=`app/src/main/jniLibs`, key=`bento4-libs-v1.0.1`) |
+| Download prebuilt native libs | run: `gh release download v1.0.1 --repo ZemerTeam/zemer-bento4 --pattern 'bento4-libs.zip'` |
 | Configure Android SDK path | run: `echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties` |
 | Configure Firebase | run: `echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" \| base64 -d > app/google-services.json` |
 | Configure release keystore | run: `mkdir -p app/keystore` |
 | Assemble signed release | run: `./gradlew assembleRelease` |
+| Check 16 KB page-size alignment | run: `bash scripts/check-16kb-alignment.sh app/build/outputs/apk/release/app-release.apk` |
 | Upload Crashlytics native symbols | run: `./gradlew :app:uploadCrashlyticsSymbolFileRelease` |
 | Upload APK artifact | `actions/upload-artifact@v4` (name=`release-apk`, path=`app/build/outputs/apk/release/*.apk`) |
 | Send Telegram notification | run: `if [ "${{ job.status }}" == "success" ]; then` |
