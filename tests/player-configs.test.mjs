@@ -9,7 +9,7 @@ import { writeFileSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parsePlayerConfigs, loadRawPlayerConfigs, loadKnownPlayerConfigs } from "./player-configs.mjs";
+import { parsePlayerConfigs, loadRawPlayerConfigs, loadKnownPlayerConfigs, nTrick } from "./player-configs.mjs";
 
 const COVERS_CLI = join(dirname(fileURLToPath(import.meta.url)), "config-covers.mjs");
 
@@ -89,6 +89,16 @@ test("parity fixtures: file-level verdicts match the Kotlin parser's", () => {
       assert.throws(() => parsePlayerConfigs(text, name), undefined, `${name} must be rejected`);
     }
   }
+});
+
+test("n-IIFE template is byte-equal to the Kotlin template's golden file", () => {
+  // NJsExpressionTemplateTest (cipher repo) pins buildNJsExpression("Yx") to this same
+  // file — the expression this harness 206-validates must be exactly what devices run.
+  const goldenPath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "..", "cipher", "library", "src", "test", "resources", "config-parity", "n-template-Yx.golden",
+  );
+  assert.equal(nTrick("Yx"), readFileSync(goldenPath, "utf8"));
 });
 
 test("missing config file names the submodule fix", () => {

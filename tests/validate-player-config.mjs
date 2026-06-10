@@ -12,7 +12,7 @@
 import crypto from "node:crypto";
 import { JSDOM } from "jsdom";
 import { getCred, describeCred } from "./cred.mjs";
-import { loadRawPlayerConfigs } from "./player-configs.mjs";
+import { loadRawPlayerConfigs, nTrick } from "./player-configs.mjs";
 
 const ORIGIN = "https://music.youtube.com";
 const WEB_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0";
@@ -37,7 +37,9 @@ async function fetchJs(hash) {
 
 // Build a cipher from base.js with explicit sigExpr + nClass, exactly like cipher.mjs/CipherWebView.
 function buildCipher(playerJs, sigExpr, nClass) {
-  const nExpr = `(function(n){try{var u=new g.${nClass}('https://x.googlevideo.com/videoplayback?n='+n,true);var t=u.get('n');return(t&&t!==n)?t:n;}catch(e){return n;}})(INPUT)`;
+  // The single JS copy of the n-IIFE template — what this script 206-validates must be
+  // byte-identical to what devices evaluate (PlayerConfigParser.buildNJsExpression).
+  const nExpr = nTrick(nClass);
   const sigStmt = `window._cipherSigFunc = function(sig){ try { return ${sigExpr.replace("INPUT", "sig")}; } catch(e){ return null; } };`;
   const nStmt = `window._nTransformFunc = function(n){ try { return ${nExpr.replace("INPUT", "n")}; } catch(e){ return n; } };`;
   const exportCode = `; ${sigStmt} ${nStmt} `;
