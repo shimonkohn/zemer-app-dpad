@@ -77,13 +77,13 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `740`
+- Files counted: `739`
 - By extension:
   - `.kt`: `398`
   - `.xml`: `183`
   - `.mjs`: `48`
   - `.json`: `35`
-  - `.md`: `21`
+  - `.md`: `20`
   - `.webp`: `15`
   - `[none]`: `7`
   - `.kts`: `6`
@@ -672,10 +672,9 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/reference/kotlin-files.md` | 421 lines | `.md` |
 | `docs/reference/non-kotlin-files.md` | 333 lines | `.md` |
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
-| `docs/repository-map.md` | 849 lines | `.md` |
+| `docs/repository-map.md` | 848 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 157 lines | `.md` |
-| `docs/ui/unification-plan.md` | 120 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |
 | `gradle.properties` | 40 lines | `.properties` |
 | `gradle/libs.versions.toml` | 146 lines | `.toml` |
