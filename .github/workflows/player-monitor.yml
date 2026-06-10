@@ -22,16 +22,28 @@ jobs:
           echo "hash=$HASH" >> "$GITHUB_OUTPUT"
           echo "Current player: $HASH"
 
-      # Check against the LIVE config file on zemer-cipher master — that is exactly what
-      # deployed apps fetch and self-heal from (PlayerConfigStore), so this never false-alarms
-      # when cipher master is ahead of the app's submodule pointer.
+      # Fetch the LIVE config file from zemer-cipher master ONCE — that is exactly what
+      # deployed apps fetch and self-heal from (PlayerConfigStore), so a verdict against it
+      # never false-alarms when cipher master is ahead of the app's submodule pointer.
+      # The submodule copy is only an explicit, warned-about fallback (it can lag master);
+      # if both sources fail the step fails, so a broken monitor is a red run, not silence.
+      - name: Fetch known player configs
+        id: configs
+        run: |
+          if curl -fsS --retry 3 --retry-delay 5 \
+              "https://raw.githubusercontent.com/ZemerTeam/zemer-cipher/master/library/src/main/assets/player_configs.json" \
+              -o /tmp/player_configs.json; then
+            echo "Fetched live player_configs.json from zemer-cipher master"
+          else
+            echo "::warning::Could not fetch live player_configs.json from zemer-cipher master — falling back to the submodule copy, which can lag master and false-alarm"
+            cp cipher/library/src/main/assets/player_configs.json /tmp/player_configs.json
+          fi
+
       - name: Check if hash is known in player_configs.json
         id: known
         run: |
           HASH="${{ steps.player.outputs.hash }}"
-          CONFIGS=$(curl -fsS "https://raw.githubusercontent.com/ZemerTeam/zemer-cipher/master/library/src/main/assets/player_configs.json" \
-            || cat cipher/library/src/main/assets/player_configs.json)
-          if echo "$CONFIGS" | grep -q "\"$HASH\""; then
+          if grep -q "\"$HASH\"" /tmp/player_configs.json; then
             echo "known=true" >> "$GITHUB_OUTPUT"
             echo "Hash $HASH is already in player_configs.json ✓"
           else
@@ -47,10 +59,7 @@ jobs:
           URL="https://www.youtube.com/s/player/${HASH}/player_ias.vflset/en_GB/base.js"
           MD5=$(curl -s "$URL" | head -c 10000 | md5sum | cut -c1-8)
           echo "md5=$MD5" >> "$GITHUB_OUTPUT"
-          # Check if MD5 alias is known
-          CONFIGS=$(curl -fsS "https://raw.githubusercontent.com/ZemerTeam/zemer-cipher/master/library/src/main/assets/player_configs.json" \
-            || cat cipher/library/src/main/assets/player_configs.json)
-          if echo "$CONFIGS" | grep -q "\"$MD5\""; then
+          if grep -q "\"$MD5\"" /tmp/player_configs.json; then
             echo "md5_known=true" >> "$GITHUB_OUTPUT"
             echo "MD5 alias $MD5 is already known ✓"
           else
