@@ -77,13 +77,13 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `776`
+- Files counted: `789`
 - By extension:
   - `.kt`: `413`
   - `.xml`: `183`
-  - `.mjs`: `54`
+  - `.mjs`: `66`
   - `.json`: `35`
-  - `.md`: `34`
+  - `.md`: `35`
   - `.webp`: `15`
   - `[none]`: `7`
   - `.kts`: `6`
@@ -111,9 +111,9 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `.github/workflows/player-monitor.yml` | 140 lines | `.yml` |
 | `.github/workflows/release-build.yml` | 155 lines | `.yml` |
 | `.github/workflows/ui-audit.yml` | 28 lines | `.yml` |
-| `.gitignore` | 109 lines | `[none]` |
+| `.gitignore` | 112 lines | `[none]` |
 | `.gitmodules` | 6 lines | `[none]` |
-| `AGENTS.md` | 88 lines | `.md` |
+| `AGENTS.md` | 89 lines | `.md` |
 | `LICENSE` | 674 lines | `[none]` |
 | `README.md` | 11 lines | `.md` |
 | `app/.gitignore` | 1 lines | `[none]` |
@@ -341,7 +341,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/YouTubeBrowseScreen.kt` | 284 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/artist/ArtistAlbumsScreen.kt` | 157 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/artist/ArtistItemsScreen.kt` | 329 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/ui/screens/artist/ArtistScreen.kt` | 855 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/ui/screens/artist/ArtistScreen.kt` | 856 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/artist/ArtistSongsScreen.kt` | 211 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/library/LibraryAlbumsScreen.kt` | 324 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/screens/library/LibraryArtistsScreen.kt` | 302 lines | `.kt` |
@@ -691,7 +691,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/multi_update/05-runbook.md` | 83 lines | `.md` |
 | `docs/multi_update/README.md` | 77 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 436 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 341 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 354 lines | `.md` |
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
 | `docs/remote_cipher_config/01-why-it-exists.md` | 88 lines | `.md` |
 | `docs/remote_cipher_config/02-file-format.md` | 116 lines | `.md` |
@@ -701,7 +701,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/remote_cipher_config/06-harness-and-monitor.md` | 101 lines | `.md` |
 | `docs/remote_cipher_config/07-runbook.md` | 99 lines | `.md` |
 | `docs/remote_cipher_config/README.md` | 110 lines | `.md` |
-| `docs/repository-map.md` | 885 lines | `.md` |
+| `docs/repository-map.md` | 898 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 213 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |
@@ -878,6 +878,19 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `tests/run.mjs` | 181 lines | `.mjs` |
 | `tests/scan-live-players.mjs` | 115 lines | `.mjs` |
 | `tests/scan-live-players.test.mjs` | 44 lines | `.mjs` |
+| `tests/search/README.md` | 114 lines | `.md` |
+| `tests/search/album-facet-probe.mjs` | 42 lines | `.mjs` |
+| `tests/search/coverage.mjs` | 202 lines | `.mjs` |
+| `tests/search/diag-auth.mjs` | 77 lines | `.mjs` |
+| `tests/search/fetch-whitelist.mjs` | 59 lines | `.mjs` |
+| `tests/search/lib.mjs` | 163 lines | `.mjs` |
+| `tests/search/parsers.mjs` | 208 lines | `.mjs` |
+| `tests/search/pill-survival.mjs` | 114 lines | `.mjs` |
+| `tests/search/run.mjs` | 246 lines | `.mjs` |
+| `tests/search/schema.mjs` | 239 lines | `.mjs` |
+| `tests/search/self-test.mjs` | 111 lines | `.mjs` |
+| `tests/search/verify-album-fix.mjs` | 61 lines | `.mjs` |
+| `tests/search/whitelist-findable.mjs` | 114 lines | `.mjs` |
 | `tests/sts-mismatch.mjs` | 125 lines | `.mjs` |
 | `tests/test-mweb-cipher.mjs` | 142 lines | `.mjs` |
 | `tests/validate-player-config.mjs` | 186 lines | `.mjs` |

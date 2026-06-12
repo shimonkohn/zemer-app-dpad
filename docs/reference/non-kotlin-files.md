@@ -1,6 +1,6 @@
 # Non-Kotlin file reference
 
-Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `335`.
+Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `348`.
 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
@@ -8,9 +8,9 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `.github/workflows/player-monitor.yml` | 140 lines | text `.yml` |
 | `.github/workflows/release-build.yml` | 155 lines | text `.yml` |
 | `.github/workflows/ui-audit.yml` | 28 lines | text `.yml` |
-| `.gitignore` | 109 lines | text `[none]` |
+| `.gitignore` | 112 lines | text `[none]` |
 | `.gitmodules` | 6 lines | text `[none]` |
-| `AGENTS.md` | 88 lines | text `.md` |
+| `AGENTS.md` | 89 lines | text `.md` |
 | `LICENSE` | 674 lines | text `[none]` |
 | `README.md` | 11 lines | text `.md` |
 | `app/.gitignore` | 1 lines | text `[none]` |
@@ -334,6 +334,19 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `tests/run.mjs` | 181 lines | text `.mjs` |
 | `tests/scan-live-players.mjs` | 115 lines | text `.mjs` |
 | `tests/scan-live-players.test.mjs` | 44 lines | text `.mjs` |
+| `tests/search/README.md` | 114 lines | text `.md` |
+| `tests/search/album-facet-probe.mjs` | 42 lines | text `.mjs` |
+| `tests/search/coverage.mjs` | 202 lines | text `.mjs` |
+| `tests/search/diag-auth.mjs` | 77 lines | text `.mjs` |
+| `tests/search/fetch-whitelist.mjs` | 59 lines | text `.mjs` |
+| `tests/search/lib.mjs` | 163 lines | text `.mjs` |
+| `tests/search/parsers.mjs` | 208 lines | text `.mjs` |
+| `tests/search/pill-survival.mjs` | 114 lines | text `.mjs` |
+| `tests/search/run.mjs` | 246 lines | text `.mjs` |
+| `tests/search/schema.mjs` | 239 lines | text `.mjs` |
+| `tests/search/self-test.mjs` | 111 lines | text `.mjs` |
+| `tests/search/verify-album-fix.mjs` | 61 lines | text `.mjs` |
+| `tests/search/whitelist-findable.mjs` | 114 lines | text `.mjs` |
 | `tests/sts-mismatch.mjs` | 125 lines | text `.mjs` |
 | `tests/test-mweb-cipher.mjs` | 142 lines | text `.mjs` |
 | `tests/validate-player-config.mjs` | 186 lines | text `.mjs` |
