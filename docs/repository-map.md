@@ -77,11 +77,11 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `751`
+- Files counted: `753`
 - By extension:
   - `.kt`: `398`
   - `.xml`: `183`
-  - `.mjs`: `51`
+  - `.mjs`: `53`
   - `.json`: `35`
   - `.md`: `28`
   - `.webp`: `15`
@@ -670,7 +670,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/generate.py` | 487 lines | `.py` |
 | `docs/innertube/README.md` | 183 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 421 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 337 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 339 lines | `.md` |
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
 | `docs/remote_cipher_config/01-why-it-exists.md` | 88 lines | `.md` |
 | `docs/remote_cipher_config/02-file-format.md` | 116 lines | `.md` |
@@ -680,7 +680,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/remote_cipher_config/06-harness-and-monitor.md` | 101 lines | `.md` |
 | `docs/remote_cipher_config/07-runbook.md` | 95 lines | `.md` |
 | `docs/remote_cipher_config/README.md` | 96 lines | `.md` |
-| `docs/repository-map.md` | 860 lines | `.md` |
+| `docs/repository-map.md` | 862 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 157 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |
@@ -853,6 +853,8 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `tests/results.json` | 222 lines | `.json` |
 | `tests/retest-web.mjs` | 58 lines | `.mjs` |
 | `tests/run.mjs` | 181 lines | `.mjs` |
+| `tests/scan-live-players.mjs` | 115 lines | `.mjs` |
+| `tests/scan-live-players.test.mjs` | 44 lines | `.mjs` |
 | `tests/sts-mismatch.mjs` | 125 lines | `.mjs` |
 | `tests/test-mweb-cipher.mjs` | 142 lines | `.mjs` |
 | `tests/validate-player-config.mjs` | 186 lines | `.mjs` |
