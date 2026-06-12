@@ -14,6 +14,10 @@ deciphering failures in the field (`Zemer_CipherFnExtract: No hardcoded config f
 2. **Edit the one file** — `library/src/main/assets/player_configs.json` in the
    **zemer-cipher** repo (via the submodule checkout is fine). Add the printed entry.
    There are no Kotlin or harness mirrors to sync; they all read this file.
+   Then **regenerate the (cosmetic) dates file** so the song-details "Cipher support added"
+   label stays in sync: `node tests/gen-player-dates.mjs` (commits the config commit's date
+   into `player_dates.json`). This is a *separate* file old apps never fetch — see the note
+   below; a mistake here only changes a UI label, never deciphering.
 3. **Check the file** locally:
    ```
    cd cipher && ./gradlew :library:testDebugUnitTest     # parser + bundled-asset guards

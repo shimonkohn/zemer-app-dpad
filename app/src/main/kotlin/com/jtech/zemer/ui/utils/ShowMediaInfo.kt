@@ -1,5 +1,7 @@
 package com.jtech.zemer.ui.utils
 
+import com.zemer.cipher.CipherDeobfuscator
+import com.zemer.cipher.PlayerDatesStore
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.text.format.Formatter
@@ -121,10 +123,19 @@ fun ShowMediaInfo(videoId: String) {
                         stringResource(R.string.song_artists) to song?.artists?.joinToString { it.name },
                         stringResource(R.string.media_id) to song?.id
                     )
+                    // Player hash + when we added cipher support for it — only web clients are
+                    // deciphered (direct-URL clients like ANDROID_VR/IOS never run the cipher).
+                    val isWebStream = currentFormat?.streamClient in
+                        setOf("WEB_REMIX", "WEB_CREATOR", "TVHTML5", "WEB")
+                    val playerHash = if (isWebStream) CipherDeobfuscator.lastUsedPlayerHash else null
+                    val cipherSupportAdded = PlayerDatesStore.get(playerHash)
+
                     val extendedList = baseList + if (currentFormat != null) {
                         listOf(
                             "Itag" to currentFormat?.itag?.toString(),
                             "Stream client" to currentFormat?.streamClient,
+                            "Player hash" to playerHash,
+                            "Cipher support added" to cipherSupportAdded,
                             stringResource(R.string.mime_type) to currentFormat?.mimeType,
                             stringResource(R.string.codecs) to currentFormat?.codecs,
                             stringResource(R.string.bitrate) to currentFormat?.bitrate?.let { "${it / 1000} Kbps" },
