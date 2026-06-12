@@ -1,6 +1,6 @@
 # Non-Kotlin file reference
 
-Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `333`.
+Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `334`.
 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
@@ -293,6 +293,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `tests/derive-player-config.mjs` | 89 lines | text `.mjs` |
 | `tests/discover-clients.mjs` | 116 lines | text `.mjs` |
 | `tests/full-stream.mjs` | 87 lines | text `.mjs` |
+| `tests/gen-player-dates.mjs` | 37 lines | text `.mjs` |
 | `tests/inspect-player.mjs` | 48 lines | text `.mjs` |
 | `tests/package-lock.json` | 554 lines | text `.json`; JSON keys `name, lockfileVersion, requires, packages` |
 | `tests/package.json` | 7 lines | text `.json`; JSON keys `dependencies` |
