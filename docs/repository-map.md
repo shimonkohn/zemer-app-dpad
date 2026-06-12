@@ -679,7 +679,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/remote_cipher_config/05-extraction-and-self-heal.md` | 104 lines | `.md` |
 | `docs/remote_cipher_config/06-harness-and-monitor.md` | 101 lines | `.md` |
 | `docs/remote_cipher_config/07-runbook.md` | 99 lines | `.md` |
-| `docs/remote_cipher_config/README.md` | 96 lines | `.md` |
+| `docs/remote_cipher_config/README.md` | 110 lines | `.md` |
 | `docs/repository-map.md` | 863 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 157 lines | `.md` |

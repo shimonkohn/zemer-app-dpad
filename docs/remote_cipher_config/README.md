@@ -65,6 +65,20 @@ bad push can do is *nothing*. CI watches YouTube hourly and opens an issue + ema
 unknown player appears; a human derives the new entry, validates it against the live CDN
 (`node tests/validate-player-config.mjs <hash>` — HTTP 206 is the proof), and pushes it.
 
+## A cosmetic sibling: `player_dates.json`
+
+Separate from everything above, and deliberately so: a **purely cosmetic** map of player hash ->
+the date we added cipher support for it (`{ "959dabb2": "2026-06-12", ... }`), shown in the
+song-details sheet next to the player hash (`CipherDeobfuscator.lastUsedPlayerHash`). It lives at
+the **root of the zemer-cipher repo** (`player_dates.json`, *not* under `assets/`), is **not
+bundled** in the APK, and is fetched purely from
+`raw.githubusercontent.com/.../master/player_dates.json` by `PlayerDatesStore` (disk-cached for
+instant/offline) — so adding a date is a push, no APK update. It is decoupled from the critical
+path on purpose: a separate file old apps never fetch (so it can't affect them), parsed
+tolerantly, and any failure only blanks a UI label — deciphering is never touched. Keep it
+git-accurate with `node tests/gen-player-dates.mjs` (derives each date from the config's commit
+history). This is the *only* part of this system that is cosmetic; everything else is load-bearing.
+
 ## Implementation history (the actual commits)
 
 zemer-cipher (`ZemerTeam/zemer-cipher`, all on `master`):
