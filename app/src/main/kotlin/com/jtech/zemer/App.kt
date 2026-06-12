@@ -87,6 +87,8 @@ class App : Application(), SingletonImageLoader.Factory {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+        // Hidden-API exemptions for the Shizuku installer are applied lazily on first use
+        // (AppInstaller.ensureHiddenApiBypass) so non-Shizuku users don't pay for it at startup.
 
         // Initialize cipher library for WEB_REMIX streaming
         ZemerCipher.initialize(

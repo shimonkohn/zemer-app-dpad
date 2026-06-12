@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.google.gms.google.services)
     alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.rikka.tools.refine)
 }
 
 android {
@@ -258,6 +259,14 @@ dependencies {
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.json)
+
+    // Self-update installers (Shizuku / root); hidden PackageInstaller APIs via refine
+    compileOnly(libs.rikka.hidden.stub)
+    implementation(libs.rikka.tools.refine.runtime)
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
+    implementation(libs.lsposed.hiddenapibypass)
+    implementation(libs.libsu.core)
 
     coreLibraryDesugaring(libs.desugaring)
 

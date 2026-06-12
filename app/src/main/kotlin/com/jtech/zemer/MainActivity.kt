@@ -166,6 +166,7 @@ import com.jtech.zemer.constants.DisableScreenshotKey
 import com.jtech.zemer.constants.DynamicThemeKey
 import com.jtech.zemer.constants.FloatingMiniPlayerKey
 import com.jtech.zemer.constants.InnerTubeCookieKey
+import com.jtech.zemer.constants.InstallerTypeKey
 import com.jtech.zemer.constants.LastWhitelistVersionKey
 import com.jtech.zemer.constants.MiniPlayerBottomSpacing
 import com.jtech.zemer.constants.MiniPlayerHeight
@@ -229,6 +230,9 @@ import com.jtech.zemer.utils.get
 import com.jtech.zemer.utils.hasNotificationPermission
 import com.jtech.zemer.utils.rememberEnumPreference
 import com.jtech.zemer.utils.rememberPreference
+import com.jtech.zemer.utils.updater.InstallResult
+import com.jtech.zemer.utils.updater.InstallerType
+import com.jtech.zemer.utils.updater.rememberApkInstallController
 import com.jtech.zemer.utils.reportException
 import com.jtech.zemer.utils.setAppLocale
 import com.jtech.zemer.utils.tryStartForegroundService
@@ -742,6 +746,7 @@ class MainActivity : ComponentActivity() {
                         var pendingUpdateVersion by rememberSaveable { mutableStateOf<String?>(null) }
                         var pendingUpdateNotes by rememberSaveable { mutableStateOf<String?>(null) }
                         var downloadState by remember { mutableStateOf<com.jtech.zemer.utils.UpdateChecker.DownloadState>(com.jtech.zemer.utils.UpdateChecker.DownloadState.Idle) }
+                        var installError by remember { mutableStateOf<String?>(null) }
                         val updateScope = rememberCoroutineScope()
 
                         LaunchedEffect(Unit) {
@@ -753,98 +758,50 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        // Auto-install when download completes
-                        LaunchedEffect(downloadState) {
-                            if (downloadState is com.jtech.zemer.utils.UpdateChecker.DownloadState.Downloaded) {
-                                val apkFile = (downloadState as com.jtech.zemer.utils.UpdateChecker.DownloadState.Downloaded).apkFile
-                                com.jtech.zemer.utils.UpdateChecker.installApk(this@MainActivity, apkFile)
+                        // Auto-install when download completes, honoring the chosen install method.
+                        // Shared controller gates the Standard installer's permission and restarts
+                        // the app after a silent update — same behaviour as the Updater screen.
+                        val (installerTypeOrdinal) = rememberPreference(InstallerTypeKey, defaultValue = InstallerType.NATIVE.ordinal)
+                        val installController = rememberApkInstallController(InstallerType.fromOrdinal(installerTypeOrdinal)) { result ->
+                            when (result) {
+                                is InstallResult.Success -> {
+                                    downloadState = com.jtech.zemer.utils.UpdateChecker.DownloadState.Idle
+                                    installError = null
+                                }
+                                is InstallResult.RequiresUserAction -> Unit // system installer UI takes over
+                                is InstallResult.Error -> installError = result.message
                             }
+                        }
+                        LaunchedEffect(downloadState) {
+                            val downloaded = downloadState as? com.jtech.zemer.utils.UpdateChecker.DownloadState.Downloaded ?: return@LaunchedEffect
+                            installError = null
+                            installController.install(downloaded.apkFile)
                         }
 
                         if (showUpdateDialog && pendingUpdateVersion != null) {
-                            val isDownloading = downloadState is com.jtech.zemer.utils.UpdateChecker.DownloadState.Downloading
-                            val downloadProgress = (downloadState as? com.jtech.zemer.utils.UpdateChecker.DownloadState.Downloading)?.progress ?: 0f
-                            val downloadError = (downloadState as? com.jtech.zemer.utils.UpdateChecker.DownloadState.Error)?.message
-
-                            androidx.compose.material3.AlertDialog(
-                                onDismissRequest = {
-                                    if (!isDownloading) {
-                                        showUpdateDialog = false
-                                        downloadState = com.jtech.zemer.utils.UpdateChecker.DownloadState.Idle
-                                    }
-                                },
-                                title = { Text(stringResource(R.string.update_available)) },
-                                text = {
-                                    Column {
-                                        Text(stringResource(R.string.update_available_message, BuildConfig.VERSION_NAME, pendingUpdateVersion!!))
-                                        if (!pendingUpdateNotes.isNullOrBlank()) {
-                                            Spacer(Modifier.height(12.dp))
-                                            Text(
-                                                text = stringResource(R.string.whats_new),
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                            Spacer(Modifier.height(4.dp))
-                                            Text(
-                                                text = pendingUpdateNotes!!,
-                                                style = MaterialTheme.typography.bodySmall
-                                            )
-                                        }
-                                        if (isDownloading) {
-                                            Spacer(Modifier.height(16.dp))
-                                            Text(
-                                                text = stringResource(R.string.downloading_update),
-                                                style = MaterialTheme.typography.labelMedium
-                                            )
-                                            Spacer(Modifier.height(8.dp))
-                                            if (downloadProgress >= 0) {
-                                                androidx.compose.material3.LinearProgressIndicator(
-                                                    progress = { downloadProgress },
-                                                    modifier = Modifier.fillMaxWidth()
-                                                )
-                                                Spacer(Modifier.height(4.dp))
-                                                Text(
-                                                    text = "${(downloadProgress * 100).toInt()}%",
-                                                    style = MaterialTheme.typography.bodySmall
-                                                )
-                                            } else {
-                                                androidx.compose.material3.LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                                            }
-                                        }
-                                        if (downloadError != null) {
-                                            Spacer(Modifier.height(12.dp))
-                                            Text(
-                                                text = downloadError,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.error
-                                            )
+                            com.jtech.zemer.ui.component.UpdateDownloadDialog(
+                                currentVersion = BuildConfig.VERSION_NAME,
+                                latestVersion = pendingUpdateVersion!!,
+                                notes = pendingUpdateNotes,
+                                downloadState = downloadState,
+                                isInstalling = installController.isInstalling,
+                                installError = installError,
+                                installerType = InstallerType.fromOrdinal(installerTypeOrdinal),
+                                onDownload = {
+                                    downloadState = com.jtech.zemer.utils.UpdateChecker.DownloadState.Downloading(0f)
+                                    installError = null
+                                    updateScope.launch {
+                                        com.jtech.zemer.utils.UpdateChecker.downloadUpdate(this@MainActivity).collect { state ->
+                                            downloadState = state
                                         }
                                     }
                                 },
-                                confirmButton = {
-                                    if (!isDownloading) {
-                                        TextButton(onClick = {
-                                            downloadState = com.jtech.zemer.utils.UpdateChecker.DownloadState.Downloading(0f)
-                                            updateScope.launch {
-                                                com.jtech.zemer.utils.UpdateChecker.downloadUpdate(this@MainActivity).collect { state ->
-                                                    downloadState = state
-                                                }
-                                            }
-                                        }) {
-                                            Text(stringResource(R.string.download_and_install))
-                                        }
-                                    }
+                                onInstall = { apk -> installController.install(apk) },
+                                onDismiss = {
+                                    showUpdateDialog = false
+                                    downloadState = com.jtech.zemer.utils.UpdateChecker.DownloadState.Idle
+                                    installError = null
                                 },
-                                dismissButton = {
-                                    if (!isDownloading) {
-                                        TextButton(onClick = {
-                                            showUpdateDialog = false
-                                            downloadState = com.jtech.zemer.utils.UpdateChecker.DownloadState.Idle
-                                        }) {
-                                            Text(stringResource(R.string.later))
-                                        }
-                                    }
-                                }
                             )
                         }
 
