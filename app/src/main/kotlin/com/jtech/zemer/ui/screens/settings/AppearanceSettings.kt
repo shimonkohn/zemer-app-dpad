@@ -60,6 +60,7 @@ import androidx.navigation.NavController
 import java.util.Collections
 import com.jtech.zemer.LocalPlayerAwareWindowInsets
 import com.jtech.zemer.R
+import com.jtech.zemer.ui.theme.rememberPureBlack
 import com.jtech.zemer.constants.ChipSortTypeKey
 import com.jtech.zemer.constants.CustomDensityScaleKey
 import com.jtech.zemer.constants.DarkModeKey
@@ -464,7 +465,7 @@ fun AppearanceSettings(
         }
 
         ListPreference(
-            title = { Text("Display Density") },
+            title = { Text(stringResource(R.string.display_density)) },
             icon = { Icon(painterResource(R.drawable.grid_view), null) },
             selectedValue = densityScale,
             values = DensityScale.entries.map { it.value },
@@ -472,9 +473,9 @@ fun AppearanceSettings(
                 val densityEnum = DensityScale.fromValue(scale)
                 if (densityEnum == DensityScale.CUSTOM) {
                     // Show the actual custom percentage value
-                    "Custom (${(customDensityValue * 100).toInt()}%)"
+                    stringResource(R.string.density_label_custom_value, (customDensityValue * 100).toInt())
                 } else {
-                    densityEnum.label
+                    stringResource(densityEnum.labelRes)
                 }
             },
             onValueSelected = onDensityScaleChange,
@@ -794,7 +795,7 @@ fun AppearanceSettings(
     if (showCustomDensityDialog) {
         TextFieldDialog(
             onDismiss = { showCustomDensityDialog = false },
-            title = { Text("Custom Display Density") },
+            title = { Text(stringResource(R.string.display_density_custom)) },
             icon = { Icon(painterResource(R.drawable.grid_view), null) },
             initialTextFieldValue = androidx.compose.ui.text.input.TextFieldValue((customDensityValue * 100).toInt().toString()),
             keyboardType = KeyboardType.Decimal,
@@ -826,7 +827,7 @@ fun AppearanceSettings(
             },
             extraContent = {
                 Text(
-                    text = "Enter a value between 50% and 120%.\n\nExamples: 85 or 0.85 for 85%",
+                    text = stringResource(R.string.density_custom_hint),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -853,7 +854,7 @@ fun AppearanceSettings(
                         Runtime.getRuntime().exit(0)
                     }
                 ) {
-                    Text(text = "Restart")
+                    Text(text = stringResource(R.string.restart))
                 }
             }
         ) {
@@ -861,11 +862,11 @@ fun AppearanceSettings(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Restart Required",
+                    text = stringResource(R.string.restart_required),
                     style = MaterialTheme.typography.titleLarge
                 )
                 Text(
-                    text = "The display density change will take effect after restarting the app. Do you want to restart now?",
+                    text = stringResource(R.string.restart_required_message),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -874,14 +875,14 @@ fun AppearanceSettings(
 
     // Bottom Navigation Customization Dialog
     if (showBottomNavCustomizationDialog) {
+        val pureBlackActive = rememberPureBlack()
         DefaultDialog(
             onDismiss = { showBottomNavCustomizationDialog = false },
-            pureBlack = pureBlack,
             buttons = {
                 TextButton(
                     onClick = { showBottomNavCustomizationDialog = false }
                 ) {
-                    Text(text = stringResource(android.R.string.cancel), color = if (pureBlack) Color.White else Color.Unspecified)
+                    Text(text = stringResource(android.R.string.cancel), color = if (pureBlackActive) Color.White else Color.Unspecified)
                 }
                 TextButton(
                     onClick = {
@@ -893,7 +894,7 @@ fun AppearanceSettings(
                         showBottomNavCustomizationDialog = false
                     }
                 ) {
-                    Text(text = stringResource(android.R.string.ok), color = if (pureBlack) Color.White else Color.Unspecified)
+                    Text(text = stringResource(android.R.string.ok), color = if (pureBlackActive) Color.White else Color.Unspecified)
                 }
             }
         ) {
@@ -901,19 +902,19 @@ fun AppearanceSettings(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .background(if (pureBlack) Color(0xFF0A0A0A) else Color.Transparent),
+                    .background(if (pureBlackActive) Color(0xFF0A0A0A) else Color.Transparent),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Bottom Navigation Items",
+                    text = stringResource(R.string.bottom_nav_items),
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
+                    color = if (pureBlackActive) Color.White else MaterialTheme.colorScheme.onSurface
                 )
 
                 Text(
-                    text = "${currentSelectedItems.size}/5 selected",
+                    text = stringResource(R.string.bottom_nav_n_selected, currentSelectedItems.size),
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (pureBlack) Color.LightGray else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (pureBlackActive) Color.LightGray else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.End)
                 )
 
@@ -961,8 +962,8 @@ fun AppearanceSettings(
                                     }
                                 },
                                 colors = androidx.compose.material3.CheckboxDefaults.colors(
-                                    checkedColor = if (pureBlack) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary,
-                                    uncheckedColor = if (pureBlack) Color.Gray else Color.Unspecified,
+                                    checkedColor = if (pureBlackActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary,
+                                    uncheckedColor = if (pureBlackActive) Color.Gray else Color.Unspecified,
                                     checkmarkColor = Color.White
                                 )
                             )
@@ -970,7 +971,7 @@ fun AppearanceSettings(
                             Text(
                                 text = title,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
+                                color = if (pureBlackActive) Color.White else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -979,8 +980,8 @@ fun AppearanceSettings(
 
                 if (currentSelectedItems.isEmpty()) {
                     Text(
-                        text = "Select at least 1 item",
-                        color = if (pureBlack) Color.Red else MaterialTheme.colorScheme.error,
+                        text = stringResource(R.string.bottom_nav_select_one),
+                        color = if (pureBlackActive) Color.Red else MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }

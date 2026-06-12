@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -48,7 +50,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.jtech.zemer.R
+import com.jtech.zemer.ui.theme.rememberPureBlack
 import kotlinx.coroutines.delay
+
+/** Dialog surface color: AMOLED pure black when the theme calls for it, M3 default otherwise. */
+@Composable
+private fun dialogContainerColor(): Color =
+    if (rememberPureBlack()) Color(0xFF0A0A0A) else AlertDialogDefaults.containerColor
 
 @Composable
 fun DefaultDialog(
@@ -58,7 +66,6 @@ fun DefaultDialog(
     title: (@Composable () -> Unit)? = null,
     buttons: (@Composable RowScope.() -> Unit)? = null,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
-    pureBlack: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Dialog(
@@ -68,12 +75,16 @@ fun DefaultDialog(
         Surface(
             modifier = Modifier.padding(24.dp),
             shape = AlertDialogDefaults.shape,
-            color = if (pureBlack) Color(0xFF0A0A0A) else AlertDialogDefaults.containerColor,
+            color = dialogContainerColor(),
             tonalElevation = AlertDialogDefaults.TonalElevation
         ) {
             Column(
                 horizontalAlignment = horizontalAlignment,
                 modifier = modifier
+                    // Cap the dialog so tall content can't push the buttons off-screen, and so a
+                    // scrollable/lazy child (e.g. a LazyColumn) is measured with a bounded height
+                    // instead of crashing on an infinite-height constraint.
+                    .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp)
                     .padding(24.dp)
             ) {
                 if (icon != null) {
@@ -102,7 +113,16 @@ fun DefaultDialog(
                     Spacer(Modifier.height(16.dp))
                 }
 
-                content()
+                // The body takes the space left after the (fixed) title and buttons — bounded, so the
+                // buttons stay on screen and any lazy/scrollable child gets a finite height.
+                Column(
+                    horizontalAlignment = horizontalAlignment,
+                    modifier = Modifier.weight(weight = 1f, fill = false),
+                ) {
+                    ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
+                        content()
+                    }
+                }
 
                 if (buttons != null) {
                     Spacer(Modifier.height(24.dp))
@@ -142,7 +162,7 @@ fun ActionPromptDialog(
         Surface(
             modifier = Modifier.padding(24.dp),
             shape = AlertDialogDefaults.shape,
-            color = AlertDialogDefaults.containerColor,
+            color = dialogContainerColor(),
             tonalElevation = AlertDialogDefaults.TonalElevation,
         ) {
             Column(
@@ -213,7 +233,7 @@ fun ListDialog(
         Surface(
             modifier = Modifier.padding(24.dp),
             shape = AlertDialogDefaults.shape,
-            color = AlertDialogDefaults.containerColor,
+            color = dialogContainerColor(),
             tonalElevation = AlertDialogDefaults.TonalElevation,
         ) {
             Column(
@@ -316,6 +336,7 @@ fun TextFieldDialog(
                         value = value,
                         onValueChange = { onTextFieldsChange?.invoke(index, it) },
                         placeholder = { Text(label) },
+                        textStyle = MaterialTheme.typography.bodyLarge,
                         singleLine = singleLine,
                         maxLines = maxLines,
                         colors = OutlinedTextFieldDefaults.colors(),
@@ -339,6 +360,7 @@ fun TextFieldDialog(
                 }
             } else {
                 TextField(
+                    textStyle = MaterialTheme.typography.bodyLarge,
                     value = legacyFieldState.value,
                     onValueChange = { legacyFieldState.value = it },
                     placeholder = placeholder,

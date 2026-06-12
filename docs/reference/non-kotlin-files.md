@@ -1,6 +1,6 @@
 # Non-Kotlin file reference
 
-Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `334`.
+Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `335`.
 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
@@ -246,7 +246,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `app/src/main/res/values/app_name.xml` | 4 lines | text `.xml`; XML root `resources` |
 | `app/src/main/res/values/colors.xml` | 9 lines | text `.xml`; XML root `resources` |
 | `app/src/main/res/values/ic_launcher_background.xml` | 6 lines | text `.xml`; XML root `resources` |
-| `app/src/main/res/values/metrolist_strings.xml` | 339 lines | text `.xml`; XML root `resources` |
+| `app/src/main/res/values/metrolist_strings.xml` | 517 lines | text `.xml`; XML root `resources` |
 | `app/src/main/res/values/strings.xml` | 560 lines | text `.xml`; XML root `resources` |
 | `app/src/main/res/values/styles.xml` | 14 lines | text `.xml`; XML root `resources` |
 | `app/src/main/res/values/values.xml` | 8 lines | text `.xml`; XML root `resources` |
@@ -274,8 +274,9 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `lrclib/build.gradle.kts` | 16 lines | text `.kts`; plugins `kotlin.serialization, jvm` |
 | `scripts/check-16kb-alignment.sh` | 67 lines | text `.sh` |
 | `scripts/telegram-chats.sh` | 38 lines | text `.sh` |
-| `scripts/ui-audit-baseline.tsv` | 22 lines | text `.tsv` |
-| `scripts/ui-audit.sh` | 79 lines | text `.sh` |
+| `scripts/ui-audit-baseline.tsv` | 21 lines | text `.tsv` |
+| `scripts/ui-audit.sh` | 92 lines | text `.sh` |
+| `scripts/ui-strings-scan.py` | 96 lines | text `.py` |
 | `settings.gradle.kts` | 56 lines | text `.kts`; plugins `org.gradle.toolchains.foojay-resolver-convention` |
 | `simpmusic/build.gradle.kts` | 15 lines | text `.kts`; plugins `kotlin.serialization, jvm` |
 | `tests/INVESTIGATION.md` | 276 lines | text `.md` |

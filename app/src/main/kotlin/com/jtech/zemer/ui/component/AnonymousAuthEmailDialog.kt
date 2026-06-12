@@ -23,6 +23,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.jtech.zemer.auth.WebViewGoogleAuthManager
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.jtech.zemer.R
 
 /**
  * A simple dialog for creating an anonymous account for sync.
@@ -57,26 +59,26 @@ fun AnonymousAuthEmailDialog(
             if (isLoading) {
                 CircularProgressIndicator()
                 Text(
-                    text = "Creating account...",
+                    text = stringResource(R.string.sync_account_creating_short),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 16.dp)
                 )
             } else {
                 Text(
-                    text = "Create Sync Account",
+                    text = stringResource(R.string.sync_account_create_title),
                     style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Center
                 )
 
                 Text(
-                    text = "Create an anonymous account to sync and backup your preferences across devices. No Google account required.",
+                    text = stringResource(R.string.sync_account_intro_no_google),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
 
                 Text(
-                    text = "Your settings will be locked and backed up to prevent accidental changes.",
+                    text = stringResource(R.string.sync_account_lock_note),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
@@ -105,7 +107,7 @@ fun AnonymousAuthEmailDialog(
                     enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Create Account & Sync")
+                    Text(stringResource(R.string.sync_account_create_and_sync))
                 }
 
                 TextButton(
@@ -113,7 +115,7 @@ fun AnonymousAuthEmailDialog(
                     enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(android.R.string.cancel))
                 }
             }
         }

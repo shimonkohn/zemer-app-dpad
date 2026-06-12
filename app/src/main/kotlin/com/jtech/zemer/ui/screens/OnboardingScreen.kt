@@ -87,6 +87,8 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.rememberLottieDynamicProperties
 import com.airbnb.lottie.compose.rememberLottieDynamicProperty
 import com.jtech.zemer.R
+import com.jtech.zemer.ui.component.SyncAccountWarning
+import com.jtech.zemer.ui.component.DefaultDialog
 import com.jtech.zemer.constants.DensityScale
 import com.jtech.zemer.utils.PermissionHelper
 import com.jtech.zemer.extensions.isInternetConnected
@@ -104,7 +106,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.ui.res.painterResource
@@ -184,9 +185,9 @@ private fun NetworkStatusBanner(
 
             Text(
                 text = when {
-                    isChecking -> "Checking connection..."
-                    isConnected -> "Connected to internet"
-                    else -> "No internet connection"
+                    isChecking -> stringResource(R.string.network_checking_connection)
+                    isConnected -> stringResource(R.string.network_connected)
+                    else -> stringResource(R.string.network_no_connection)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = when {
@@ -418,7 +419,7 @@ private fun WelcomeScreen(
                     } else {
                         Text(
                             text = when {
-                                !isConnected -> "Internet Required"
+                                !isConnected -> stringResource(R.string.network_internet_required)
                                 else -> stringResource(R.string.onboarding_continue)
                             },
                             style = MaterialTheme.typography.labelMedium
@@ -429,8 +430,8 @@ private fun WelcomeScreen(
                 if (!isConnected || isCheckingNetwork) {
                     Text(
                         text = when {
-                            isCheckingNetwork -> "Checking internet connection..."
-                            !isConnected -> "An internet connection is required to continue with setup and save your preferences."
+                            isCheckingNetwork -> stringResource(R.string.network_checking_internet)
+                            !isConnected -> stringResource(R.string.network_required_setup)
                             else -> ""
                         },
                         style = MaterialTheme.typography.bodySmall,
@@ -566,9 +567,9 @@ private fun DensityScreen(
                             )
                             Text(
                                 text = if (density == DensityScale.CUSTOM && selectedDensity == DensityScale.CUSTOM) {
-                                    "Custom (${(customDensityValue * 100).toInt()}%)"
+                                    stringResource(R.string.density_label_custom_value, (customDensityValue * 100).toInt())
                                 } else {
-                                    density.label
+                                    stringResource(density.labelRes)
                                 },
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -609,8 +610,8 @@ private fun DensityScreen(
                         )
                     ) {
                         Text(
-                            text = if (isCheckingNetwork) "Checking..."
-                                  else if (!isConnected) "Internet Required"
+                            text = if (isCheckingNetwork) stringResource(R.string.network_checking)
+                                  else if (!isConnected) stringResource(R.string.network_internet_required)
                                   else stringResource(R.string.onboarding_apply_density),
                             style = MaterialTheme.typography.labelMedium
                         )
@@ -627,8 +628,8 @@ private fun DensityScreen(
                     border = BorderStroke(1.dp, if (isConnected && !isCheckingNetwork) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                 ) {
                     Text(
-                        text = if (isCheckingNetwork) "Checking..."
-                              else if (!isConnected) "Internet Required"
+                        text = if (isCheckingNetwork) stringResource(R.string.network_checking)
+                              else if (!isConnected) stringResource(R.string.network_internet_required)
                               else stringResource(R.string.onboarding_skip),
                         style = MaterialTheme.typography.labelMedium,
                         color = if (isConnected && !isCheckingNetwork) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -637,8 +638,8 @@ private fun DensityScreen(
 
                 if (!isConnected || isCheckingNetwork) {
                     Text(
-                        text = if (isCheckingNetwork) "Checking internet connection..."
-                              else "An internet connection is required to continue.",
+                        text = if (isCheckingNetwork) stringResource(R.string.network_checking_internet)
+                              else stringResource(R.string.network_required_to_continue),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -953,7 +954,7 @@ private fun ContentFiltersScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Restoring Content Filter Settings",
+                        text = stringResource(R.string.onboarding_restoring_filters),
                         style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.primary
@@ -963,7 +964,7 @@ private fun ContentFiltersScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Checking for saved preferences...",
+                        text = stringResource(R.string.onboarding_checking_saved),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -976,14 +977,14 @@ private fun ContentFiltersScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Restoring Content Filter Settings",
+                        text = stringResource(R.string.onboarding_restoring_filters),
                         style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.primary
                     )
 
                     Text(
-                        text = "Found your saved preferences",
+                        text = stringResource(R.string.onboarding_found_saved),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -1006,26 +1007,26 @@ private fun ContentFiltersScreen(
                         Column(modifier = Modifier.padding(16.dp)) {
                             val config = uiState.restoredConfig
                             Text(
-                                text = "Restored Settings:",
+                                text = stringResource(R.string.onboarding_restored_settings),
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
 
                             Text(
-                                text = "• Content Filters: Enabled",
+                                text = stringResource(R.string.onboarding_restored_filters_enabled),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
 
                             Text(
-                                text = "• Female Singers: ${if (config?.allowFemaleSingers == true) "Allowed" else "Blocked"}",
+                                text = stringResource(R.string.onboarding_restored_female, stringResource(if (config?.allowFemaleSingers == true) R.string.allowed else R.string.blocked)),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
 
                             Text(
-                                text = "• Videos: ${if (config?.blockVideos == true) "Blocked" else "Allowed"}",
+                                text = stringResource(R.string.onboarding_restored_videos, stringResource(if (config?.blockVideos == true) R.string.blocked else R.string.allowed)),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -1033,7 +1034,7 @@ private fun ContentFiltersScreen(
                     }
 
                     Text(
-                        text = "Continuing automatically...",
+                        text = stringResource(R.string.onboarding_continuing_auto),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -1047,13 +1048,13 @@ private fun ContentFiltersScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Content Filters",
+                        text = stringResource(R.string.content_filters),
                         style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Set up your content preferences (optional)",
+                        text = stringResource(R.string.onboarding_filters_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -1062,8 +1063,8 @@ private fun ContentFiltersScreen(
 
                 // Allow Female Singers toggle
                 FilterOptionCard(
-                    title = "Allow Female Singers",
-                    description = "Include music by female artists",
+                    title = stringResource(R.string.onboarding_allow_female_title),
+                    description = stringResource(R.string.onboarding_allow_female_desc),
                     isEnabled = allowFemaleSingers,
                     onToggle = { onAllowFemaleSingersChange(it) },
                     icon = R.drawable.person
@@ -1071,8 +1072,8 @@ private fun ContentFiltersScreen(
 
                 // Block Videos toggle
                 FilterOptionCard(
-                    title = "Block Videos",
-                    description = "Hide video content from results",
+                    title = stringResource(R.string.onboarding_block_videos_title),
+                    description = stringResource(R.string.onboarding_block_videos_desc),
                     isEnabled = blockVideos,
                     onToggle = { onBlockVideosChange(it) },
                     icon = R.drawable.ic_video_hd
@@ -1103,15 +1104,15 @@ private fun ContentFiltersScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = if (authState is com.jtech.zemer.auth.AuthState.SignedIn) "Sync Account Created" else "Optional: Create Sync Account",
+                                    text = if (authState is com.jtech.zemer.auth.AuthState.SignedIn) stringResource(R.string.sync_account_created) else stringResource(R.string.sync_account_optional_create),
                                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = if (authState is com.jtech.zemer.auth.AuthState.SignedIn)
-                                        "Settings will be locked and backed up"
+                                        stringResource(R.string.sync_account_locked_backed_up)
                                     else
-                                        "Connect to lock settings",
+                                        stringResource(R.string.sync_account_connect_to_lock),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = 2.dp)
@@ -1130,7 +1131,7 @@ private fun ContentFiltersScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = if (authState is com.jtech.zemer.auth.AuthState.SignedIn) "Active" else "Optional",
+                                    text = if (authState is com.jtech.zemer.auth.AuthState.SignedIn) stringResource(R.string.sync_account_active) else stringResource(R.string.sync_account_optional),
                                     color = if (authState is com.jtech.zemer.auth.AuthState.SignedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                                     textAlign = TextAlign.Center
@@ -1149,7 +1150,7 @@ private fun ContentFiltersScreen(
                                 )
                             ) {
                                 Text(
-                                    "Create Sync Account",
+                                    stringResource(R.string.sync_account_create_title),
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium)
                                 )
                             }
@@ -1181,9 +1182,9 @@ private fun ContentFiltersScreen(
                             containerColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
-                        Text(if (isCheckingNetwork) "Checking..."
-                             else if (!isConnected) "Internet Required"
-                             else "Continue")
+                        Text(if (isCheckingNetwork) stringResource(R.string.network_checking)
+                             else if (!isConnected) stringResource(R.string.network_internet_required)
+                             else stringResource(R.string.onboarding_continue))
                     }
                 }
             }
@@ -1191,30 +1192,29 @@ private fun ContentFiltersScreen(
 
         // Sign-in dialog (matching ContentSettings dialog)
         if (showSignInDialog) {
-            AlertDialog(
-                onDismissRequest = {
+            DefaultDialog(
+                onDismiss = {
                     showSignInDialog = false
                     signInDelaySeconds = 0
                 },
-                title = { Text("⚠️ Important - Read Carefully") },
-                text = {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        Text("Create an anonymous account to sync and backup your content filter settings.")
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("This will permanently lock your preferences to prevent accidental changes.", color = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("THIS CANNOT BE CHANGED ONCE SET, IT WILL PERSIST CLEARING DATA OR UNINSTALLATION OF THE APP!", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                        if (signInDelaySeconds > 0) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text("Please wait $signInDelaySeconds second${if (signInDelaySeconds != 1) "s" else ""} before continuing...", color = MaterialTheme.colorScheme.error)
-                        }
-                    }
+                horizontalAlignment = Alignment.Start,
+                title = { Text(stringResource(R.string.sync_account_important_title)) },
+                content = {
+                    SyncAccountWarning(
+                        delaySeconds = signInDelaySeconds,
+                        showCountdown = signInDelaySeconds > 0,
+                    )
                 },
-                confirmButton = {
+                buttons = {
+                    TextButton(
+                        onClick = {
+                            showSignInDialog = false
+                            signInDelaySeconds = 0
+                        }
+                    ) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+
                     Button(
                         onClick = {
                             if (signInDelaySeconds == 0) {
@@ -1232,17 +1232,12 @@ private fun ContentFiltersScreen(
                         },
                         enabled = signInDelaySeconds == 0
                     ) {
-                        Text(if (signInDelaySeconds == 0) "Create Account" else "Please wait...")
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            showSignInDialog = false
-                            signInDelaySeconds = 0
-                        }
-                    ) {
-                        Text("Cancel")
+                        Text(
+                            stringResource(
+                                if (signInDelaySeconds == 0) R.string.sync_account_create
+                                else R.string.sync_account_please_wait
+                            )
+                        )
                     }
                 }
             )
@@ -1436,7 +1431,7 @@ private fun PermissionsScreen(
                 )
                 Text(
                     text = if (allGranted) {
-                        "All set!"
+                        stringResource(R.string.onboarding_all_set)
                     } else {
                         stringResource(R.string.onboarding_permissions_subtitle)
                     },
@@ -1847,13 +1842,13 @@ private fun BottomNavSetupScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Navigation Setup",
+                    text = stringResource(R.string.onboarding_nav_setup),
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Would you like to enable the bottom navigation bar for quick access to your favorite screens?",
+                    text = stringResource(R.string.onboarding_nav_question),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -1896,12 +1891,12 @@ private fun BottomNavSetupScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Enable Bottom Navigation",
+                                text = stringResource(R.string.onboarding_nav_enable),
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Show bottom navigation bar for quick access",
+                                text = stringResource(R.string.onboarding_nav_enable_desc),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 2.dp)
@@ -1947,12 +1942,12 @@ private fun BottomNavSetupScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "No thanks",
+                                text = stringResource(R.string.onboarding_nav_no_thanks),
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "I can enable it later in appearance settings",
+                                text = stringResource(R.string.onboarding_nav_later),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 2.dp)
@@ -1976,7 +1971,7 @@ private fun BottomNavSetupScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "You can customize which menu items appear later in appearance settings",
+                    text = stringResource(R.string.onboarding_nav_customize_later),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -2005,7 +2000,7 @@ private fun BottomNavSetupScreen(
                     )
                 ) {
                     Text(
-                        text = "Continue",
+                        text = stringResource(R.string.onboarding_continue),
                         style = MaterialTheme.typography.labelMedium
                     )
                 }
@@ -2015,7 +2010,7 @@ private fun BottomNavSetupScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Back",
+                        text = stringResource(R.string.onboarding_back),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

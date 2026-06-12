@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,6 +52,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.jtech.zemer.LocalPlayerAwareWindowInsets
 import com.jtech.zemer.R
+import com.jtech.zemer.utils.reportException
+import com.jtech.zemer.ui.component.SyncAccountWarning
+import com.jtech.zemer.ui.component.DefaultDialog
 import com.jtech.zemer.auth.AuthState
 import com.jtech.zemer.auth.UserAuthManager
 import com.jtech.zemer.constants.AllowChasidishKey
@@ -354,7 +356,7 @@ fun ContentSettings(
             isEnabled = enableContentFilters && togglesEnabled
         )
 
-        PreferenceGroupTitle(title = "Recommendations")
+        PreferenceGroupTitle(title = stringResource(R.string.recommendations))
         SwitchPreference(
             title = { Text(stringResource(R.string.i_am_chasidish)) },
             icon = { Icon(painterResource(R.drawable.person), null) },
@@ -388,29 +390,32 @@ fun ContentSettings(
     if (showSignInDialog) {
         var isLoading by remember { mutableStateOf(false) }
 
-        AlertDialog(
-            onDismissRequest = { if (!isLoading) showSignInDialog = false },
-            title = { Text("Create Sync Account") },
-            text = {
+        DefaultDialog(
+            onDismiss = { if (!isLoading) showSignInDialog = false },
+            horizontalAlignment = Alignment.Start,
+            title = { Text(stringResource(R.string.sync_account_create_title)) },
+            content = {
                 if (isLoading) {
-                    Text("Creating account and locking your preferences...")
+                    Text(stringResource(R.string.sync_account_creating))
                 } else {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        Text("Create an anonymous account to sync and backup your content filter settings.")
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("This will permanently lock your preferences to prevent accidental changes.", color = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("THIS CANNOT BE CHANGED ONCE SET, IT WILL PERSIST CLEARING DATA OR UNINSTALLATION OF THE APP!", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Please wait $signInDelaySeconds second${if (signInDelaySeconds != 1) "s" else ""} before continuing...", color = MaterialTheme.colorScheme.error)
-                    }
+                    SyncAccountWarning(
+                        delaySeconds = signInDelaySeconds,
+                        showCountdown = signInDelaySeconds > 0,
+                    )
                 }
             },
-            confirmButton = {
+            buttons = {
+                if (!isLoading) {
+                    TextButton(
+                        onClick = {
+                            showSignInDialog = false
+                            signInDelaySeconds = 0
+                        }
+                    ) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                }
+
                 Button(
                     onClick = {
                         if (signInDelaySeconds == 0) {
@@ -427,7 +432,7 @@ fun ContentSettings(
                                         viewModel.performManualSync()
                                     }
                                 } catch (e: Exception) {
-                                    // Handle error
+                                    reportException(e, "ContentSettings sync sign-in")
                                 } finally {
                                     isLoading = false
                                     showSignInDialog = false
@@ -445,19 +450,12 @@ fun ContentSettings(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Text(if (signInDelaySeconds == 0) "Create Account & Lock" else "Please wait...")
-                    }
-                }
-            },
-            dismissButton = {
-                if (!isLoading) {
-                    TextButton(
-                        onClick = {
-                            showSignInDialog = false
-                            signInDelaySeconds = 0
-                        }
-                    ) {
-                        Text("Cancel")
+                        Text(
+                            stringResource(
+                                if (signInDelaySeconds == 0) R.string.sync_account_create_and_lock
+                                else R.string.sync_account_please_wait
+                            )
+                        )
                     }
                 }
             }
@@ -519,7 +517,7 @@ private fun SyncStatusCard(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Text(
-                    text = "Content Filter Sync",
+                    text = stringResource(R.string.content_filter_sync),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.weight(1f)
@@ -535,14 +533,14 @@ private fun SyncStatusCard(
                     authState.isSignedIn -> {
                         Icon(
                             painter = painterResource(R.drawable.check),
-                            contentDescription = "Signed in",
+                            contentDescription = stringResource(R.string.signed_in),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
                     else -> {
                         Icon(
                             painter = painterResource(R.drawable.person),
-                            contentDescription = "Not signed in",
+                            contentDescription = stringResource(R.string.not_signed_in),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -555,7 +553,7 @@ private fun SyncStatusCard(
                 isAutoRestored && restoredEmail != null -> {
                     // Auto-restored from server without sign-in
                     Text(
-                        text = "Content filter preferences have been automatically restored from your account.",
+                        text = stringResource(R.string.content_filters_restored),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -574,7 +572,7 @@ private fun SyncStatusCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Restored from: $restoredEmail",
+                            text = stringResource(R.string.restored_from, restoredEmail),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium
@@ -595,7 +593,7 @@ private fun SyncStatusCard(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Lock Settings")
+                            Text(stringResource(R.string.lock_settings))
                         }
                     }
                 }
@@ -640,7 +638,7 @@ private fun SyncStatusCard(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "ID: ${userInfo.second}",
+                                text = stringResource(R.string.user_id_format, userInfo.second),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontFamily = FontFamily.Monospace
@@ -651,7 +649,7 @@ private fun SyncStatusCard(
                 else -> {
                     // User is not signed in and not auto-restored
                     Text(
-                        text = "Create an account to sync your content filter preferences and restore them after app reinstallation.",
+                        text = stringResource(R.string.sync_account_create_desc),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -670,7 +668,7 @@ private fun SyncStatusCard(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Create Account to Lock")
+                            Text(stringResource(R.string.create_account_to_lock))
                         }
                     }
                     // If locked, show no buttons - settings are permanently locked
