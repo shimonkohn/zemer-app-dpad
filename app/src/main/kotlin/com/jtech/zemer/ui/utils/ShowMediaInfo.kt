@@ -123,12 +123,16 @@ fun ShowMediaInfo(videoId: String) {
                         stringResource(R.string.song_artists) to song?.artists?.joinToString { it.name },
                         stringResource(R.string.media_id) to song?.id
                     )
-                    // Player hash + when we added cipher support for it — only web clients are
-                    // deciphered (direct-URL clients like ANDROID_VR/IOS never run the cipher).
+                    // Player hash + when we added cipher support for it. Only web clients are
+                    // deciphered; direct-URL clients (VISIONOS/ANDROID_VR/IOS) never run the
+                    // cipher, so a hash/date doesn't apply — show "N/A", not "Unknown".
+                    val notApplicable = stringResource(R.string.not_applicable)
                     val isWebStream = currentFormat?.streamClient in
                         setOf("WEB_REMIX", "WEB_CREATOR", "TVHTML5", "WEB")
-                    val playerHash = if (isWebStream) CipherDeobfuscator.lastUsedPlayerHash else null
-                    val cipherSupportAdded = PlayerDatesStore.get(playerHash)
+                    val playerHash =
+                        if (isWebStream) CipherDeobfuscator.lastUsedPlayerHash else notApplicable
+                    val cipherSupportAdded =
+                        if (isWebStream) PlayerDatesStore.get(CipherDeobfuscator.lastUsedPlayerHash) else notApplicable
 
                     val extendedList = baseList + if (currentFormat != null) {
                         listOf(
