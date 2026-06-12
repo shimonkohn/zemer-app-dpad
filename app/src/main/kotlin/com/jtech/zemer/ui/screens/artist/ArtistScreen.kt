@@ -607,14 +607,15 @@ fun ArtistScreen(
                                 NavigationTitle(
                                     title = section.title,
                                     modifier = Modifier.animateItem(),
+                                    // "Albums" is deliberately NOT routed to search. YouTube removed the
+                                    // album facet from search for independent (non-Official-Artist-Channel)
+                                    // artists: the search chip cloud no longer offers an "Albums" filter and
+                                    // search?filter=albums returns "No results" for them, even though the
+                                    // artist's page still lists every album. So route "Albums" through the
+                                    // section's own moreEndpoint (the artist album grid via YouTube.artistItems),
+                                    // like every other section, sourcing albums from where they now live.
+                                    // ("Songs" search still works, so it stays.) See tests/search/README.md.
                                     onClick = when (section.title) {
-                                        "Albums" -> {
-                                            {
-                                                navController.navigate(
-                                                    "search/${java.net.URLEncoder.encode(artistName, "UTF-8")}?filter=albums"
-                                                )
-                                            }
-                                        }
                                         "Songs" -> {
                                             {
                                                 navController.navigate(

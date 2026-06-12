@@ -53,14 +53,23 @@ export async function postSearch({ query = null, params = null, continuation = n
   url.searchParams.set("prettyPrint", "false");
   if (continuation) { url.searchParams.set("continuation", continuation); url.searchParams.set("ctoken", continuation); }
   const res = await fetch(url, { method: "POST", headers: headers(visitorData), body: JSON.stringify(body) });
-  return { status: res.status, json: await res.json() };
+  return parseResponse(res);
 }
 
 export async function postSuggestions({ input, visitorData }) {
   const body = { context: context(visitorData), input };
   const url = `${ORIGIN}/youtubei/v1/music/get_search_suggestions?prettyPrint=false`;
   const res = await fetch(url, { method: "POST", headers: headers(visitorData), body: JSON.stringify(body) });
-  return { status: res.status, json: await res.json() };
+  return parseResponse(res);
+}
+
+// Google serves an anti-bot "Sorry..." HTML page (not JSON) when an IP fires too many queries. The
+// app never hits this (one request at a time); the harness can when it bursts. Surface it as
+// { blocked: true } so callers can back off instead of crashing on JSON.parse.
+async function parseResponse(res) {
+  const txt = await res.text();
+  if (txt.startsWith("<")) return { status: res.status, json: null, blocked: true };
+  return { status: res.status, json: JSON.parse(txt) };
 }
 
 export async function cred() {
