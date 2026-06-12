@@ -57,28 +57,30 @@ the schemaVersion gate, the template golden, and the cross-language parity fixtu
 Runs hourly (`cron: '0 * * * *'`) + manual dispatch. Step by step, with the reasoning the
 file itself documents:
 
-1. **Get the live player hash**: scrape the 8-hex player hash from
-   `https://www.youtube.com/iframe_api`.
-2. **Fetch the config file ONCE, from the live URL** (app commit `8bdb956`):
+1. **Fetch the config file ONCE, from the live URL** (app commit `8bdb956`):
    `curl -fsS --retry 3` against the same raw zemer-cipher `master` URL devices fetch — so
    the verdict is about *what deployed apps actually self-heal from*, and never
    false-alarms when cipher `master` is ahead of the app's submodule pointer. Fallback to
    the submodule copy only with an explicit `::warning::` (it can lag `master`); if both
    fail, the step fails — a broken monitor is a red run, not silence.
-3. **Decide "known" like a device would** (app commit `4b47b6f`):
-   `node tests/config-covers.mjs <hash> /tmp/player_configs.json` runs the file through
-   the harness loader (= the app's validation rules) and matches against real keys +
-   aliases, printing `covered`/`uncovered`. A textual grep would stay green when a pushed
-   entry exists but fails validation — i.e. **exactly during a fleet outage**, since
-   devices reject an invalid file wholesale. `config-covers.mjs` therefore exits 1 on an
-   invalid file and the workflow treats the hash as unknown.
-4. **MD5 fallback**: if the primary hash is uncovered, compute the md5-of-first-10000-bytes
-   alias (`curl … | head -c 10000 | md5sum | cut -c1-8`) and check coverage again — the
-   device would find the entry through the alias too.
-5. **Alert** (only if both are uncovered): open a GitHub issue (labels `player-update`,
-   `cipher`; deduped by title against open issues) and send an email to
-   `dietdroidwp@gmail.com` via Gmail SMTP secrets. Both contain the exact runbook commands
-   (doc 07).
+2. **Scan the live player surfaces MANY times** (`node tests/scan-live-players.mjs
+   /tmp/player_configs.json 30`): the old monitor took a *single* `iframe_api` sample per
+   run, so an A/B **canary** served ~1/6 of the time was missed ~83% of the time and only
+   surfaced once it had already rotated in — i.e. once playback was already breaking. The
+   scanner samples `iframe_api` (what the app's `PlayerJsFetcher` uses) 30× plus
+   `music.youtube.com` a few times, aggregates the distinct hashes with their observed
+   frequency, and for each one not directly covered computes the md5-of-first-10000-bytes
+   alias and re-checks — all via the **harness loader** (`parsePlayerConfigs`, the app's
+   validation rules), so "known" still means "a device would accept and use it". It emits
+   machine-readable JSON (`distinct`, `unknown[]`) and exits non-zero only if the live
+   config itself is invalid (devices reject such a file wholesale → a red run, the right
+   alarm). Its pure core (`aggregate`, `coveredKeys`) is unit-tested in
+   `tests/scan-live-players.test.mjs`.
+3. **Alert per unknown player** (only when `unknown[]` is non-empty): open one GitHub issue
+   per hash (labels `player-update`, `cipher`; deduped by title against open issues; the
+   body flags low-rate hits as canaries-caught-early) and send one summary email to
+   `dietdroidwp@gmail.com` via Gmail SMTP secrets listing every unknown hash with its
+   frequency/md5/sts. Both contain the exact runbook commands (doc 07).
 
 The monitor **never auto-commits** — entries are derived, 206-validated, and pushed by a
 human. By design: the validation needs a logged-in cookie and live-CDN judgment that CI

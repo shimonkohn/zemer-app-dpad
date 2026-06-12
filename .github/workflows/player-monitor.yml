@@ -15,20 +15,12 @@ jobs:
         with:
           submodules: true
 
-      - name: Fetch current player hash from iframe_api
-        id: player
-        run: |
-          HASH=$(curl -s "https://www.youtube.com/iframe_api" | grep -oE 'player.{0,2}[a-f0-9]{8}' | grep -oE '[a-f0-9]{8}' | head -1)
-          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
-          echo "Current player: $HASH"
-
       # Fetch the LIVE config file from zemer-cipher master ONCE — that is exactly what
       # deployed apps fetch and self-heal from (PlayerConfigStore), so a verdict against it
       # never false-alarms when cipher master is ahead of the app's submodule pointer.
       # The submodule copy is only an explicit, warned-about fallback (it can lag master);
       # if both sources fail the step fails, so a broken monitor is a red run, not silence.
       - name: Fetch known player configs
-        id: configs
         run: |
           if curl -fsS --retry 3 --retry-delay 5 \
               "https://raw.githubusercontent.com/ZemerTeam/zemer-cipher/master/library/src/main/assets/player_configs.json" \
@@ -39,90 +31,74 @@ jobs:
             cp cipher/library/src/main/assets/player_configs.json /tmp/player_configs.json
           fi
 
-      # "Known" means "a device would accept and use it": the file is run through the
-      # harness loader (same validation as the app's PlayerConfigParser) and the hash is
-      # matched against actual keys + aliases. A textual grep would stay green when a
-      # pushed entry exists but fails validation — i.e. exactly during a fleet outage.
-      - name: Check if hash is known in player_configs.json
-        id: known
+      # Sample the live player surfaces MANY times per run, not once. YouTube A/B-tests new
+      # players: a canary served ~1/6 of the time is missed ~83% of the time by a single
+      # sample and only surfaces once it has already rotated in (i.e. once playback is already
+      # breaking). Multi-sampling catches it the first hour it appears at all. "Known" is
+      # decided by the harness loader (the app's PlayerConfigParser rules) against the live
+      # file, including the md5 alias — same authority as before, applied to every distinct
+      # hash seen. The scanner exits non-zero only if the live config itself is invalid
+      # (devices would reject it wholesale) → a red run, which is the right alarm for that.
+      - name: Scan live players (multi-sample to catch canaries early)
+        id: scan
         run: |
-          HASH="${{ steps.player.outputs.hash }}"
-          if VERDICT=$(node tests/config-covers.mjs "$HASH" /tmp/player_configs.json); then
-            if [ "$VERDICT" = "covered" ]; then
-              echo "known=true" >> "$GITHUB_OUTPUT"
-              echo "Hash $HASH is covered by player_configs.json ✓"
-            else
-              echo "known=false" >> "$GITHUB_OUTPUT"
-              echo "Hash $HASH is UNKNOWN — config update needed!"
-            fi
-          else
-            echo "::warning::player_configs.json failed validation — devices reject such a file wholesale; treating $HASH as unknown"
-            echo "known=false" >> "$GITHUB_OUTPUT"
-          fi
+          node tests/scan-live-players.mjs /tmp/player_configs.json 30 > /tmp/scan.json 2> /tmp/scan.log
+          cat /tmp/scan.log
+          COUNT=$(node -e "process.stdout.write(String((JSON.parse(require('fs').readFileSync('/tmp/scan.json','utf8')).unknown||[]).length))")
+          echo "unknown_count=$COUNT" >> "$GITHUB_OUTPUT"
+          {
+            echo "summary<<SUMMARY_EOF"
+            node -e "const s=JSON.parse(require('fs').readFileSync('/tmp/scan.json','utf8'));console.log((s.unknown||[]).map(u=>'- '+u.hash+' (seen '+u.count+'x of '+s.samples+', md5 '+u.md5+', sts '+u.sts+')').join('\n'))"
+            echo "SUMMARY_EOF"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Compute MD5 fallback hash
-        id: md5
-        if: steps.known.outputs.known == 'false'
-        run: |
-          HASH="${{ steps.player.outputs.hash }}"
-          URL="https://www.youtube.com/s/player/${HASH}/player_ias.vflset/en_GB/base.js"
-          MD5=$(curl -s "$URL" | head -c 10000 | md5sum | cut -c1-8)
-          echo "md5=$MD5" >> "$GITHUB_OUTPUT"
-          if VERDICT=$(node tests/config-covers.mjs "$MD5" /tmp/player_configs.json) && [ "$VERDICT" = "covered" ]; then
-            echo "md5_known=true" >> "$GITHUB_OUTPUT"
-            echo "MD5 alias $MD5 is already known ✓"
-          else
-            echo "md5_known=false" >> "$GITHUB_OUTPUT"
-            echo "MD5 alias $MD5 is also unknown"
-          fi
-
-      - name: Open issue for unknown player
-        if: steps.known.outputs.known == 'false' && steps.md5.outputs.md5_known == 'false'
+      - name: Open issues for unknown players
+        if: steps.scan.outputs.unknown_count != '0'
         uses: actions/github-script@v7
         with:
           script: |
-            const hash = '${{ steps.player.outputs.hash }}';
-            const md5 = '${{ steps.md5.outputs.md5 }}';
-            const title = `New YouTube player detected: ${hash}`;
-
-            // Check if issue already open for this hash
-            const issues = await github.rest.issues.listForRepo({
+            const fs = require('fs');
+            const scan = JSON.parse(fs.readFileSync('/tmp/scan.json', 'utf8'));
+            const open = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
               labels: 'player-update',
             });
-            const exists = issues.data.some(i => i.title === title);
-            if (exists) {
-              console.log('Issue already open for this hash, skipping.');
-              return;
+            for (const u of scan.unknown) {
+              const title = `New YouTube player detected: ${u.hash}`;
+              if (open.data.some(i => i.title === title)) {
+                console.log(`Issue already open for ${u.hash}, skipping.`);
+                continue;
+              }
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: [
+                  '## New YouTube Player JS Detected',
+                  '',
+                  `- **Player hash**: \`${u.hash}\``,
+                  `- **MD5 fallback**: \`${u.md5}\``,
+                  `- **sts**: \`${u.sts}\``,
+                  `- **Observed this run**: seen ${u.count} of ${scan.samples} samples` +
+                    (u.count * 3 < scan.samples ? ' — low-rate **canary**, caught early before it rotates in' : ''),
+                  `- **player_ias URL**: https://www.youtube.com/s/player/${u.hash}/player_ias.vflset/en_GB/base.js`,
+                  '',
+                  '## Required action',
+                  '',
+                  `1. Derive + empirically validate: \`node tests/validate-player-config.mjs ${u.hash}\` (HTTP 206 = ground truth; prints a paste-ready JSON entry)`,
+                  '2. Add the entry to `library/src/main/assets/player_configs.json` in `zemer-cipher` (includes the MD5 alias)',
+                  '3. Push to `zemer-cipher` `master` — **deployed apps self-heal from that file within minutes; no APK release needed**',
+                  '4. Update the submodule pointer in `zemer-app` when convenient (keeps bundled defaults fresh for new installs)',
+                ].join('\n'),
+                labels: ['player-update', 'cipher'],
+              });
+              console.log(`Opened issue: ${title}`);
             }
 
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title,
-              body: [
-                '## New YouTube Player JS Detected',
-                '',
-                `- **Player hash**: \`${hash}\``,
-                `- **MD5 fallback**: \`${md5}\``,
-                `- **iframe_api URL**: https://www.youtube.com/iframe_api`,
-                `- **player_ias URL**: https://www.youtube.com/s/player/${hash}/player_ias.vflset/en_GB/base.js`,
-                '',
-                '## Required action',
-                '',
-                `1. Derive + empirically validate: \`node tests/validate-player-config.mjs ${hash}\` (HTTP 206 = ground truth; prints a paste-ready JSON entry)`,
-                '2. Add the entry to `library/src/main/assets/player_configs.json` in `zemer-cipher` (includes the MD5 alias)',
-                '3. Push to `zemer-cipher` `master` — **deployed apps self-heal from that file within minutes; no APK release needed**',
-                '4. Update the submodule pointer in `zemer-app` when convenient (keeps bundled defaults fresh for new installs)',
-              ].join('\n'),
-              labels: ['player-update', 'cipher'],
-            });
-            console.log(`Opened issue: ${title}`);
-
       - name: Send email notification
-        if: steps.known.outputs.known == 'false' && steps.md5.outputs.md5_known == 'false'
+        if: steps.scan.outputs.unknown_count != '0'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -130,23 +106,21 @@ jobs:
           secure: true
           username: ${{ secrets.GMAIL_USERNAME }}
           password: ${{ secrets.GMAIL_APP_PASSWORD }}
-          subject: "New YouTube player detected: ${{ steps.player.outputs.hash }}"
+          subject: "New YouTube player(s) detected — cipher update required"
           to: dietdroidwp@gmail.com
           from: Zemer CI <${{ secrets.GMAIL_USERNAME }}>
           body: |
-            New YouTube player JS detected — cipher update required.
+            New / unknown YouTube player(s) detected by the multi-sample monitor — cipher update required.
+            (Low-rate hits are A/B canaries caught early, before they rotate in and break playback.)
 
-            Player hash: ${{ steps.player.outputs.hash }}
-            MD5 fallback: ${{ steps.md5.outputs.md5 }}
+            ${{ steps.scan.outputs.summary }}
 
-            base.js: https://www.youtube.com/s/player/${{ steps.player.outputs.hash }}/player_ias.vflset/en_GB/base.js
-
-            Steps:
-            1. Derive + validate: node tests/validate-player-config.mjs ${{ steps.player.outputs.hash }}
+            For each hash:
+            1. Derive + validate: node tests/validate-player-config.mjs <hash>
                (HTTP 206 = ground truth; prints a paste-ready JSON entry)
             2. Add the entry to library/src/main/assets/player_configs.json in zemer-cipher
             3. Push to zemer-cipher master — deployed apps self-heal from that file
                within minutes; no APK release needed
             4. Update the submodule pointer in zemer-app when convenient
 
-            GitHub issue: https://github.com/ZemerTeam/zemer-app/issues
+            GitHub issues: https://github.com/ZemerTeam/zemer-app/issues

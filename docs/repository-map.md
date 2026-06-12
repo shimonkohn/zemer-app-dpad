@@ -108,7 +108,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | Path | Lines/bytes | Kind |
 | --- | ---: | --- |
 | `.github/workflows/docs-regenerate.yml` | 74 lines | `.yml` |
-| `.github/workflows/player-monitor.yml` | 152 lines | `.yml` |
+| `.github/workflows/player-monitor.yml` | 126 lines | `.yml` |
 | `.github/workflows/release-build.yml` | 155 lines | `.yml` |
 | `.github/workflows/ui-audit.yml` | 28 lines | `.yml` |
 | `.gitignore` | 109 lines | `[none]` |
@@ -677,7 +677,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/remote_cipher_config/03-runtime-store.md` | 129 lines | `.md` |
 | `docs/remote_cipher_config/04-validation-and-security.md` | 105 lines | `.md` |
 | `docs/remote_cipher_config/05-extraction-and-self-heal.md` | 104 lines | `.md` |
-| `docs/remote_cipher_config/06-harness-and-monitor.md` | 99 lines | `.md` |
+| `docs/remote_cipher_config/06-harness-and-monitor.md` | 101 lines | `.md` |
 | `docs/remote_cipher_config/07-runbook.md` | 95 lines | `.md` |
 | `docs/remote_cipher_config/README.md` | 96 lines | `.md` |
 | `docs/repository-map.md` | 860 lines | `.md` |
