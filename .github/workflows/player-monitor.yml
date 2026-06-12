@@ -11,6 +11,17 @@ jobs:
     permissions:
       issues: write
     steps:
+      # Open issues as the Zemer-Dude GitHub App (logo avatar) instead of github-actions[bot].
+      # Needs repo variable ZEMER_APP_ID + secret ZEMER_APP_PRIVATE_KEY, and the app must have
+      # Issues: Read and write. If unconfigured, falls back to the default GITHUB_TOKEN.
+      - name: Generate Zemer App token
+        id: bot
+        if: ${{ vars.ZEMER_APP_ID != '' }}
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.ZEMER_APP_ID }}
+          private-key: ${{ secrets.ZEMER_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
         with:
           submodules: true
@@ -56,6 +67,7 @@ jobs:
         if: steps.scan.outputs.unknown_count != '0'
         uses: actions/github-script@v7
         with:
+          github-token: ${{ steps.bot.outputs.token || github.token }}
           script: |
             const fs = require('fs');
             const scan = JSON.parse(fs.readFileSync('/tmp/scan.json', 'utf8'));
@@ -97,8 +109,10 @@ jobs:
               console.log(`Opened issue: ${title}`);
             }
 
+      # !cancelled(): the email must still go out if issue creation fails (e.g. app token
+      # missing the Issues permission) — the alert matters more than the issue.
       - name: Send email notification
-        if: steps.scan.outputs.unknown_count != '0'
+        if: ${{ !cancelled() && steps.scan.outputs.unknown_count != '0' }}
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
