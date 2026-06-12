@@ -816,7 +816,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `tests/derive-player-config.mjs` | 89 lines | `.mjs` |
 | `tests/discover-clients.mjs` | 116 lines | `.mjs` |
 | `tests/full-stream.mjs` | 87 lines | `.mjs` |
-| `tests/gen-player-dates.mjs` | 37 lines | `.mjs` |
+| `tests/gen-player-dates.mjs` | 41 lines | `.mjs` |
 | `tests/inspect-player.mjs` | 48 lines | `.mjs` |
 | `tests/package-lock.json` | 554 lines | `.json` |
 | `tests/package.json` | 7 lines | `.json` |

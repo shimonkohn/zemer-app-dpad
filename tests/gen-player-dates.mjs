@@ -22,10 +22,14 @@ const hashes = Object.keys(cfg.players || {});
 
 const dates = {};
 for (const hash of hashes) {
-  // -S<hash> --reverse: the first commit that changed the count of `hash` is the one that added it.
+  // True "support added" date = the FIRST commit anywhere in the cipher repo to introduce this
+  // hash — i.e. when its cipher config first landed, whether as a hardcoded VM-dispatch entry
+  // (pre-`player_configs.json`) or in the JSON file. Restricting to the config file would
+  // mis-date every player that was supported before the 2026-06-10 single-source migration.
+  // `-S<hash> --reverse` → the first commit that changed the count of `hash` is the one that added it.
   const out = execFileSync(
     "git",
-    ["-C", CIPHER, "log", "--reverse", "-S", hash, "--date=short", "--format=%ad", "--", CONFIG],
+    ["-C", CIPHER, "log", "--reverse", "-S", hash, "--date=short", "--format=%ad"],
     { encoding: "utf8" },
   );
   const date = out.split("\n").find(Boolean);
