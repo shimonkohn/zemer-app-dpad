@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { validate } from "./schema.mjs";
 import { splitBySeparator, oddElements, clean, parseTime } from "./lib.mjs";
-import { toYTItem, fromMRLIR_suggestion } from "./parsers.mjs";
+import { toYTItem, fromMRLIR_suggestion, searchContinuationResult } from "./parsers.mjs";
 
 const has = (ctx, type, field) => ctx.violations.some((v) => v.type === type && v.field === field);
 
@@ -81,6 +81,31 @@ test("parser: suggestion song drops when thumbnail missing", () => {
   const res = fromMRLIR_suggestion(r);
   assert.equal(res.ok, false);
   assert.match(res.reason, /thumbnail null/);
+});
+
+// ---- searchContinuation fix (the Songs/Videos infinite-shimmer bug) ----------------------------
+test("searchContinuation: a non-musicShelfContinuation response yields empty + NULL continuation (no throw)", () => {
+  // The app's current `!!` throws here -> loadMore() bails without clearing the continuation -> the
+  // list shimmers forever. The fix must not throw AND must null the continuation so loadMore stops.
+  assert.doesNotThrow(() => searchContinuationResult({}));
+  const r = searchContinuationResult({ continuationContents: null });
+  assert.deepEqual(r.items, []);
+  assert.equal(r.continuation, null, "continuation must be null so the load-more shimmer stops");
+});
+
+test("searchContinuation: a valid page yields items + the next continuation token", () => {
+  const json = {
+    continuationContents: {
+      musicShelfContinuation: {
+        contents: [{ musicResponsiveListItemRenderer: validSong() }],
+        continuations: [{ nextContinuationData: { continuation: "TOKEN2" } }],
+      },
+    },
+  };
+  const r = searchContinuationResult(json);
+  assert.equal(r.items.length, 1);
+  assert.equal(r.items[0].id, "abc12345678");
+  assert.equal(r.continuation, "TOKEN2");
 });
 
 // ---- helper parity with Kotlin -----------------------------------------------------------------

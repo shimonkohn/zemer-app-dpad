@@ -236,12 +236,20 @@ object YouTube {
 
     suspend fun searchContinuation(continuation: String): Result<SearchResult> = runCatching {
         val response = innerTube.search(WEB_REMIX, continuation = continuation).body<SearchResponse>()
+        // Never `!!` here: a continuation response that isn't a musicShelfContinuation (or is empty)
+        // must yield (emptyList, null), not throw. Throwing makes the ViewModel's loadMore() bail
+        // WITHOUT clearing the continuation, so the Songs/Videos search list shimmers forever trying
+        // to load more. Nulling the continuation when there are no items lets loadMore() stop.
+        val items = response.continuationContents?.musicShelfContinuation?.contents
+            ?.mapNotNull { SearchPage.toYTItem(it.musicResponsiveListItemRenderer) }
+            ?: emptyList()
         SearchResult(
-            items = response.continuationContents?.musicShelfContinuation?.contents
-                ?.mapNotNull {
-                    SearchPage.toYTItem(it.musicResponsiveListItemRenderer)
-                }!!,
-            continuation = response.continuationContents.musicShelfContinuation.continuations?.getContinuation()
+            items = items,
+            continuation = if (items.isEmpty()) {
+                null
+            } else {
+                response.continuationContents?.musicShelfContinuation?.continuations?.getContinuation()
+            },
         )
     }
 

@@ -10,10 +10,27 @@
 //   fromMRLIR_suggestion                  <- pages/SearchSuggestionPage.kt(used by YouTube.searchSuggestions)
 import {
   splitBySeparator, oddElements, clean, parseTime, thumbnailUrl,
-  isSong, isPlaylist, isAlbum, isArtist, videoIdOf, flexRuns,
+  isSong, isPlaylist, isAlbum, isArtist, videoIdOf, flexRuns, getContinuation,
 } from "./lib.mjs";
 
 const drop = (kind, reason) => ({ ok: false, kind, reason });
+
+// Port of the FIXED YouTube.searchContinuation (Metrolist parity). The app's current code does
+//   items = ...?.musicShelfContinuation?.contents?.mapNotNull { toYTItem(...) }!!   // <- NPE
+// so a continuation response that isn't a musicShelfContinuation throws, loadMore() bails WITHOUT
+// clearing the continuation, and the search list shimmers forever trying to "load more". The fix:
+// `?: emptyList()` (never throws) AND null the continuation when there are no items, so loadMore
+// clears it and the shimmer stops. This function models the fixed behaviour for the self-test.
+export function searchContinuationResult(json) {
+  const items = (json?.continuationContents?.musicShelfContinuation?.contents ?? [])
+    .map((c) => toYTItem(c.musicResponsiveListItemRenderer))
+    .filter((r) => r.ok)
+    .map((r) => r.item);
+  const continuation = items.length === 0
+    ? null
+    : getContinuation(json?.continuationContents?.musicShelfContinuation?.continuations);
+  return { items, continuation };
+}
 const ok = (kind, item) => ({ ok: true, kind, item });
 
 const text0 = (runs) => runs?.[0]?.text ?? null;
