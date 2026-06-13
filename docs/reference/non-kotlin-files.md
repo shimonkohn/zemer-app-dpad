@@ -340,11 +340,11 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `tests/search/diag-auth.mjs` | 77 lines | text `.mjs` |
 | `tests/search/fetch-whitelist.mjs` | 59 lines | text `.mjs` |
 | `tests/search/lib.mjs` | 163 lines | text `.mjs` |
-| `tests/search/parsers.mjs` | 208 lines | text `.mjs` |
+| `tests/search/parsers.mjs` | 225 lines | text `.mjs` |
 | `tests/search/pill-survival.mjs` | 114 lines | text `.mjs` |
 | `tests/search/run.mjs` | 246 lines | text `.mjs` |
 | `tests/search/schema.mjs` | 239 lines | text `.mjs` |
-| `tests/search/self-test.mjs` | 111 lines | text `.mjs` |
+| `tests/search/self-test.mjs` | 136 lines | text `.mjs` |
 | `tests/search/verify-album-fix.mjs` | 61 lines | text `.mjs` |
 | `tests/search/whitelist-findable.mjs` | 114 lines | text `.mjs` |
 | `tests/sts-mismatch.mjs` | 125 lines | text `.mjs` |

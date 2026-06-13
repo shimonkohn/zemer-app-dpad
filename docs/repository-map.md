@@ -714,7 +714,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `innertube/.gitignore` | 1 lines | `[none]` |
 | `innertube/build.gradle.kts` | 21 lines | `.kts` |
 | `innertube/src/main/kotlin/com/metrolist/innertube/InnerTube.kt` | 705 lines | `.kt` |
-| `innertube/src/main/kotlin/com/metrolist/innertube/YouTube.kt` | 1246 lines | `.kt` |
+| `innertube/src/main/kotlin/com/metrolist/innertube/YouTube.kt` | 1254 lines | `.kt` |
 | `innertube/src/main/kotlin/com/metrolist/innertube/models/AccountInfo.kt` | 8 lines | `.kt` |
 | `innertube/src/main/kotlin/com/metrolist/innertube/models/AutomixPreviewVideoRenderer.kt` | 18 lines | `.kt` |
 | `innertube/src/main/kotlin/com/metrolist/innertube/models/Badges.kt` | 13 lines | `.kt` |
@@ -884,11 +884,11 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `tests/search/diag-auth.mjs` | 77 lines | `.mjs` |
 | `tests/search/fetch-whitelist.mjs` | 59 lines | `.mjs` |
 | `tests/search/lib.mjs` | 163 lines | `.mjs` |
-| `tests/search/parsers.mjs` | 208 lines | `.mjs` |
+| `tests/search/parsers.mjs` | 225 lines | `.mjs` |
 | `tests/search/pill-survival.mjs` | 114 lines | `.mjs` |
 | `tests/search/run.mjs` | 246 lines | `.mjs` |
 | `tests/search/schema.mjs` | 239 lines | `.mjs` |
-| `tests/search/self-test.mjs` | 111 lines | `.mjs` |
+| `tests/search/self-test.mjs` | 136 lines | `.mjs` |
 | `tests/search/verify-album-fix.mjs` | 61 lines | `.mjs` |
 | `tests/search/whitelist-findable.mjs` | 114 lines | `.mjs` |
 | `tests/sts-mismatch.mjs` | 125 lines | `.mjs` |
