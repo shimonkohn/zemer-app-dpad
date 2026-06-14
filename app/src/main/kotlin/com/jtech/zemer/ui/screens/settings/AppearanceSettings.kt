@@ -2,7 +2,6 @@ package com.jtech.zemer.ui.screens.settings
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -59,6 +58,7 @@ import com.jtech.zemer.LocalPlayerAwareWindowInsets
 import com.jtech.zemer.R
 import com.jtech.zemer.ui.theme.rememberPureBlack
 import com.jtech.zemer.constants.ChipSortTypeKey
+import com.jtech.zemer.constants.CropAlbumArtKey
 import com.jtech.zemer.constants.CustomDensityScaleKey
 import com.jtech.zemer.constants.DarkModeKey
 import com.jtech.zemer.constants.DefaultOpenTabKey
@@ -96,6 +96,7 @@ import com.jtech.zemer.constants.UseNewMiniPlayerDesignKey
 import com.jtech.zemer.constants.UseNewPlayerDesignKey
 import com.jtech.zemer.ui.component.DefaultDialog
 import com.jtech.zemer.ui.component.EnumListPreference
+import com.jtech.zemer.ui.player.isBlurSupported
 import com.jtech.zemer.ui.component.IconButton
 import com.jtech.zemer.ui.component.ListPreference
 import com.jtech.zemer.ui.component.PlayerSliderTrack
@@ -139,6 +140,10 @@ fun AppearanceSettings(
     )
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(
         HidePlayerThumbnailKey,
+        defaultValue = false
+    )
+    val (cropAlbumArt, onCropAlbumArtChange) = rememberPreference(
+        CropAlbumArtKey,
         defaultValue = false
     )
     val (playerBackground, onPlayerBackgroundChange) =
@@ -267,10 +272,6 @@ fun AppearanceSettings(
         ShowUploadedPlaylistKey,
         defaultValue = true
     )
-
-    PlayerBackgroundStyle.entries.filter {
-        it != PlayerBackgroundStyle.BLUR || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    }
 
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val useDarkTheme =
@@ -513,6 +514,11 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.gradient), null) },
             selectedValue = playerBackground,
             onValueSelected = onPlayerBackgroundChange,
+            // BLUR needs a RenderEffect that only exists on Android 12+; hide it on older devices
+            // (single source of truth: PlayerBackgroundStyle.effective()/isBlurSupported).
+            values = PlayerBackgroundStyle.entries.filter {
+                it != PlayerBackgroundStyle.BLUR || isBlurSupported
+            },
             valueText = {
                 when (it) {
                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
@@ -528,6 +534,14 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.hide_image), null) },
             checked = hidePlayerThumbnail,
             onCheckedChange = onHidePlayerThumbnailChange
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.crop_album_art)) },
+            description = stringResource(R.string.crop_album_art_desc),
+            icon = { Icon(painterResource(R.drawable.insert_photo), null) },
+            checked = cropAlbumArt,
+            onCheckedChange = onCropAlbumArtChange
         )
 
         EnumListPreference(

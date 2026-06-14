@@ -37,10 +37,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,19 +46,27 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -76,17 +82,22 @@ import com.jtech.zemer.LocalDatabase
 import com.jtech.zemer.LocalPlayerConnection
 import com.jtech.zemer.R
 import com.jtech.zemer.constants.MiniPlayerHeight
+import com.jtech.zemer.constants.PlayerBackgroundStyle
+import com.jtech.zemer.constants.PlayerBackgroundStyleKey
 import com.jtech.zemer.constants.SwipeSensitivityKey
 import com.jtech.zemer.constants.ThumbnailCornerRadius
 import com.jtech.zemer.constants.UseNewMiniPlayerDesignKey
 import com.jtech.zemer.db.entities.ArtistEntity
 import com.jtech.zemer.extensions.togglePlayPause
 import com.jtech.zemer.models.MediaMetadata
+import com.jtech.zemer.utils.rememberEnumPreference
 import com.jtech.zemer.utils.rememberPreference
+import androidx.compose.ui.graphics.toArgb
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import androidx.compose.ui.res.stringResource
+import androidx.compose.runtime.LaunchedEffect
 
 data class MiniPlayerFocusTargets(
     val play: FocusRequester,
@@ -102,8 +113,8 @@ private fun Modifier.disableTvFocus(): Modifier =
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun MiniPlayer(
-    position: Long,
-    duration: Long,
+    position: () -> Long,
+    duration: () -> Long,
     modifier: Modifier = Modifier,
     pureBlack: Boolean,
     allowFocus: Boolean = true,
@@ -146,8 +157,8 @@ fun MiniPlayer(
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 private fun NewMiniPlayer(
-    position: Long,
-    duration: Long,
+    position: () -> Long,
+    duration: () -> Long,
     modifier: Modifier = Modifier,
     pureBlack: Boolean,
     allowFocus: Boolean,
@@ -155,6 +166,7 @@ private fun NewMiniPlayer(
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val database = LocalDatabase.current
+    val context = LocalContext.current
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val playbackState by playerConnection.playbackState.collectAsState()
     val error by playerConnection.error.collectAsState()
@@ -207,6 +219,39 @@ private fun NewMiniPlayer(
         return (600 / (1f + kotlin.math.exp(-(-11.44748 * swipeSensitivity + 9.04945)))).roundToInt()
     }
     val autoSwipeThreshold = calculateAutoSwipeThreshold(swipeSensitivity)
+
+    // Mirror the full player's background style so the mini player matches it (no new setting).
+    val playerBackground by rememberEnumPreference(
+        key = PlayerBackgroundStyleKey,
+        defaultValue = PlayerBackgroundStyle.DEFAULT
+    )
+    // Effective style: BLUR downgrades to DEFAULT below Android 12 (the RenderEffect blur is a
+    // no-op there). Single source of truth shared with the full player (see effective()).
+    val effectiveBackground = playerBackground.effective()
+
+    val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    // Shared, bounded, deduped gradient extraction (see rememberPlayerGradient): the mini player
+    // and the full player share one cache so the same artwork is never decoded twice.
+    val gradientColors = rememberPlayerGradient(
+        mediaId = mediaMetadata?.id,
+        thumbnailUrl = mediaMetadata?.thumbnailUrl,
+        enabled = effectiveBackground == PlayerBackgroundStyle.GRADIENT,
+        fallbackColor = fallbackColor,
+    )
+
+    // A dark backdrop is only actually painted once it is ready: a blurred thumbnail needs a
+    // thumbnailUrl, an extracted gradient needs non-empty colors. Until then the box stays on the
+    // solid surface, so keep DARK text — flipping to white before the backdrop exists would put
+    // white text over the (light) Home screen showing through the transparent bar.
+    val blurReady = effectiveBackground == PlayerBackgroundStyle.BLUR &&
+        mediaMetadata?.thumbnailUrl != null
+    val gradientReady = effectiveBackground == PlayerBackgroundStyle.GRADIENT &&
+        gradientColors.isNotEmpty()
+    val lightContent = blurReady || gradientReady
+    val titleColor = if (lightContent) Color.White else MaterialTheme.colorScheme.onSurface
+    val subtitleColor =
+        if (lightContent) Color.White.copy(alpha = 0.7f)
+        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
 
     Box(
         modifier = modifier
@@ -298,9 +343,57 @@ private fun NewMiniPlayer(
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .clip(RoundedCornerShape(32.dp)) // Clip first for perfect rounded corners
                 .background(
-                    color = MaterialTheme.colorScheme.surfaceContainer // Same as navigation bar color
+                    // Transparent only once the blur/gradient backdrop below is actually painted;
+                    // otherwise stay on the solid surface so the (dark) text stays legible.
+                    color = if (lightContent)
+                        Color.Transparent
+                    else
+                        MaterialTheme.colorScheme.surfaceContainer // Same as navigation bar color
+                )
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(32.dp)
                 )
         ) {
+            // Background layer (behind the Row): blurred artwork or extracted gradient.
+            when (effectiveBackground) {
+                PlayerBackgroundStyle.BLUR -> {
+                    mediaMetadata?.thumbnailUrl?.let { thumbnailUrl ->
+                        AsyncImage(
+                            model = thumbnailUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .blur(60.dp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.4f))
+                        )
+                    }
+                }
+                PlayerBackgroundStyle.GRADIENT -> {
+                    if (gradientColors.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Brush.horizontalGradient(colorStops = playerGradientStops(gradientColors)))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.2f))
+                        )
+                    }
+                }
+                else -> {
+                    // DEFAULT: solid surface background applied above, nothing extra.
+                }
+            }
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -308,6 +401,15 @@ private fun NewMiniPlayer(
                     .padding(horizontal = 8.dp, vertical = 8.dp),
             ) {
                 // Play/Pause button with circular progress indicator (left side)
+                val progressColor = MaterialTheme.colorScheme.primary
+                val progressTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                // Hoisted out of the draw lambda: the stroke is density-constant, so it is the only
+                // heap allocation the per-frame arc would otherwise repeat (Size/Offset are value
+                // classes). Remembered keyed on density so it survives a config change correctly.
+                val density = LocalDensity.current
+                val progressStroke = remember(density) {
+                    Stroke(width = with(density) { 3.dp.toPx() }, cap = StrokeCap.Round)
+                }
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -322,18 +424,41 @@ private fun NewMiniPlayer(
                             } else Modifier
                         )
                         .focusable()
+                        // Draw-phase progress arc: reads position()/duration() at draw time,
+                        // so a per-second position change no longer recomposes this composable.
+                        .drawWithContent {
+                            drawContent()
+                            val d = duration()
+                            if (d > 0) {
+                                val fraction = (position().toFloat() / d).coerceIn(0f, 1f)
+                                // Inset by half the stroke so the ring sits inside the 48dp box.
+                                val inset = progressStroke.width / 2f
+                                val arcSize = androidx.compose.ui.geometry.Size(
+                                    size.width - progressStroke.width,
+                                    size.height - progressStroke.width
+                                )
+                                val topLeft = androidx.compose.ui.geometry.Offset(inset, inset)
+                                drawArc(
+                                    color = progressTrackColor,
+                                    startAngle = 0f,
+                                    sweepAngle = 360f,
+                                    useCenter = false,
+                                    topLeft = topLeft,
+                                    size = arcSize,
+                                    style = progressStroke
+                                )
+                                drawArc(
+                                    color = progressColor,
+                                    startAngle = -90f,
+                                    sweepAngle = 360f * fraction,
+                                    useCenter = false,
+                                    topLeft = topLeft,
+                                    size = arcSize,
+                                    style = progressStroke
+                                )
+                            }
+                        }
                 ) {
-                    // Circular progress indicator around the play button
-                    if (duration > 0) {
-                        CircularProgressIndicator(
-                            progress = { (position.toFloat() / duration).coerceIn(0f, 1f) },
-                            modifier = Modifier.size(48.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 3.dp,
-                            trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                        )
-                    }
-
                     // Play/Pause button with thumbnail background
                     Box(
                         contentAlignment = Alignment.Center,
@@ -412,7 +537,7 @@ private fun NewMiniPlayer(
                         ) { title ->
                             Text(
                                 text = title,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = titleColor,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
@@ -429,7 +554,7 @@ private fun NewMiniPlayer(
                             ) { artists ->
                                 Text(
                                     text = artists,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    color = subtitleColor,
                                     style = MaterialTheme.typography.bodySmall,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -522,7 +647,7 @@ private fun NewMiniPlayer(
                                 tint = if (isSubscribed)
                                     MaterialTheme.colorScheme.primary
                                 else
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    subtitleColor,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -579,7 +704,7 @@ private fun NewMiniPlayer(
                             tint = if (isLiked)
                                 MaterialTheme.colorScheme.error
                             else
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                subtitleColor,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -592,8 +717,8 @@ private fun NewMiniPlayer(
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 private fun LegacyMiniPlayer(
-    position: Long,
-    duration: Long,
+    position: () -> Long,
+    duration: () -> Long,
     modifier: Modifier = Modifier,
     pureBlack: Boolean,
 ) {
@@ -719,12 +844,27 @@ private fun LegacyMiniPlayer(
                 }
             }
     ) {
-        LinearProgressIndicator(
-            progress = { (position.toFloat() / duration).coerceIn(0f, 1f) },
+        // Draw-phase progress bar: reads position()/duration() at draw time so a
+        // per-second position change no longer recomposes this composable.
+        val legacyProgressColor = MaterialTheme.colorScheme.primary
+        val legacyTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(2.dp)
-                .align(Alignment.BottomCenter),
+                .align(Alignment.BottomCenter)
+                .drawWithContent {
+                    drawContent()
+                    drawRect(color = legacyTrackColor)
+                    val d = duration()
+                    if (d > 0) {
+                        val fraction = (position().toFloat() / d).coerceIn(0f, 1f)
+                        drawRect(
+                            color = legacyProgressColor,
+                            size = androidx.compose.ui.geometry.Size(size.width * fraction, size.height)
+                        )
+                    }
+                },
         )
 
         Row(

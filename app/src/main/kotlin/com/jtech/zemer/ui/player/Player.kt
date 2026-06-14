@@ -1,6 +1,7 @@
 package com.jtech.zemer.ui.player
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -11,6 +12,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -24,6 +26,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,6 +60,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -83,6 +87,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -94,18 +99,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Player.STATE_READY
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.NavController
-import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
-import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
-import coil3.toBitmap
 import com.jtech.zemer.LocalPlayerConnection
 import com.jtech.zemer.R
 import com.jtech.zemer.constants.DarkModeKey
@@ -132,18 +134,15 @@ import com.jtech.zemer.ui.component.ResizableIconButton
 import com.jtech.zemer.ui.component.rememberBottomSheetState
 import com.jtech.zemer.ui.menu.PlayerMenu
 import com.jtech.zemer.ui.screens.settings.DarkMode
-import com.jtech.zemer.ui.theme.PlayerColorExtractor
 import com.jtech.zemer.ui.theme.PlayerSliderColors
 import com.jtech.zemer.ui.utils.ShowMediaInfo
 import com.jtech.zemer.utils.makeTimeString
 import com.jtech.zemer.utils.rememberEnumPreference
 import com.jtech.zemer.utils.rememberPreference
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import me.saket.squiggles.SquigglySlider
 import kotlin.math.roundToInt
 
@@ -175,10 +174,14 @@ fun BottomSheetPlayer(
     )
     val floatingMiniPlayerEnabled =
         floatingMiniPlayerEnabledOverride ?: floatingMiniPlayerPref
-    val playerBackground by rememberEnumPreference(
+    val playerBackgroundPref by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
         defaultValue = PlayerBackgroundStyle.DEFAULT
     )
+    // Render against the *effective* style: BLUR downgrades to DEFAULT below Android 12 (the
+    // RenderEffect blur is a no-op there), so the full player never shows bright artwork under
+    // the light-on-dark transport. Single source of truth shared with the mini player.
+    val playerBackground = playerBackgroundPref.effective()
     val playerButtonsStyle by rememberEnumPreference(
         key = PlayerButtonsStyleKey,
         defaultValue = PlayerButtonsStyle.DEFAULT
@@ -223,63 +226,50 @@ fun BottomSheetPlayer(
     var sliderPosition by remember {
         mutableStateOf<Long?>(null)
     }
-    var gradientColors by remember {
-        mutableStateOf<List<Color>>(emptyList())
-    }
-    val gradientColorsCache = remember { mutableMapOf<String, List<Color>>() }
-
     // Track if we're in control focus mode (showing outlines)
 
     if (!canSkipNext && automix.isNotEmpty()) {
         playerConnection.service.addToQueueAutomix(automix[0], 0)
     }
 
-    listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surfaceVariant)
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
-
-    LaunchedEffect(mediaMetadata?.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT) {
-            val currentMetadata = mediaMetadata
-            if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
-                val cachedColors = gradientColorsCache[currentMetadata.id]
-                if (cachedColors != null) {
-                    gradientColors = cachedColors
-                    return@LaunchedEffect
-                }
-                withContext(Dispatchers.IO) {
-                    val request = ImageRequest.Builder(context)
-                        .data(currentMetadata.thumbnailUrl)
-                        .size(100, 100)
-                        .allowHardware(false)
-                        .memoryCacheKey("gradient_${currentMetadata.id}")
-                        .build()
-
-                    val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
-                    if (result != null) {
-                        val bitmap = result.image?.toBitmap()
-                        if (bitmap != null) {
-                            val palette = withContext(Dispatchers.Default) {
-                                Palette.from(bitmap)
-                                    .maximumColorCount(8)
-                                    .resizeBitmapArea(100 * 100)
-                                    .generate()
-                            }
-                            val extractedColors = PlayerColorExtractor.extractGradientColors(
-                                palette = palette,
-                                fallbackColor = fallbackColor
-                            )
-                            gradientColorsCache[currentMetadata.id] = extractedColors
-                            withContext(Dispatchers.Main) { gradientColors = extractedColors }
-                        }
-                    }
-                }
-            }
-        } else {
-            gradientColors = emptyList()
-        }
-    }
+    // Shared, bounded, deduped gradient extraction (see rememberPlayerGradient).
+    val gradientColors = rememberPlayerGradient(
+        mediaId = mediaMetadata?.id,
+        thumbnailUrl = mediaMetadata?.thumbnailUrl,
+        enabled = playerBackground == PlayerBackgroundStyle.GRADIENT,
+        fallbackColor = fallbackColor,
+    )
 
     val accentColor = MaterialTheme.colorScheme.primary
+
+    // Status-bar icon legibility: a dark blur/gradient player background needs light (white)
+    // status-bar icons — but ONLY while that dark background actually covers the screen, i.e. when
+    // the sheet is expanded. Collapsed/dragging (the mini player floating over the app) must follow
+    // the theme, otherwise white icons land on a light Home/Library/Search screen and vanish. Re-key
+    // on the theme and expansion so changes re-apply, and always hand the bar back to the
+    // theme-correct appearance — matching MainActivity.setSystemBarAppearance
+    // (isAppearanceLightStatusBars = !isDark) — on dispose, rather than a stale snapshot.
+    val view = LocalView.current
+    DisposableEffect(playerBackground, useDarkTheme, state.isExpanded) {
+        val window = (view.context as? Activity)?.window
+        if (window != null) {
+            WindowInsetsControllerCompat(window, view).isAppearanceLightStatusBars =
+                if (state.isExpanded) {
+                    when (playerBackground) {
+                        PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> false
+                        PlayerBackgroundStyle.DEFAULT -> !useDarkTheme
+                    }
+                } else {
+                    !useDarkTheme
+                }
+            onDispose {
+                WindowInsetsControllerCompat(window, view).isAppearanceLightStatusBars = !useDarkTheme
+            }
+        } else {
+            onDispose { }
+        }
+    }
 
     val TextBackgroundColor =
         when (playerBackground) {
@@ -302,6 +292,26 @@ fun BottomSheetPlayer(
             MaterialTheme.colorScheme.onSecondary
         )
     }
+
+    // Richer button matrix: the play button stays emphasized (textButtonColor); prev/next read as
+    // lower-emphasis tonal containers, background-aware (legible over blur/gradient). All crossfade
+    // smoothly via animateColorAsState when the background/style changes.
+    val playButtonContainerColor by animateColorAsState(textButtonColor, label = "playBtnContainer")
+    val playButtonContentColor by animateColorAsState(iconButtonColor, label = "playBtnContent")
+    val sideButtonContainerColor by animateColorAsState(
+        targetValue = when (playerBackground) {
+            PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surfaceVariant
+            PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> Color.White.copy(alpha = 0.15f)
+        },
+        label = "sideBtnContainer",
+    )
+    val sideButtonContentColor by animateColorAsState(
+        targetValue = when (playerBackground) {
+            PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onSurfaceVariant
+            PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> Color.White
+        },
+        label = "sideBtnContent",
+    )
 
     val sleepTimerEnabled =
         remember(
@@ -473,24 +483,11 @@ fun BottomSheetPlayer(
                             label = "gradientBackground"
                         ) { colors ->
                             if (colors.isNotEmpty()) {
-                                val gradientColorStops = if (colors.size >= 3) {
-                                    arrayOf(
-                                        0.0f to colors[0],
-                                        0.5f to colors[1],
-                                        1.0f to colors[2]
-                                    )
-                                } else {
-                                    arrayOf(
-                                        0.0f to colors[0],
-                                        0.6f to colors[0].copy(alpha = 0.7f),
-                                        1.0f to Color.Black
-                                    )
-                                }
                                 Box(
                                     Modifier
                                         .fillMaxSize()
                                         .alpha(backgroundAlpha)
-                                        .background(Brush.verticalGradient(colorStops = gradientColorStops))
+                                        .background(Brush.verticalGradient(colorStops = playerGradientStops(colors)))
                                         .background(Color.Black.copy(alpha = 0.2f))
                                 )
                             }
@@ -506,8 +503,8 @@ fun BottomSheetPlayer(
         collapsedContent = {
             if (floatingMiniPlayerEnabled) {
                 MiniPlayer(
-                    position = position,
-                    duration = duration,
+                    position = { position },
+                    duration = { duration },
                     pureBlack = pureBlack,
                     allowFocus = false,
                     focusTargets = miniPlayerFocusTargets
@@ -954,70 +951,41 @@ fun BottomSheetPlayer(
             }
 
             if (useNewPlayerDesign) {
-                BoxWithConstraints(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    val maxW = maxWidth
-                    val playButtonHeight = maxW / 6f
-                    val playButtonWidth = playButtonHeight * 1.6f
-                    val sideButtonHeight = playButtonHeight * 0.8f
-                    val sideButtonWidth = sideButtonHeight * 1.3f
-                    val coroutineScope = rememberCoroutineScope()
+                // Spring-grow-on-press transport cluster: a wide, labelled play/pause button
+                // flanked by circular skips (see TransportSkipButton). Each grows while pressed.
+                val skipPrevInteraction = remember { MutableInteractionSource() }
+                val playPauseInteraction = remember { MutableInteractionSource() }
+                val skipNextInteraction = remember { MutableInteractionSource() }
+
+                val playPressed by playPauseInteraction.collectIsPressedAsState()
+
+                // Cap the play button to the width left after the two skip buttons (≤60.dp each
+                // while pressed) plus the two 16.dp gaps, so the cluster shrinks to fit instead of
+                // overflowing on narrow widths (split-screen, foldable cover, small phones).
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val maxPlayButtonWidth = (maxWidth - (60.dp * 2 + 16.dp * 2)).coerceAtLeast(72.dp)
+                    val playButtonWidth by animateDpAsState(
+                        targetValue = (if (playPressed) 164.dp else 150.dp).coerceAtMost(maxPlayButtonWidth),
+                        animationSpec = spring(dampingRatio = 0.6f, stiffness = 500f),
+                        label = "play_width"
+                    )
 
                     Row(
-                        horizontalArrangement = Arrangement.Center,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
 
-                        val skipPrevFocused = remember { mutableStateOf(false) }
-                        val skipPrevBorderColor = animateColorAsState(
-                            targetValue = if (skipPrevFocused.value) accentColor else Color.Transparent,
-                            label = "skip_prev_focus"
-                        )
-                        var skipPrevJob by remember { mutableStateOf<Job?>(null) }
-
-                        FilledTonalIconButton(
-                            onClick = {
-                                skipPrevJob?.cancel()
-                                playerConnection.seekToPrevious()
-                            },
+                        TransportSkipButton(
+                            iconRes = R.drawable.skip_previous,
+                            contentDescription = null,
                             enabled = canSkipPrevious,
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = textButtonColor,
-                                contentColor = iconButtonColor
-                            ),
-                            modifier = Modifier
-                                .size(width = sideButtonWidth, height = sideButtonHeight)
-                                .clip(RoundedCornerShape(32.dp))
-                                .border(3.dp, skipPrevBorderColor.value, RoundedCornerShape(32.dp))
-                                .focusable()
-                                .onFocusChanged { skipPrevFocused.value = it.isFocused }
-                                .combinedClickable(
-                                    onClick = {
-                                        skipPrevJob?.cancel()
-                                        playerConnection.seekToPrevious()
-                                    },
-                                    onLongClick = {
-                                        if (canSkipPrevious) {
-                                            skipPrevJob = coroutineScope.launch {
-                                                while (isActive) {
-                                                    playerConnection.seekToPrevious()
-                                                    delay(200)
-                                                }
-                                            }
-                                        }
-                                    }
-                                )
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.skip_previous),
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(16.dp))
+                            interactionSource = skipPrevInteraction,
+                            accentColor = accentColor,
+                            containerColor = sideButtonContainerColor,
+                            contentColor = sideButtonContentColor,
+                            onSkip = playerConnection::seekToPrevious,
+                        )
 
                         val playButtonFocused = remember { mutableStateOf(false) }
                         val playButtonBorderColor = animateColorAsState(
@@ -1033,78 +1001,61 @@ fun BottomSheetPlayer(
                                     playerConnection.player.togglePlayPause()
                                 }
                             },
+                            interactionSource = playPauseInteraction,
                             colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = textButtonColor,
-                                contentColor = iconButtonColor
+                                containerColor = playButtonContainerColor,
+                                contentColor = playButtonContentColor
                             ),
                             modifier = Modifier
-                                .size(width = playButtonWidth, height = playButtonHeight)
+                                .width(playButtonWidth)
+                                .height(68.dp)
                                 .clip(RoundedCornerShape(32.dp))
                                 .border(3.dp, playButtonBorderColor.value, RoundedCornerShape(32.dp))
                                 .focusable()
                                 .onFocusChanged { playButtonFocused.value = it.isFocused }
                         ) {
-                            Icon(
-                                painter = painterResource(
-                                    when {
-                                        playbackState == STATE_ENDED -> R.drawable.replay
-                                        isPlaying -> R.drawable.pause
-                                        else -> R.drawable.play
-                                    }
-                                ),
-                                contentDescription = null,
-                                modifier = Modifier.size(42.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(16.dp))
-
-                        val skipNextFocused = remember { mutableStateOf(false) }
-                        val skipNextBorderColor = animateColorAsState(
-                            targetValue = if (skipNextFocused.value) accentColor else Color.Transparent,
-                            label = "skip_next_focus"
-                        )
-                        var skipNextJob by remember { mutableStateOf<Job?>(null) }
-
-                        FilledTonalIconButton(
-                            onClick = {
-                                skipNextJob?.cancel()
-                                playerConnection.seekToNext()
-                            },
-                            enabled = canSkipNext,
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = textButtonColor,
-                                contentColor = iconButtonColor
-                            ),
-                            modifier = Modifier
-                                .size(width = sideButtonWidth, height = sideButtonHeight)
-                                .clip(RoundedCornerShape(32.dp))
-                                .border(3.dp, skipNextBorderColor.value, RoundedCornerShape(32.dp))
-                                .focusable()
-                                .onFocusChanged { skipNextFocused.value = it.isFocused }
-                                .combinedClickable(
-                                    onClick = {
-                                        skipNextJob?.cancel()
-                                        playerConnection.seekToNext()
-                                    },
-                                    onLongClick = {
-                                        if (canSkipNext) {
-                                            skipNextJob = coroutineScope.launch {
-                                                while (isActive) {
-                                                    playerConnection.seekToNext()
-                                                    delay(200)
-                                                }
-                                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(
+                                        when {
+                                            playbackState == STATE_ENDED -> R.drawable.replay
+                                            isPlaying -> R.drawable.pause
+                                            else -> R.drawable.play
                                         }
-                                    }
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(32.dp)
                                 )
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.skip_next),
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp)
-                            )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    // Label matches the icon's three states (replay/pause/play).
+                                    text = stringResource(
+                                        when {
+                                            playbackState == STATE_ENDED -> R.string.replay
+                                            isPlaying -> R.string.pause
+                                            else -> R.string.play
+                                        }
+                                    ),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
+
+                        TransportSkipButton(
+                            iconRes = R.drawable.skip_next,
+                            contentDescription = null,
+                            enabled = canSkipNext,
+                            interactionSource = skipNextInteraction,
+                            accentColor = accentColor,
+                            containerColor = sideButtonContainerColor,
+                            contentColor = sideButtonContentColor,
+                            onSkip = playerConnection::seekToNext,
+                        )
                     }
                 }
             } else {
@@ -1337,6 +1288,90 @@ fun BottomSheetPlayer(
                 }
             }
         }
+    }
+}
+
+/**
+ * A circular skip-previous / skip-next button for the new-design transport cluster: the standard
+ * D-pad accent focus border, a spring "pump" while pressed, and tap + long-press-to-seek (the long
+ * press repeats [onSkip] every 200 ms). A tap fires the button's own onClick; the combinedClickable
+ * adds the long press. Both are gated by [enabled], so a disabled skip cannot be triggered.
+ * Extracted so prev and next share one definition instead of two ~48-line copies.
+ */
+@Composable
+private fun TransportSkipButton(
+    iconRes: Int,
+    contentDescription: String?,
+    enabled: Boolean,
+    interactionSource: MutableInteractionSource,
+    accentColor: Color,
+    containerColor: Color,
+    contentColor: Color,
+    onSkip: () -> Unit,
+) {
+    val coroutineScope = rememberCoroutineScope()
+    var repeatJob by remember { mutableStateOf<Job?>(null) }
+    var focused by remember { mutableStateOf(false) }
+    val pressed by interactionSource.collectIsPressedAsState()
+    // Stop the long-press seek the moment the finger lifts: combinedClickable has no release
+    // callback, so without this the repeat loop would keep seeking until the next tap.
+    LaunchedEffect(pressed) {
+        if (!pressed) {
+            repeatJob?.cancel()
+            repeatJob = null
+        }
+    }
+    val borderColor by animateColorAsState(
+        targetValue = if (focused) accentColor else Color.Transparent,
+        label = "skip_focus",
+    )
+    val size by animateDpAsState(
+        targetValue = if (pressed) 60.dp else 56.dp,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 500f),
+        label = "skip_size",
+    )
+    FilledTonalIconButton(
+        // The button's own onClick is the live tap handler; the combinedClickable below adds
+        // long-press-to-seek (its onClick mirrors this for the rare case it wins the gesture).
+        onClick = {
+            repeatJob?.cancel()
+            onSkip()
+        },
+        enabled = enabled,
+        interactionSource = interactionSource,
+        colors = IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+        ),
+        modifier = Modifier
+            .size(size)
+            .clip(RoundedCornerShape(32.dp))
+            .border(3.dp, borderColor, RoundedCornerShape(32.dp))
+            .focusable()
+            .onFocusChanged { focused = it.isFocused }
+            .combinedClickable(
+                enabled = enabled,
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {
+                    repeatJob?.cancel()
+                    onSkip()
+                },
+                onLongClick = {
+                    repeatJob = coroutineScope.launch {
+                        while (isActive) {
+                            onSkip()
+                            delay(200)
+                        }
+                    }
+                },
+            ),
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = contentDescription,
+            modifier = Modifier.size(32.dp),
+        )
     }
 }
 

@@ -47,6 +47,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -64,6 +66,7 @@ import androidx.media3.common.Player
 import coil3.compose.AsyncImage
 import com.jtech.zemer.LocalPlayerConnection
 import com.jtech.zemer.R
+import com.jtech.zemer.constants.CropAlbumArtKey
 import com.jtech.zemer.constants.HidePlayerThumbnailKey
 import com.jtech.zemer.constants.PlayerBackgroundStyle
 import com.jtech.zemer.constants.PlayerBackgroundStyleKey
@@ -95,6 +98,7 @@ fun Thumbnail(
 
     val swipeThumbnail by rememberPreference(SwipeThumbnailKey, true)
     val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, false)
+    val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     
@@ -207,7 +211,13 @@ fun Thumbnail(
     var seekDirection by remember { mutableStateOf("") }
     val layoutDirection = LocalLayoutDirection.current
 
-    Box(modifier = modifier) {
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                // Hardware layer for the whole thumbnail → smooth 120Hz scaling/scroll
+                compositingStrategy = CompositingStrategy.Offscreen
+            }
+    ) {
         // Error view
         AnimatedVisibility(
             visible = error != null,
@@ -355,7 +365,7 @@ fun Thumbnail(
                                                 .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
                                                 .build(),
                                             contentDescription = null,
-                                            contentScale = ContentScale.Fit,
+                                            contentScale = if (cropAlbumArt) ContentScale.Crop else ContentScale.Fit,
                                             modifier = Modifier.fillMaxSize()
                                         )
                                     }
