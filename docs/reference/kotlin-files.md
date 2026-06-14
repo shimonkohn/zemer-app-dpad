@@ -2,7 +2,7 @@
 
 Every tracked Kotlin file is listed with hard metadata extracted from the file text: line count, package, whether it declares any `@Composable`, import count, top-level declaration count (`Decls` — a high value flags a god-file), and the external import roots it depends on. Declaration counting is regex-based (after stripping comments and string literals). For the actual declaration names, read the file or use your editor's outline — they are not duplicated here.
 
-## `app` Kotlin files (313)
+## `app` Kotlin files (315)
 
 | File | Lines | Package | Compose | Imports | Decls | External import roots |
 | --- | ---: | --- | --- | ---: | ---: | --- |
@@ -116,6 +116,7 @@ Every tracked Kotlin file is listed with hard metadata extracted from the file t
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/Dialog.kt` | 389 | `com.jtech.zemer.ui.component` | yes | 50 | 9 | androidx.compose, kotlinx.coroutines |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/DraggableScrollBarOverlay.kt` | 242 | `com.jtech.zemer.ui.component` | yes | 34 | 51 | androidx.compose, kotlin.math, kotlinx.coroutines |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/EmptyPlaceholder.kt` | 47 | `com.jtech.zemer.ui.component` | yes | 16 | 1 | androidx.annotation, androidx.compose |
+| `app/src/main/kotlin/com/jtech/zemer/ui/component/FocusBorder.kt` | 50 | `com.jtech.zemer.ui.component` | no | 17 | 4 | androidx.compose |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/GridMenu.kt` | 197 | `com.jtech.zemer.ui.component` | yes | 34 | 6 | androidx.annotation, androidx.compose, androidx.media3 |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/HideOnScrollFAB.kt` | 117 | `com.jtech.zemer.ui.component` | yes | 21 | 3 | androidx.annotation, androidx.compose |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/IconButton.kt` | 118 | `com.jtech.zemer.ui.component` | yes | 36 | 6 | androidx.annotation, androidx.compose |
@@ -125,6 +126,7 @@ Every tracked Kotlin file is listed with hard metadata extracted from the file t
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/LyricsImageCard.kt` | 287 | `com.jtech.zemer.ui.component` | yes | 28 | 34 | android.annotation, androidx.compose, coil3.compose, coil3.request |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/Material3MenuItem.kt` | 139 | `com.jtech.zemer.ui.component` | yes | 31 | 13 | androidx.compose |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/Material3SettingsGroup.kt` | 215 | `com.jtech.zemer.ui.component` | yes | 37 | 13 | androidx.compose |
+| `app/src/main/kotlin/com/jtech/zemer/ui/component/MenuDialogs.kt` | 124 | `com.jtech.zemer.ui.component` | yes | 27 | 6 | androidx.compose, coil3.compose |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/NavigationTile.kt` | 59 | `com.jtech.zemer.ui.component` | yes | 19 | 1 | androidx.annotation, androidx.compose |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/NavigationTitle.kt` | 77 | `com.jtech.zemer.ui.component` | yes | 22 | 1 | androidx.compose |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/NetworkRequiredDialog.kt` | 100 | `com.jtech.zemer.ui.component` | yes | 25 | 4 | androidx.compose, kotlinx.coroutines |
