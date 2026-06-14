@@ -208,6 +208,10 @@ Rules for these and any new row component:
   outside the shared group components, apply `Modifier.focusBorder()` (`FocusBorder.kt`) — the single
   source of truth for that treatment — placed **before** `.clickable {}` in the chain so the ripple
   is clipped (`Material3MenuItemRow` / `Material3SettingsItemRow` inline the same effect).
+- **Never add `.focusable()` to a `TextField`/`BasicTextField`.** It is already focusable; a stray
+  `.focusable()` after `.focusRequester(fr)` binds `fr` to that wrapper node instead of the text
+  editor, so `fr.requestFocus()` (e.g. auto-focusing the search field) gains focus but never starts
+  text input and the soft keyboard stays hidden. Attach `.focusRequester(fr)` directly to the field.
 - The row provides `titleMedium` for the title and `bodyMedium`/`onSurfaceVariant` for the
   description. To shrink text (e.g. dense detail rows), pass an explicit `style` on your `Text` —
   it overrides the row default — rather than editing the component.
