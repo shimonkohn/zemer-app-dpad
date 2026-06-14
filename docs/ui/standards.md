@@ -171,8 +171,13 @@ Use these; do not hand-roll equivalents.
   preference) for every render decision — it downgrades BLUR to DEFAULT below Android 12, where the
   `RenderEffect` blur is a no-op (a raw BLUR there shows bright artwork under light text). Hide BLUR
   from the settings list when `isBlurSupported` is false. Extract gradient colors only through
-  **`rememberPlayerGradient(...)`** (one shared, bounded, deduped cache) — never hand-roll a Palette
-  extraction per surface.
+  **`rememberPlayerGradient(...)`** (one shared, bounded, deduped cache) and build the gradient stops
+  only through **`playerGradientStops(colors)`** — never hand-roll a Palette extraction or a stop
+  array per surface. Use **light (white) content only when the dark backdrop is actually painted**
+  (blur needs a `thumbnailUrl`, gradient needs non-empty colors); otherwise keep the solid
+  `surfaceContainer` with theme-colored text, or white text lands on the light screen behind a
+  not-yet-painted backdrop. The status-bar `DisposableEffect` must key on **expansion** too and force
+  light icons only while the sheet is expanded — a collapsed/floating player follows the theme.
 - Enforcement: `scripts/ui-audit.sh` (ratcheting) fails CI on *new* raw `fontSize = N.sp`,
   `Color(0x..)`, or `Modifier.blur(` (R12 — route player blur through the effective style) under
   `ui/` (outside `theme/`); the current known cases are baselined in `scripts/ui-audit-baseline.tsv`

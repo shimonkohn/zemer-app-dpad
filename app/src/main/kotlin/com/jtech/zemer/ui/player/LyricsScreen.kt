@@ -228,23 +228,10 @@ fun LyricsScreen(
                         label = "gradientBackground"
                     ) { colors ->
                         if (colors.isNotEmpty()) {
-                            val gradientColorStops = if (colors.size >= 3) {
-                                arrayOf(
-                                    0.0f to colors[0],
-                                    0.5f to colors[1],
-                                    1.0f to colors[2]
-                                )
-                            } else {
-                                arrayOf(
-                                    0.0f to colors[0],
-                                    0.6f to colors[0].copy(alpha = 0.7f),
-                                    1.0f to Color.Black
-                                )
-                            }
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Brush.verticalGradient(colorStops = gradientColorStops))
+                                    .background(Brush.verticalGradient(colorStops = playerGradientStops(colors)))
                                     .background(Color.Black.copy(alpha = 0.2f))
                             )
                         }

@@ -76,13 +76,28 @@ surface (the two drifting out of sync is exactly what bit a past change):
   light-on-dark transport — illegible. Every *render* decision (background, text/icon colors, status
   bar, gradient enable) must read the **effective** style. `Player.kt` shadows the preference
   (`val playerBackground = playerBackgroundPref.effective()`) so all downstream sites are covered for
-  free; the settings list hides BLUR when **`isBlurSupported`** is false.
+  free; the settings list hides BLUR when **`isBlurSupported`** is false. `effective(blurSupported)`
+  takes the flag explicitly so the rule is unit-tested without an Android runtime
+  (`app/src/test/.../ui/player/PlayerBackgroundTest.kt`).
 - **`rememberPlayerGradient(mediaId, thumbnailUrl, enabled, fallbackColor)`** is the *only* gradient
   extractor: one bitmap-decode + Palette pass per track, memoised in a shared bounded `LruCache`, so
-  the two surfaces never decode the same artwork twice and the cache can't grow unbounded.
-- Status-bar legibility is a `DisposableEffect` in `Player.kt` keyed on **(background, theme)**; it
-  hands the bar back to the theme-correct appearance — matching `MainActivity.setSystemBarAppearance`
+  the two surfaces never decode the same artwork twice and the cache can't grow unbounded. The
+  previous palette is held while a new one extracts (and on a decode failure) to avoid a flash.
+- **`playerGradientStops(colors)`** is the *only* place the gradient color stops are built (3-stop
+  for ≥3 swatches, else a single-hue fade to black) — both surfaces call it so the gradient shape
+  can never drift between them.
+- **Light (white) content only when a dark backdrop is actually painted.** A blur layer needs a
+  `thumbnailUrl`; a gradient layer needs non-empty `gradientColors`. Until then the surface stays on
+  the solid `surfaceContainer` with theme-colored text — flipping to white before the backdrop
+  exists puts white text over the light Home screen showing through the (transparent) mini bar.
+- Status-bar legibility is a `DisposableEffect` in `Player.kt` keyed on **(background, theme,
+  `state.isExpanded`)**: it forces light icons only while the sheet is **expanded** (the dark
+  background actually covers the screen); collapsed/dragging follows the theme. It hands the bar back
+  to the theme-correct appearance — matching `MainActivity.setSystemBarAppearance`
   (`isAppearanceLightStatusBars = !isDark`) — on dispose, never a stale captured snapshot.
+- The new-design transport cluster caps the labelled play button via `BoxWithConstraints` (to the
+  width left after the two skip buttons + gaps) so it shrinks to fit narrow widths instead of
+  overflowing; `TransportSkipButton` cancels its long-press repeat the moment the press is released.
 
 This UI is **Material 3 *standard*** (`MaterialTheme`, not `MaterialExpressiveTheme`): Expressive-only
 APIs (e.g. `LinearWavyProgressIndicator`) need a newer material3 and are deliberately not used. New

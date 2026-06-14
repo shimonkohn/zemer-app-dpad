@@ -30,13 +30,31 @@ import kotlinx.coroutines.withContext
  * those devices; every render decision (background, text/icon colors, status bar, gradient
  * extraction) must read the *effective* style, and the settings list hides BLUR when
  * [isBlurSupported] is false.
+ *
+ * [blurSupported] is injectable purely so the rule can be unit-tested without an Android runtime;
+ * production callers use the default ([isBlurSupported], a real [Build.VERSION] check).
  */
-fun PlayerBackgroundStyle.effective(): PlayerBackgroundStyle =
-    if (this == PlayerBackgroundStyle.BLUR && !isBlurSupported) PlayerBackgroundStyle.DEFAULT else this
+fun PlayerBackgroundStyle.effective(
+    blurSupported: Boolean = isBlurSupported,
+): PlayerBackgroundStyle =
+    if (this == PlayerBackgroundStyle.BLUR && !blurSupported) PlayerBackgroundStyle.DEFAULT else this
 
 /** Whether [PlayerBackgroundStyle.BLUR] can actually render on this device (Android 12+). */
 val isBlurSupported: Boolean
     get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+/**
+ * The gradient color stops both player surfaces paint for [PlayerBackgroundStyle.GRADIENT], derived
+ * from the extracted [colors]. Three-plus swatches give a true 3-stop gradient; fewer fall back to a
+ * single-hue fade to black. Shared between the full player and the mini player so the two never
+ * drift apart. [colors] must be non-empty (callers gate on `colors.isNotEmpty()`).
+ */
+fun playerGradientStops(colors: List<Color>): Array<Pair<Float, Color>> =
+    if (colors.size >= 3) {
+        arrayOf(0.0f to colors[0], 0.5f to colors[1], 1.0f to colors[2])
+    } else {
+        arrayOf(0.0f to colors[0], 0.6f to colors[0].copy(alpha = 0.7f), 1.0f to Color.Black)
+    }
 
 /**
  * Bounded, process-wide cache of extracted gradient palettes keyed by media id. `android.util`'s
@@ -51,7 +69,8 @@ private val gradientColorCache = LruCache<String, List<Color>>(48)
  * false or there is no artwork. The bitmap decode + Palette pass runs at most once per track and is
  * memoised in [gradientColorCache], so the full player and the mini player share the result instead
  * of each decoding the same artwork. The previous palette is kept on screen while a new (uncached)
- * one is extracted, avoiding a flash to the default background on every track change.
+ * one is extracted, avoiding a flash to the default background on every track change; if a track's
+ * artwork fails to decode the previous palette is retained (a held color reads better than a flash).
  */
 @Composable
 fun rememberPlayerGradient(
@@ -62,7 +81,7 @@ fun rememberPlayerGradient(
 ): List<Color> {
     val context = LocalContext.current
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
-    LaunchedEffect(mediaId, enabled) {
+    LaunchedEffect(mediaId, thumbnailUrl, enabled) {
         if (!enabled || mediaId == null || thumbnailUrl == null) {
             gradientColors = emptyList()
             return@LaunchedEffect

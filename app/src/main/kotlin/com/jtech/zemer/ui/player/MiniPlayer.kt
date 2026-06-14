@@ -66,6 +66,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -227,13 +228,6 @@ private fun NewMiniPlayer(
     // Effective style: BLUR downgrades to DEFAULT below Android 12 (the RenderEffect blur is a
     // no-op there). Single source of truth shared with the full player (see effective()).
     val effectiveBackground = playerBackground.effective()
-    // Over dark artwork (blur/gradient) text and default icon tints must stay light.
-    val lightContent = effectiveBackground == PlayerBackgroundStyle.BLUR ||
-        effectiveBackground == PlayerBackgroundStyle.GRADIENT
-    val titleColor = if (lightContent) Color.White else MaterialTheme.colorScheme.onSurface
-    val subtitleColor =
-        if (lightContent) Color.White.copy(alpha = 0.7f)
-        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
 
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
     // Shared, bounded, deduped gradient extraction (see rememberPlayerGradient): the mini player
@@ -244,6 +238,20 @@ private fun NewMiniPlayer(
         enabled = effectiveBackground == PlayerBackgroundStyle.GRADIENT,
         fallbackColor = fallbackColor,
     )
+
+    // A dark backdrop is only actually painted once it is ready: a blurred thumbnail needs a
+    // thumbnailUrl, an extracted gradient needs non-empty colors. Until then the box stays on the
+    // solid surface, so keep DARK text — flipping to white before the backdrop exists would put
+    // white text over the (light) Home screen showing through the transparent bar.
+    val blurReady = effectiveBackground == PlayerBackgroundStyle.BLUR &&
+        mediaMetadata?.thumbnailUrl != null
+    val gradientReady = effectiveBackground == PlayerBackgroundStyle.GRADIENT &&
+        gradientColors.isNotEmpty()
+    val lightContent = blurReady || gradientReady
+    val titleColor = if (lightContent) Color.White else MaterialTheme.colorScheme.onSurface
+    val subtitleColor =
+        if (lightContent) Color.White.copy(alpha = 0.7f)
+        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
 
     Box(
         modifier = modifier
@@ -335,11 +343,12 @@ private fun NewMiniPlayer(
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .clip(RoundedCornerShape(32.dp)) // Clip first for perfect rounded corners
                 .background(
-                    // Solid surface only for DEFAULT; blur/gradient paint their own layer below.
-                    color = if (effectiveBackground == PlayerBackgroundStyle.DEFAULT)
-                        MaterialTheme.colorScheme.surfaceContainer // Same as navigation bar color
-                    else
+                    // Transparent only once the blur/gradient backdrop below is actually painted;
+                    // otherwise stay on the solid surface so the (dark) text stays legible.
+                    color = if (lightContent)
                         Color.Transparent
+                    else
+                        MaterialTheme.colorScheme.surfaceContainer // Same as navigation bar color
                 )
                 .border(
                     width = 1.dp,
@@ -368,23 +377,10 @@ private fun NewMiniPlayer(
                 }
                 PlayerBackgroundStyle.GRADIENT -> {
                     if (gradientColors.isNotEmpty()) {
-                        val gradientColorStops = if (gradientColors.size >= 3) {
-                            arrayOf(
-                                0.0f to gradientColors[0],
-                                0.5f to gradientColors[1],
-                                1.0f to gradientColors[2]
-                            )
-                        } else {
-                            arrayOf(
-                                0.0f to gradientColors[0],
-                                0.6f to gradientColors[0].copy(alpha = 0.7f),
-                                1.0f to Color.Black
-                            )
-                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Brush.horizontalGradient(colorStops = gradientColorStops))
+                                .background(Brush.horizontalGradient(colorStops = playerGradientStops(gradientColors)))
                         )
                         Box(
                             modifier = Modifier
@@ -407,6 +403,13 @@ private fun NewMiniPlayer(
                 // Play/Pause button with circular progress indicator (left side)
                 val progressColor = MaterialTheme.colorScheme.primary
                 val progressTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                // Hoisted out of the draw lambda: the stroke is density-constant, so it is the only
+                // heap allocation the per-frame arc would otherwise repeat (Size/Offset are value
+                // classes). Remembered keyed on density so it survives a config change correctly.
+                val density = LocalDensity.current
+                val progressStroke = remember(density) {
+                    Stroke(width = with(density) { 3.dp.toPx() }, cap = StrokeCap.Round)
+                }
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -428,15 +431,11 @@ private fun NewMiniPlayer(
                             val d = duration()
                             if (d > 0) {
                                 val fraction = (position().toFloat() / d).coerceIn(0f, 1f)
-                                val stroke = Stroke(
-                                    width = 3.dp.toPx(),
-                                    cap = StrokeCap.Round
-                                )
                                 // Inset by half the stroke so the ring sits inside the 48dp box.
-                                val inset = stroke.width / 2f
+                                val inset = progressStroke.width / 2f
                                 val arcSize = androidx.compose.ui.geometry.Size(
-                                    size.width - stroke.width,
-                                    size.height - stroke.width
+                                    size.width - progressStroke.width,
+                                    size.height - progressStroke.width
                                 )
                                 val topLeft = androidx.compose.ui.geometry.Offset(inset, inset)
                                 drawArc(
@@ -446,7 +445,7 @@ private fun NewMiniPlayer(
                                     useCenter = false,
                                     topLeft = topLeft,
                                     size = arcSize,
-                                    style = stroke
+                                    style = progressStroke
                                 )
                                 drawArc(
                                     color = progressColor,
@@ -455,7 +454,7 @@ private fun NewMiniPlayer(
                                     useCenter = false,
                                     topLeft = topLeft,
                                     size = arcSize,
-                                    style = stroke
+                                    style = progressStroke
                                 )
                             }
                         }
