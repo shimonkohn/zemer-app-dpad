@@ -77,13 +77,13 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `798`
+- Files counted: `794`
 - By extension:
   - `.kt`: `418`
   - `.xml`: `183`
   - `.mjs`: `66`
-  - `.md`: `39`
   - `.json`: `35`
+  - `.md`: `35`
   - `.webp`: `15`
   - `[none]`: `7`
   - `.kts`: `6`
@@ -697,8 +697,6 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/multi_update/README.md` | 77 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 441 lines | `.md` |
 | `docs/reference/non-kotlin-files.md` | 354 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 354 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 354 lines | `.md` |
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
 | `docs/remote_cipher_config/01-why-it-exists.md` | 88 lines | `.md` |
 | `docs/remote_cipher_config/02-file-format.md` | 116 lines | `.md` |
@@ -708,9 +706,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/remote_cipher_config/06-harness-and-monitor.md` | 101 lines | `.md` |
 | `docs/remote_cipher_config/07-runbook.md` | 99 lines | `.md` |
 | `docs/remote_cipher_config/README.md` | 110 lines | `.md` |
-| `docs/repository-map.md` | 907 lines | `.md` |
-| `docs/repository-map.md` | 907 lines | `.md` |
-| `docs/repository-map.md` | 907 lines | `.md` |
+| `docs/repository-map.md` | 903 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 240 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |
