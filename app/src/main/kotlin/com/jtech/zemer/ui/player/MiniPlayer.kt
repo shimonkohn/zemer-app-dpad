@@ -4,7 +4,6 @@ package com.jtech.zemer.ui.player
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
-import android.os.Build
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -77,12 +76,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
-import coil3.imageLoader
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
-import coil3.toBitmap
 import com.jtech.zemer.LocalDatabase
 import com.jtech.zemer.LocalPlayerConnection
 import com.jtech.zemer.R
@@ -95,13 +89,10 @@ import com.jtech.zemer.constants.UseNewMiniPlayerDesignKey
 import com.jtech.zemer.db.entities.ArtistEntity
 import com.jtech.zemer.extensions.togglePlayPause
 import com.jtech.zemer.models.MediaMetadata
-import com.jtech.zemer.ui.theme.PlayerColorExtractor
 import com.jtech.zemer.utils.rememberEnumPreference
 import com.jtech.zemer.utils.rememberPreference
 import androidx.compose.ui.graphics.toArgb
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import androidx.compose.ui.res.stringResource
@@ -233,13 +224,9 @@ private fun NewMiniPlayer(
         key = PlayerBackgroundStyleKey,
         defaultValue = PlayerBackgroundStyle.DEFAULT
     )
-    // BLUR uses RenderEffect, only available on Android 12 (S) and above.
-    val blurSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val effectiveBackground =
-        if (playerBackground == PlayerBackgroundStyle.BLUR && !blurSupported)
-            PlayerBackgroundStyle.DEFAULT
-        else
-            playerBackground
+    // Effective style: BLUR downgrades to DEFAULT below Android 12 (the RenderEffect blur is a
+    // no-op there). Single source of truth shared with the full player (see effective()).
+    val effectiveBackground = playerBackground.effective()
     // Over dark artwork (blur/gradient) text and default icon tints must stay light.
     val lightContent = effectiveBackground == PlayerBackgroundStyle.BLUR ||
         effectiveBackground == PlayerBackgroundStyle.GRADIENT
@@ -248,52 +235,15 @@ private fun NewMiniPlayer(
         if (lightContent) Color.White.copy(alpha = 0.7f)
         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
 
-    var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
-    val gradientColorsCache = remember { mutableMapOf<String, List<Color>>() }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
-
-    // Extract gradient colors from the current artwork (same approach as the full player).
-    LaunchedEffect(mediaMetadata?.id, effectiveBackground) {
-        if (effectiveBackground == PlayerBackgroundStyle.GRADIENT) {
-            val currentMetadata = mediaMetadata
-            if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
-                val cachedColors = gradientColorsCache[currentMetadata.id]
-                if (cachedColors != null) {
-                    gradientColors = cachedColors
-                    return@LaunchedEffect
-                }
-                withContext(Dispatchers.IO) {
-                    val request = ImageRequest.Builder(context)
-                        .data(currentMetadata.thumbnailUrl)
-                        .size(100, 100)
-                        .allowHardware(false)
-                        .memoryCacheKey("gradient_${currentMetadata.id}")
-                        .build()
-
-                    val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
-                    if (result != null) {
-                        val bitmap = result.image?.toBitmap()
-                        if (bitmap != null) {
-                            val palette = withContext(Dispatchers.Default) {
-                                Palette.from(bitmap)
-                                    .maximumColorCount(8)
-                                    .resizeBitmapArea(100 * 100)
-                                    .generate()
-                            }
-                            val extractedColors = PlayerColorExtractor.extractGradientColors(
-                                palette = palette,
-                                fallbackColor = fallbackColor
-                            )
-                            gradientColorsCache[currentMetadata.id] = extractedColors
-                            withContext(Dispatchers.Main) { gradientColors = extractedColors }
-                        }
-                    }
-                }
-            }
-        } else {
-            gradientColors = emptyList()
-        }
-    }
+    // Shared, bounded, deduped gradient extraction (see rememberPlayerGradient): the mini player
+    // and the full player share one cache so the same artwork is never decoded twice.
+    val gradientColors = rememberPlayerGradient(
+        mediaId = mediaMetadata?.id,
+        thumbnailUrl = mediaMetadata?.thumbnailUrl,
+        enabled = effectiveBackground == PlayerBackgroundStyle.GRADIENT,
+        fallbackColor = fallbackColor,
+    )
 
     Box(
         modifier = modifier

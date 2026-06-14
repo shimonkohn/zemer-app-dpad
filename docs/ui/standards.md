@@ -166,12 +166,19 @@ Use these; do not hand-roll equivalents.
   secondary text are `bodyMedium`/`bodySmall` in `onSurfaceVariant`.
 - Theme setup lives in `ui/theme/` (`Theme.kt`, `Type.kt`); dynamic/player colors in
   `PlayerColorExtractor.kt`.
-- Enforcement: `scripts/ui-audit.sh` (ratcheting) fails CI on *new* raw `fontSize = N.sp` or
-  `Color(0x..)` under `ui/` (outside `theme/`); the current known cases are baselined in
-  `scripts/ui-audit-baseline.tsv` and can only shrink (run `--update` after fixing some). A few
-  fixed values are genuinely required and stay baselined: AMOLED pure-black (`0xFF0A0A0A`), the
-  lyric-image *export* (it renders a shareable bitmap, not themed UI), and color-picker swatches.
-  Keep such cases minimal.
+- Player background (blur / gradient): the full player and the mini player share one source of truth
+  in `ui/player/PlayerBackground.kt`. Read **`PlayerBackgroundStyle.effective()`** (not the raw
+  preference) for every render decision — it downgrades BLUR to DEFAULT below Android 12, where the
+  `RenderEffect` blur is a no-op (a raw BLUR there shows bright artwork under light text). Hide BLUR
+  from the settings list when `isBlurSupported` is false. Extract gradient colors only through
+  **`rememberPlayerGradient(...)`** (one shared, bounded, deduped cache) — never hand-roll a Palette
+  extraction per surface.
+- Enforcement: `scripts/ui-audit.sh` (ratcheting) fails CI on *new* raw `fontSize = N.sp`,
+  `Color(0x..)`, or `Modifier.blur(` (R12 — route player blur through the effective style) under
+  `ui/` (outside `theme/`); the current known cases are baselined in `scripts/ui-audit-baseline.tsv`
+  and can only shrink (run `--update` after fixing some). A few fixed values are genuinely required
+  and stay baselined: AMOLED pure-black (`0xFF0A0A0A`), the lyric-image *export* (it renders a
+  shareable bitmap, not themed UI), and color-picker swatches. Keep such cases minimal.
 
 ## 9. Icons
 

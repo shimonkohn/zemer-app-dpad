@@ -65,6 +65,31 @@ There are two signed-in states and telling them apart is non-obvious. A **person
 - Already gated: `SyncUtils` account syncs + `likeSong`, the entity `toggleLike` remote side-effects (`Song/Artist/Album/PlaylistEntity`), and the add/remove/create/rename/delete-playlist + library/history-feedback writes in the menus. **Local DB writes always run**, so anonymous keeps likes/subscribes/playlists locally; personal logins are unaffected (each gate is a no-op when the predicate is true). The **Firebase artist-whitelist sync (`syncArtistWhitelist`) is account-independent and stays on for anon** — it powers content filtering.
 - Still personalized-to-the-pool for anon (NOT yet gated): `YouTube.home()` (the Home feed and Android-Auto browse) uses the pooled cookie, so anon's Home can surface the pooled account's mixes (e.g. a "My top 50" row). Note the *Library* "My top 50" is a different thing — a **local** most-played auto-playlist (`mostPlayedSongs`), not a leak.
 
+### The player background system (one effective style, one extractor)
+
+The full player (`ui/player/Player.kt`) and the mini player (`ui/player/MiniPlayer.kt`) share a
+single source of truth in **`ui/player/PlayerBackground.kt`** — never re-derive any of this per
+surface (the two drifting out of sync is exactly what bit a past change):
+
+- **`PlayerBackgroundStyle.effective()`** downgrades **BLUR → DEFAULT below Android 12**. The blur is
+  a `RenderEffect`, a no-op before API 31, so a raw BLUR there renders the bright artwork under the
+  light-on-dark transport — illegible. Every *render* decision (background, text/icon colors, status
+  bar, gradient enable) must read the **effective** style. `Player.kt` shadows the preference
+  (`val playerBackground = playerBackgroundPref.effective()`) so all downstream sites are covered for
+  free; the settings list hides BLUR when **`isBlurSupported`** is false.
+- **`rememberPlayerGradient(mediaId, thumbnailUrl, enabled, fallbackColor)`** is the *only* gradient
+  extractor: one bitmap-decode + Palette pass per track, memoised in a shared bounded `LruCache`, so
+  the two surfaces never decode the same artwork twice and the cache can't grow unbounded.
+- Status-bar legibility is a `DisposableEffect` in `Player.kt` keyed on **(background, theme)**; it
+  hands the bar back to the theme-correct appearance — matching `MainActivity.setSystemBarAppearance`
+  (`isAppearanceLightStatusBars = !isDark`) — on dispose, never a stale captured snapshot.
+
+This UI is **Material 3 *standard*** (`MaterialTheme`, not `MaterialExpressiveTheme`): Expressive-only
+APIs (e.g. `LinearWavyProgressIndicator`) need a newer material3 and are deliberately not used. New
+transport buttons reuse `TransportSkipButton` + the accent focus border; new D-pad rows reuse
+`Modifier.focusBorder()`. `scripts/ui-audit.sh` ratchets raw `Modifier.blur(` in `ui/` (R12) — route
+player blur through the effective style.
+
 ### tests/ — the hard-data streaming harness
 
 Node ≥20 scripts (deps vendored in `tests/node_modules`, no install needed) that reproduce the app's *exact* stream path (same `/player` request as `InnerTube.kt`, same cipher run in jsdom, same poTokens) against the live CDN — so playback is measured, not guessed. Needs `innertube_cookie.txt` at the repo root (a dumped logged-in session; **gitignored**, never commit).

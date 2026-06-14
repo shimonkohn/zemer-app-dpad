@@ -64,12 +64,7 @@ import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_READY
 import androidx.navigation.NavController
-import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
-import coil3.imageLoader
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
-import coil3.toBitmap
 import com.jtech.zemer.LocalDatabase
 import com.jtech.zemer.LocalPlayerConnection
 import com.jtech.zemer.R
@@ -85,7 +80,6 @@ import com.jtech.zemer.ui.component.LocalMenuState
 import com.jtech.zemer.ui.component.Lyrics
 import com.jtech.zemer.ui.component.PlayerSliderTrack
 import com.jtech.zemer.ui.menu.LyricsMenu
-import com.jtech.zemer.ui.theme.PlayerColorExtractor
 import com.jtech.zemer.ui.theme.PlayerSliderColors
 import com.jtech.zemer.utils.makeTimeString
 import com.jtech.zemer.utils.rememberEnumPreference
@@ -155,50 +149,21 @@ fun LyricsScreen(
     var duration by remember { mutableLongStateOf(C.TIME_UNSET) }
     var sliderPosition by remember { mutableStateOf<Long?>(null) }
 
-    val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
+    val playerBackgroundPref by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
+    // Effective style: BLUR downgrades to DEFAULT below Android 12 (the RenderEffect blur is a no-op
+    // there). Single source of truth shared with the player (see effective()).
+    val playerBackground = playerBackgroundPref.effective()
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val useDarkTheme = isSystemInDarkTheme
 
-    var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
-    val gradientColorsCache = remember { mutableMapOf<String, List<Color>>() }
-    listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surfaceVariant)
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
-
-    LaunchedEffect(mediaMetadata.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT && mediaMetadata.thumbnailUrl != null) {
-            val cachedColors = gradientColorsCache[mediaMetadata.id]
-            if (cachedColors != null) {
-                gradientColors = cachedColors
-                return@LaunchedEffect
-            }
-            withContext(Dispatchers.IO) {
-                val request = ImageRequest.Builder(context)
-                    .data(mediaMetadata.thumbnailUrl)
-                    .size(100, 100)
-                    .allowHardware(false)
-                    .memoryCacheKey("gradient_${mediaMetadata.id}")
-                    .build()
-                val result = runCatching { context.imageLoader.execute(request).image }.getOrNull()
-                if (result != null) {
-                    val bitmap = result.toBitmap()
-                    val palette = withContext(Dispatchers.Default) {
-                        Palette.from(bitmap)
-                            .maximumColorCount(8)
-                            .resizeBitmapArea(100 * 100)
-                            .generate()
-                    }
-                    val extractedColors = PlayerColorExtractor.extractGradientColors(
-                        palette = palette,
-                        fallbackColor = fallbackColor
-                    )
-                    gradientColorsCache[mediaMetadata.id] = extractedColors
-                    withContext(Dispatchers.Main) { gradientColors = extractedColors }
-                }
-            }
-        } else {
-            gradientColors = emptyList()
-        }
-    }
+    // Shared, bounded, deduped gradient extraction (see rememberPlayerGradient).
+    val gradientColors = rememberPlayerGradient(
+        mediaId = mediaMetadata.id,
+        thumbnailUrl = mediaMetadata.thumbnailUrl,
+        enabled = playerBackground == PlayerBackgroundStyle.GRADIENT,
+        fallbackColor = fallbackColor,
+    )
 
     val textBackgroundColor = when (playerBackground) {
         PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground

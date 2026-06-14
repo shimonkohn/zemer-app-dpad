@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="pause">Pause</string>
+    <string name="crop_album_art">Crop album art</string>
+    <string name="crop_album_art_desc">Fill the player with the cover art instead of fitting it (edges may be cropped)</string>
     <string name="explore">Explore</string>
     <string name="not_applicable">N/A</string>
 
