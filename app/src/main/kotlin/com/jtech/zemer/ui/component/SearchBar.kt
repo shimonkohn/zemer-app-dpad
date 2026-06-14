@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -280,7 +279,6 @@ private fun SearchBarInputField(
             modifier = Modifier
                 .weight(1f)
                 .focusRequester(focusRequester)
-                .focusable()
                 .focusProperties {
                     if (downFocusRequester != null) {
                         down = downFocusRequester
