@@ -718,7 +718,12 @@ fun ArtistScreen(
                                             },
                                             isPlaying = isPlaying,
                                             coroutineScope = coroutineScope,
-                                            thumbnailRatio = if (isVideoSection) 1f else if (item is SongItem) 16f / 9 else 1f,
+                                            // All grid thumbnails square (1f). Video items (Videos /
+                                            // Live performances) carry the title baked into the 16:9
+                                            // image, illegible behind the card; a center crop hides it
+                                            // and the clean title shows below. Albums/artists/playlists
+                                            // are square anyway. See issue #84.
+                                            thumbnailRatio = 1f,
                                             modifier = Modifier
                                                 .combinedClickable(
                                                     onClick = {

@@ -977,7 +977,10 @@ fun HomeScreen(
                                 isActive = mediaMetadata?.id == video.id,
                                 isPlaying = isPlaying,
                                 coroutineScope = scope,
-                                thumbnailRatio = 16f / 9f,
+                                // Square (1f) to match the artist screen's video sections: a center
+                                // crop hides most of the title text YouTube bakes into the 16:9 video
+                                // thumbnail, which is illegible behind the card. See issue #84.
+                                thumbnailRatio = 1f,
                                 modifier = Modifier
                                     .combinedClickable(
                                         onClick = {
