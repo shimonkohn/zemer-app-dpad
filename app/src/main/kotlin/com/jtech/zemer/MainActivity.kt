@@ -171,6 +171,7 @@ import com.jtech.zemer.constants.LastWhitelistVersionKey
 import com.jtech.zemer.constants.MiniPlayerBottomSpacing
 import com.jtech.zemer.constants.MiniPlayerHeight
 import com.jtech.zemer.constants.NavigationBarHeight
+import com.jtech.zemer.constants.RecognizeMusicFabKey
 import com.jtech.zemer.constants.SlimNavBarHeight
 import com.jtech.zemer.constants.OnboardingCompleteKey
 import com.jtech.zemer.constants.PauseListenHistoryKey
@@ -199,6 +200,8 @@ import com.jtech.zemer.ui.component.BottomSheetPage
 import com.jtech.zemer.ui.component.IconButton
 import com.jtech.zemer.ui.component.LocalBottomSheetPageState
 import com.jtech.zemer.ui.component.LocalMenuState
+import com.jtech.zemer.ui.component.RecognizeMusicFab
+import com.jtech.zemer.ui.screens.recognition.RecognizeMusicDialogActivity
 import com.jtech.zemer.ui.component.TopSearch
 import com.jtech.zemer.ui.component.rememberBottomSheetState
 import com.jtech.zemer.ui.component.shimmer.ShimmerTheme
@@ -730,6 +733,7 @@ class MainActivity : ComponentActivity() {
                         }
                         val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
                         val (floatingMiniPlayerEnabled) = rememberPreference(FloatingMiniPlayerKey, defaultValue = true)
+                        val (recognizeMusicFab) = rememberPreference(RecognizeMusicFabKey, defaultValue = true)
                         val (innerTubeCookie) = rememberPreference(InnerTubeCookieKey, defaultValue = "")
                         val (storedVisitorData) = rememberPreference(VisitorDataKey, defaultValue = "")
                         val isLoggedIn = remember(innerTubeCookie) {
@@ -1826,6 +1830,29 @@ class MainActivity : ComponentActivity() {
 
                         }
 
+                        // "Recognize music" FAB — floats above the bottom nav bar (and mini player)
+                        // on main screens; toggleable via Settings → Appearance (default on).
+                        if (recognizeMusicFab &&
+                            !active &&
+                            !playerBottomSheetState.isExpanded &&
+                            navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }
+                        ) {
+                            RecognizeMusicFab(
+                                onClick = {
+                                    context.startActivity(
+                                        Intent(context, RecognizeMusicDialogActivity::class.java),
+                                    )
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(
+                                        end = 16.dp,
+                                        bottom = playerAwareWindowInsets.asPaddingValues()
+                                            .calculateBottomPadding() + 16.dp,
+                                    ),
+                            )
+                        }
+
                         BottomSheetMenu(
                             state = LocalMenuState.current,
                             modifier = Modifier.align(Alignment.BottomCenter)
@@ -1929,6 +1956,8 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+
+            "recognition_history" -> navController.navigate("recognition_history")
 
             "browse" -> uri.lastPathSegment?.let { browseId ->
                 coroutineScope.launch(Dispatchers.IO) {
