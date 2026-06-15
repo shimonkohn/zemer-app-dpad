@@ -77,7 +77,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `826`
+- Files counted: `827`
 - By extension:
   - `.kt`: `441`
   - `.xml`: `184`
@@ -87,7 +87,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
   - `.webp`: `15`
   - `[none]`: `7`
   - `.kts`: `6`
-  - `.yml`: `4`
+  - `.yml`: `5`
   - `.js`: `3`
   - `.lottie`: `3`
   - `.properties`: `3`
@@ -107,6 +107,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 | Path | Lines/bytes | Kind |
 | --- | ---: | --- |
+| `.github/workflows/debug-build.yml` | 81 lines | `.yml` |
 | `.github/workflows/docs-regenerate.yml` | 74 lines | `.yml` |
 | `.github/workflows/player-monitor.yml` | 140 lines | `.yml` |
 | `.github/workflows/release-build.yml` | 155 lines | `.yml` |
@@ -728,7 +729,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/recognize_music/06-testing-and-maintenance.md` | 54 lines | `.md` |
 | `docs/recognize_music/README.md` | 71 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 464 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 356 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 357 lines | `.md` |
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
 | `docs/remote_cipher_config/01-why-it-exists.md` | 88 lines | `.md` |
 | `docs/remote_cipher_config/02-file-format.md` | 116 lines | `.md` |
@@ -738,7 +739,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/remote_cipher_config/06-harness-and-monitor.md` | 101 lines | `.md` |
 | `docs/remote_cipher_config/07-runbook.md` | 99 lines | `.md` |
 | `docs/remote_cipher_config/README.md` | 110 lines | `.md` |
-| `docs/repository-map.md` | 935 lines | `.md` |
+| `docs/repository-map.md` | 936 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 240 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |

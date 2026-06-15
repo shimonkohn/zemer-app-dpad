@@ -1,9 +1,10 @@
 # Non-Kotlin file reference
 
-Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `350`.
+Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `351`.
 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
+| `.github/workflows/debug-build.yml` | 81 lines | text `.yml` |
 | `.github/workflows/docs-regenerate.yml` | 74 lines | text `.yml` |
 | `.github/workflows/player-monitor.yml` | 140 lines | text `.yml` |
 | `.github/workflows/release-build.yml` | 155 lines | text `.yml` |
