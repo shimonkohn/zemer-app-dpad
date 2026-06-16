@@ -73,6 +73,7 @@ import com.jtech.zemer.constants.ArtistViewTypeKey
 import com.jtech.zemer.constants.CONTENT_TYPE_ARTIST
 import com.jtech.zemer.constants.CONTENT_TYPE_HEADER
 import com.jtech.zemer.constants.LibraryViewType
+import com.jtech.zemer.constants.RecognizeMusicFabKey
 import com.jtech.zemer.constants.YtmSyncKey
 import com.jtech.zemer.ui.component.EmptyPlaceholder
 import com.jtech.zemer.ui.component.LocalMenuState
@@ -94,6 +95,9 @@ fun WhitelistedArtistsScreen(
     LocalHapticFeedback.current
     var viewType by rememberEnumPreference(ArtistViewTypeKey, LibraryViewType.GRID)
     val (_) = rememberPreference(YtmSyncKey, true)
+    // The global "Recognize music" FAB occupies the bottom-end corner on this main-tab screen, so
+    // lift the back-to-top button above it (a full FAB + gap) when that FAB is enabled.
+    val (recognizeMusicFab) = rememberPreference(RecognizeMusicFabKey, defaultValue = true)
     val firstFocus = remember { FocusRequester() }
     val searchFocus = remember { FocusRequester() }
     val firstArtistFocus = remember { FocusRequester() }
@@ -370,7 +374,12 @@ fun WhitelistedArtistsScreen(
                     LocalPlayerAwareWindowInsets.current
                         .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
                 )
-                .padding(16.dp)
+                .padding(
+                    end = 16.dp,
+                    top = 16.dp,
+                    // Clear the Recognize-music FAB (56dp) + small gap when it sits in this corner.
+                    bottom = if (recognizeMusicFab) 80.dp else 16.dp,
+                )
         ) {
             SmallFloatingActionButton(
                 onClick = {
@@ -383,13 +392,14 @@ fun WhitelistedArtistsScreen(
                         }
                     }
                 },
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = MaterialTheme.colorScheme.onSurface
+                modifier = Modifier.size(36.dp),
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             ) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_upward),
                     contentDescription = stringResource(R.string.back_to_top),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }

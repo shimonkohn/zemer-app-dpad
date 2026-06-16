@@ -1834,7 +1834,7 @@ class MainActivity : ComponentActivity() {
                         // on main screens; toggleable via Settings → Appearance (default on).
                         if (recognizeMusicFab &&
                             !active &&
-                            !playerBottomSheetState.isExpanded &&
+                            (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed) &&
                             navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }
                         ) {
                             RecognizeMusicFab(
