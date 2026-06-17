@@ -34,6 +34,8 @@ import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.metrolist.innertube.models.response.PlayerResponse
 import com.metrolist.innertube.utils.ResilientDns
 import com.metrolist.innertube.utils.parseCookieString
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 
 object YTPlayerUtils {
@@ -83,6 +85,40 @@ object YTPlayerUtils {
 
     private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient>
         get() = ALL_FALLBACK_CLIENTS.filter { it.clientName !in disabledStreamClients }.toTypedArray()
+
+    // A stable video id used only to warm the local BotGuard token generator; the token is
+    // discarded. PoToken generation is a local WebView computation (no YouTube /player call), so
+    // this triggers no network request to YouTube for the video itself.
+    private const val POTOKEN_WARMUP_VIDEO_ID = "jNQXAC9IVRw"
+
+    /**
+     * Best-effort warm-up of the cipher WebView so the first real playback doesn't pay its
+     * cold-start cost (fetch + load of the ~2.8 MB player JS). Needs no session, so callers can run
+     * it immediately at startup. Safe to call any time; failures are swallowed and playback falls
+     * back to the existing lazy-init path unchanged.
+     */
+    suspend fun prewarmCipher() {
+        runCatching { CipherDeobfuscator.prewarm() }
+            .onFailure { Timber.tag(TAG).w(it, "Cipher prewarm skipped: ${it.message}") }
+    }
+
+    /**
+     * Best-effort warm-up of the PoToken/BotGuard generator (~2–5s cold) so the first real playback
+     * doesn't pay it. Requires a session — callers must ensure [YouTube.visitorData] is populated
+     * first; it's a no-op otherwise. Safe to call any time; failures are swallowed and playback
+     * falls back to the existing lazy-init path unchanged.
+     */
+    suspend fun prewarmPoToken() {
+        val sessionId = YouTube.visitorData
+        if (MAIN_CLIENT.useWebPoTokens && sessionId != null) {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    poTokenGenerator.getWebClientPoToken(POTOKEN_WARMUP_VIDEO_ID, sessionId)
+                }
+            }.onFailure { Timber.tag(TAG).w(it, "PoToken prewarm skipped: ${it.message}") }
+        }
+    }
+
     data class PlaybackData(
         val audioConfig: PlayerResponse.PlayerConfig.AudioConfig?,
         val videoDetails: PlayerResponse.VideoDetails?,

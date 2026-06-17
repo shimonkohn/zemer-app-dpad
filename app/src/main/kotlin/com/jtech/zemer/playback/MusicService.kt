@@ -45,6 +45,7 @@ import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
@@ -267,6 +268,16 @@ class MusicService :
                 .Builder(this)
                 .setMediaSourceFactory(createMediaSourceFactory())
                 .setRenderersFactory(createRenderersFactory())
+                .setLoadControl(
+                    // media3 1.8.0 defaults, except start playback once ~750ms is buffered (vs the
+                    // 1000ms default) so the first audio is audible sooner. Min/max (50_000) and
+                    // after-rebuffer (2_000) are left at the actual media3 1.8.0 defaults, so
+                    // buffering/rebuffer recovery is unchanged (no stutter regression).
+                    DefaultLoadControl
+                        .Builder()
+                        .setBufferDurationsMs(50_000, 50_000, 750, 2_000)
+                        .build(),
+                )
                 .setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setAudioAttributes(

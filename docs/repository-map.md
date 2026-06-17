@@ -166,7 +166,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/dpi/BaseLifecycleContentProvider.kt` | 36 lines | `.kt` |
 | `app/src/main/kotlin/com/dpi/DensityConfiguration.kt` | 87 lines | `.kt` |
 | `app/src/main/kotlin/com/dpi/DensityScaler.kt` | 46 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/App.kt` | 424 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/App.kt` | 441 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/MainActivity.kt` | 2146 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/accessibility/ButtonMapperAccessibilityService.kt` | 45 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/auth/AuthState.kt` | 57 lines | `.kt` |
@@ -246,7 +246,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/playback/MediaLibrarySessionCallback.kt` | 832 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/playback/MediaStoreDownloadManager.kt` | 728 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/playback/MediaStoreDownloadService.kt` | 306 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/playback/MusicService.kt` | 1672 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/playback/MusicService.kt` | 1683 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/playback/PlayerConnection.kt` | 207 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/playback/SleepTimer.kt` | 68 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/playback/queues/EmptyQueue.kt` | 14 lines | `.kt` |
@@ -443,7 +443,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/utils/WhitelistCache.kt` | 40 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/WhitelistFetcher.kt` | 72 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/WhitelistFilter.kt` | 262 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/utils/YTPlayerUtils.kt` | 562 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/utils/YTPlayerUtils.kt` | 598 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/ZemerLinkBuilder.kt` | 16 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/sabr/EjsNTransformSolver.kt` | 307 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/sabr/SabrException.kt` | 3 lines | `.kt` |
