@@ -125,6 +125,7 @@ import com.jtech.zemer.utils.filterWhitelisted
 import com.jtech.zemer.utils.NetworkConnectivityObserver
 import com.jtech.zemer.utils.SyncUtils
 import com.jtech.zemer.utils.YTPlayerUtils
+import com.zemer.cipher.CipherDeobfuscator
 import com.jtech.zemer.utils.dataStore
 import com.jtech.zemer.utils.hasNotificationPermission
 import com.jtech.zemer.widget.MusicWidget
@@ -1336,6 +1337,16 @@ class MusicService :
             // Clear the cached URL so it will be refreshed on next request
             DownloadUtil.invalidateUrl(mediaId)
             Timber.d("Cleared cached URL for $mediaId, marked WEB_REMIX as failed")
+            // A 403 can also mean the cipher produced a wrong-but-non-throwing signature from a
+            // stale/wrong player config. Ask the cipher to re-fetch its config (rate-limited); if
+            // that corrects the table, the cipher rebuilds its WebView on the next decipher, so we
+            // clear the WEB_REMIX failure set to let playback return to WEB_REMIX — no app restart.
+            scope.launch {
+                if (CipherDeobfuscator.onStreamRejected()) {
+                    Timber.d("Player config changed after stream rejection — restoring WEB_REMIX")
+                    YTPlayerUtils.clearWebRemixFailures()
+                }
+            }
         }
 
         // Seek to current position to force URL re-resolution

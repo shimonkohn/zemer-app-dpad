@@ -59,6 +59,15 @@ object YTPlayerUtils {
         webRemixFailedIds.add(videoId)
     }
 
+    /**
+     * Cleared when the cipher recovers (player config refreshed after a stream rejection): the
+     * prior WEB_REMIX failures were caused by the stale cipher, so let resolution try WEB_REMIX
+     * again instead of staying pinned to a lower fallback client for the rest of the process.
+     */
+    fun clearWebRemixFailures() {
+        webRemixFailedIds.clear()
+    }
+
     /** Client names disabled by the user in Settings → Stream sources. Updated by MusicService. */
     var disabledStreamClients: Set<String> = emptySet()
 
