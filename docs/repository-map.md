@@ -733,12 +733,12 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/reference/resource-index.md` | 288 lines | `.md` |
 | `docs/remote_cipher_config/01-why-it-exists.md` | 88 lines | `.md` |
 | `docs/remote_cipher_config/02-file-format.md` | 116 lines | `.md` |
-| `docs/remote_cipher_config/03-runtime-store.md` | 129 lines | `.md` |
+| `docs/remote_cipher_config/03-runtime-store.md` | 156 lines | `.md` |
 | `docs/remote_cipher_config/04-validation-and-security.md` | 105 lines | `.md` |
-| `docs/remote_cipher_config/05-extraction-and-self-heal.md` | 104 lines | `.md` |
+| `docs/remote_cipher_config/05-extraction-and-self-heal.md` | 139 lines | `.md` |
 | `docs/remote_cipher_config/06-harness-and-monitor.md` | 101 lines | `.md` |
-| `docs/remote_cipher_config/07-runbook.md` | 99 lines | `.md` |
-| `docs/remote_cipher_config/README.md` | 110 lines | `.md` |
+| `docs/remote_cipher_config/07-runbook.md` | 101 lines | `.md` |
+| `docs/remote_cipher_config/README.md` | 112 lines | `.md` |
 | `docs/repository-map.md` | 936 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 240 lines | `.md` |
