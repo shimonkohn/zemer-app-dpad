@@ -723,12 +723,12 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/build-release.md` | 67 lines | `.md` |
 | `docs/generate.py` | 487 lines | `.py` |
 | `docs/innertube/README.md` | 183 lines | `.md` |
-| `docs/latest_releases/01-architecture-and-data-flow.md` | 92 lines | `.md` |
+| `docs/latest_releases/01-architecture-and-data-flow.md` | 93 lines | `.md` |
 | `docs/latest_releases/02-feed-format-and-server.md` | 95 lines | `.md` |
 | `docs/latest_releases/03-runtime-store.md` | 128 lines | `.md` |
-| `docs/latest_releases/04-viewmodel-and-filtering.md` | 114 lines | `.md` |
-| `docs/latest_releases/05-ui.md` | 162 lines | `.md` |
-| `docs/latest_releases/06-test-harness.md` | 121 lines | `.md` |
+| `docs/latest_releases/04-viewmodel-and-filtering.md` | 119 lines | `.md` |
+| `docs/latest_releases/05-ui.md` | 169 lines | `.md` |
+| `docs/latest_releases/06-test-harness.md` | 124 lines | `.md` |
 | `docs/latest_releases/07-runbook.md` | 110 lines | `.md` |
 | `docs/latest_releases/README.md` | 80 lines | `.md` |
 | `docs/multi_update/01-architecture.md` | 80 lines | `.md` |
