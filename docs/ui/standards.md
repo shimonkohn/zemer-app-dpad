@@ -238,3 +238,10 @@ Rules for these and any new row component:
 - Common menu dialogs are shared, not re-implemented per menu: `SelectArtistDialog` (the
   multi-artist picker) and `AlreadyInPlaylistDialog` (`MenuDialogs.kt`). Reuse them rather than
   hand-rolling a `ListDialog` copy.
+- **Bottom-sheet menus must stay scrollable.** Every menu shown via `LocalMenuState.show { … }` is
+  hosted in the full-height `ModalBottomSheet` of `BottomSheetMenu.kt`, with the menu's own
+  `LazyColumn` as the single scroll container. Leave that `LazyColumn` user-scrollable (the default)
+  and let its `contentPadding` carry the bottom `WindowInsets.systemBars` inset — do **not** gate
+  scrolling on orientation/screen (e.g. `userScrollEnabled = !isPortrait`). Tall menus fit on the
+  developer's device but overflow on shorter screens, larger font/display scale, or with a gesture
+  nav bar; disabling scroll there makes the bottom items unreachable.
