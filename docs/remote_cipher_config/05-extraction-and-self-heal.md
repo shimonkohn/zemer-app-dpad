@@ -89,15 +89,20 @@ force-stop+reopen, breaking *all* of those clients at once (cipher commit `28262
    legacy-regex false positive that resolves to a real function — produces a wrong signature
    *without throwing*, so the exception-retry never fires and `forceRefresh` is never
    triggered (extraction looked complete). The only signal it was wrong is the CDN rejecting
-   the stream. `MusicService.handleExpiredUrlError` (the 403/410 path, fired for any client)
-   now calls `CipherDeobfuscator.onStreamRejected()` →
-   `PlayerConfigStore.refreshAfterStreamRejection()` (doc 03): a rate-limited re-fetch that —
-   unlike `forceRefresh` — does NOT short-circuit when the hash is already present (it may be
-   present but WRONG). A changed table advances the epoch → the shared WebView rebuilds on the
-   next decipher → **every cipher client recovers, no force-stop**. The WEB_REMIX-specific
-   `webRemixFailedIds` set (which skips WEB_REMIX after a GET 403) is additionally cleared via
-   `clearWebRemixFailures()` so resolution returns to WEB_REMIX rather than staying on a lower
-   fallback.
+   the stream — surfaced from **two** call sites so every cipher client is covered:
+   - `MusicService.handleExpiredUrlError` (the ExoPlayer 403/410 path). Only **WEB_REMIX** skips
+     HEAD validation, so only its bad URL reaches ExoPlayer and 403s.
+   - `YTPlayerUtils`, when a `needsNTransform` (cipher) client fails `validateStatus` during
+     resolution. **WEB_CREATOR / TVHTML5 / WEB** are HEAD-validated, so a wrong sig is caught here
+     and never reaches ExoPlayer — without this site a WEB_REMIX-disabled user would never
+     self-heal. Fired off a dedicated scope so the network refresh can't block the fall-through.
+
+   Both call `CipherDeobfuscator.onStreamRejected()` → `PlayerConfigStore.refreshAfterStreamRejection()`
+   (doc 03): a rate-limited re-fetch that — unlike `forceRefresh` — does NOT short-circuit when the
+   hash is already present (it may be present but WRONG). A changed table advances the epoch → the
+   shared WebView rebuilds on the next decipher → **every cipher client recovers, no force-stop**.
+   On a real change the `webRemixFailedIds` set is cleared via `clearWebRemixFailures()` so
+   resolution returns to WEB_REMIX rather than staying on a lower fallback.
 
 `PlayerConfigStoreEpochTest` (epoch advances only on a real change) and
 `PlayerConfigStoreCooldownTest` (the rejection cooldown is independent of `forceRefresh`'s)
