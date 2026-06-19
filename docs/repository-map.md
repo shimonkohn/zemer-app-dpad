@@ -77,12 +77,12 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `853`
+- Files counted: `851`
 - By extension:
   - `.kt`: `450`
   - `.xml`: `184`
   - `.mjs`: `72`
-  - `.md`: `53`
+  - `.md`: `51`
   - `.json`: `36`
   - `.webp`: `15`
   - `[none]`: `7`
@@ -756,9 +756,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/remote_cipher_config/06-harness-and-monitor.md` | 101 lines | `.md` |
 | `docs/remote_cipher_config/07-runbook.md` | 101 lines | `.md` |
 | `docs/remote_cipher_config/README.md` | 112 lines | `.md` |
-| `docs/repository-map.md` | 962 lines | `.md` |
-| `docs/repository-map.md` | 962 lines | `.md` |
-| `docs/repository-map.md` | 962 lines | `.md` |
+| `docs/repository-map.md` | 960 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 240 lines | `.md` |
 | `docs/whitelist/README.md` | 181 lines | `.md` |
