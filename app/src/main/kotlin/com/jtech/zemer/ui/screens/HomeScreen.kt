@@ -90,13 +90,8 @@ import com.jtech.zemer.ui.menu.YouTubePlaylistMenu
 import com.jtech.zemer.ui.menu.YouTubeSongMenu
 import com.jtech.zemer.ui.screens.videoRoute
 import com.jtech.zemer.ui.utils.SnapLayoutInfoProvider
-import com.jtech.zemer.utils.joinByBullet
 import com.jtech.zemer.utils.rememberPreference
-import com.jtech.zemer.latestreleases.isNowPlaying
-import com.jtech.zemer.latestreleases.isPlayableSingle
-import com.jtech.zemer.latestreleases.openOrPlay
-import com.jtech.zemer.latestreleases.relativeDateLabel
-import com.jtech.zemer.latestreleases.toAlbumItem
+import com.jtech.zemer.latestreleases.LatestReleaseCard
 import com.jtech.zemer.viewmodels.HomeViewModel
 import com.jtech.zemer.viewmodels.LatestReleasesViewModel
 import com.metrolist.innertube.models.AlbumItem
@@ -548,30 +543,15 @@ fun HomeScreen(
                                 key = { it.browseId },
                                 contentType = { "album" }
                             ) { release ->
-                                val album = remember(release.browseId) { release.toAlbumItem() }
-                                val dateLabel = remember(release.browseId) { release.relativeDateLabel() }
-                                YouTubeGridItem(
-                                    item = album,
-                                    subtitleOverride = joinByBullet(release.artistName, dateLabel),
-                                    centeredPlayButton = release.isPlayableSingle(),
-                                    isActive = release.isNowPlaying(mediaMetadata),
+                                LatestReleaseCard(
+                                    release = release,
+                                    navController = navController,
+                                    playerConnection = playerConnection,
+                                    database = database,
+                                    mediaMetadata = mediaMetadata,
                                     isPlaying = isPlaying,
+                                    asGrid = true,
                                     coroutineScope = scope,
-                                    thumbnailRatio = 1f,
-                                    modifier = Modifier
-                                        .combinedClickable(
-                                            onClick = { release.openOrPlay(navController, playerConnection, database) },
-                                            onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                menuState.show {
-                                                    YouTubeAlbumMenu(
-                                                        albumItem = album,
-                                                        navController = navController,
-                                                        onDismiss = menuState::dismiss
-                                                    )
-                                                }
-                                            }
-                                        )
                                 )
                             }
                         }

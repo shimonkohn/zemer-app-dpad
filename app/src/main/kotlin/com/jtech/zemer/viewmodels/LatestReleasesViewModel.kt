@@ -61,10 +61,11 @@ class LatestReleasesViewModel @Inject constructor(
     private suspend fun filterReleases(releases: List<LatestRelease>): List<LatestRelease> {
         if (releases.isEmpty()) return emptyList()
         val unique = releases.distinctBy { it.browseId }
-        val byBrowseId = unique.associateBy { it.browseId }
-        return unique.map { it.toAlbumItem() }
+        val allowedBrowseIds = unique.map { it.toAlbumItem() }
             .filterWhitelisted(database)
-            .mapNotNull { byBrowseId[(it as? AlbumItem)?.browseId] }
+            .mapNotNull { (it as? AlbumItem)?.browseId }
+            .toSet()
+        return unique.filter { it.browseId in allowedBrowseIds }
     }
 
     private companion object {

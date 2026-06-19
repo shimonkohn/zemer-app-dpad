@@ -35,8 +35,9 @@ Run it with the app's unit tests:
 ## JVM unit test — the tap decision (`app/src/test/.../latestreleases/LatestReleasePlaybackTest.kt`)
 
 Pure JVM (no player, no Android runtime). Pins `LatestRelease.playableSingle()` (the heart of
-`openOrPlay`), `isPlayableSingle()` (which drives both the tap and the centred play icon) and
-`isNowPlaying()` (the card's active state) — doc 05. Eight cases:
+`openOrPlay`), `isPlayableSingle()` (which drives both the tap and the centred play icon),
+`isNowPlaying()` (the card's active state), and the shuffle-FAB track selection
+(`sampleMediaMetadata()` / `sampleTracks()`) — doc 05. Ten cases:
 
 | Test | Pins |
 |---|---|
@@ -48,6 +49,8 @@ Pure JVM (no player, no Android runtime). Pins `LatestRelease.playableSingle()` 
 | `a single is active when its videoId is the current track (not via album id)` | a single matches on `mediaMetadata.id == sampleVideoId` (it carries no album), so a plain album-id check would never light. |
 | `an album release is active when a track from that album (browseId) is playing` | an album matches on `mediaMetadata.album.id == browseId`. |
 | `the metadata a single actually plays makes its own card active` | feeding `playableSingle()` straight back into `isNowPlaying()` returns true — the regression guard for the bug fixed in this iteration. |
+| `sampleMediaMetadata builds a track for any release with a videoId (single or album)` | a sample track is built whenever `sampleVideoId` exists — even for a multi-track album — and is null otherwise. |
+| `sampleTracks keeps the sample of every release that has a videoId, preserving order` | the shuffle FAB's source list is every release's sample (albums included), in feed order, dropping only those with no playable sample. |
 
 ```bash
 ./gradlew :app:testDebugUnitTest --tests "*LatestReleasePlaybackTest"

@@ -14,18 +14,19 @@ small HTTP GET per launch.
 
 ## The modules
 
-All app-side code lives under one package, `com.jtech.zemer.latestreleases`, plus a ViewModel
-and two UI screens:
+All app-side code lives under one package, `com.jtech.zemer.latestreleases` (including the shared
+card composable), plus a ViewModel and two UI screens:
 
 | File | Responsibility |
 |---|---|
 | `latestreleases/LatestReleasesStore.kt` | Network + disk cache. The `LatestReleasesFeed`/`LatestRelease` data models, the ETag fetch, the retry/give-up/staleness policy. A singleton `object` with test seams. |
 | `latestreleases/LatestReleaseMapping.kt` | `LatestRelease.toAlbumItem()` — adapts a feed row to the InnerTube `AlbumItem` the rest of the app already renders, filters, and navigates. |
 | `latestreleases/LatestReleaseDate.kt` | `LatestRelease.relativeDateLabel()` — formats `uploadDate` as a localized relative span ("2 days ago"). |
-| `latestreleases/LatestReleasePlayback.kt` | `LatestRelease.playableSingle()` / `openOrPlay()` — the shared single-vs-album tap decision (play a 1-track single with radio, else open the album). |
+| `latestreleases/LatestReleasePlayback.kt` | `LatestRelease.playableSingle()` / `openOrPlay()` — the shared single-vs-album tap decision (play a 1-track single with radio, else open the album); `isNowPlaying()`, the now-playing match (single by videoId, album by browseId); and `sampleTracks()` / `shufflePlay()` backing the See-all shuffle FAB. |
+| `latestreleases/LatestReleaseCard.kt` | `LatestReleaseCard` — the one shared card composable both surfaces render each release through (`asGrid` picks grid vs list); centralizes the album mapping, subtitle, centred play button, now-playing state, tap and long-press menu. |
 | `viewmodels/LatestReleasesViewModel.kt` | Orchestration + whitelist re-filter. Owns the `StateFlow<List<LatestRelease>>` the UI observes. Hilt-injected. |
-| `ui/screens/HomeScreen.kt` | The Home shelf (`latest_releases_title` / `latest_releases_list` items). |
-| `ui/screens/LatestReleasesScreen.kt` | The "See all" full-list screen, route `latest_releases`. |
+| `ui/screens/HomeScreen.kt` | The Home shelf (`latest_releases_title` / `latest_releases_list` items), rendering each release via `LatestReleaseCard(asGrid = true)`. |
+| `ui/screens/LatestReleasesScreen.kt` | The "See all" full-list screen, route `latest_releases`, rendering each release via `LatestReleaseCard(asGrid = false)`. |
 | `ui/component/Items.kt` | `subtitleOverride` + `centeredPlayButton` params on `YouTubeGridItem` / `YouTubeListItem`, so a card can show `Artist • <relative date>` and a single can show the centred play button on its artwork. |
 
 ## End-to-end flow

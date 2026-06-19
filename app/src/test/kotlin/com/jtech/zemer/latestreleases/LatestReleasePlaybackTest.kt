@@ -79,6 +79,25 @@ class LatestReleasePlaybackTest {
     }
 
     @Test
+    fun `sampleMediaMetadata builds a track for any release with a videoId (single or album)`() {
+        assertEquals("vid", release(trackCount = 1).sampleMediaMetadata()?.id)   // single
+        assertEquals("vid", release(trackCount = 5).sampleMediaMetadata()?.id)   // multi-track album
+        assertNull(release(trackCount = 1, sampleVideoId = null).sampleMediaMetadata())
+        assertNull(release(trackCount = 5, sampleVideoId = "").sampleMediaMetadata())
+    }
+
+    @Test
+    fun `sampleTracks keeps the sample of every release that has a videoId, preserving order`() {
+        val list = listOf(
+            release(trackCount = 1, sampleVideoId = "a"),
+            release(trackCount = 5, sampleVideoId = "b"),    // an album still contributes its sample
+            release(trackCount = 1, sampleVideoId = null),   // dropped — nothing to play
+            release(trackCount = null, sampleVideoId = ""),  // dropped — nothing to play
+        )
+        assertEquals(listOf("a", "b"), list.sampleTracks().map { it.id })
+    }
+
+    @Test
     fun `the metadata a single actually plays makes its own card active`() {
         // Guards the real bug: playableSingle() carries no album, so an album-id check never matched.
         val single = release(trackCount = 1, sampleVideoId = "vid")

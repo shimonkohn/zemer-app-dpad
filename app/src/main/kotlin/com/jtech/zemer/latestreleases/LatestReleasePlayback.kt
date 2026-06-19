@@ -2,8 +2,10 @@ package com.jtech.zemer.latestreleases
 
 import androidx.navigation.NavController
 import com.jtech.zemer.db.MusicDatabase
+import com.jtech.zemer.extensions.toMediaItem
 import com.jtech.zemer.models.MediaMetadata
 import com.jtech.zemer.playback.PlayerConnection
+import com.jtech.zemer.playback.queues.ListQueue
 import com.jtech.zemer.playback.queues.YouTubeQueue
 
 /**
@@ -29,9 +31,14 @@ fun LatestRelease.isNowPlaying(mediaMetadata: MediaMetadata?): Boolean =
     if (isPlayableSingle()) mediaMetadata?.id == sampleVideoId
     else mediaMetadata?.album?.id == browseId
 
-fun LatestRelease.playableSingle(): MediaMetadata? {
+/**
+ * The release's sample track as a [MediaMetadata], or null if the feed gave no [sampleVideoId]. This
+ * is the single source of how a release becomes a playable track — used for a single's tap
+ * ([playableSingle]) and for shuffle-playing the whole feed ([sampleTracks]).
+ */
+fun LatestRelease.sampleMediaMetadata(): MediaMetadata? {
     val videoId = sampleVideoId
-    if (!isPlayableSingle() || videoId == null) return null
+    if (videoId.isNullOrEmpty()) return null
     return MediaMetadata(
         id = videoId,
         title = title,
@@ -40,6 +47,10 @@ fun LatestRelease.playableSingle(): MediaMetadata? {
         thumbnailUrl = thumbnail,
     )
 }
+
+/** The track a single plays on tap: its [sampleMediaMetadata], but only for a one-track single. */
+fun LatestRelease.playableSingle(): MediaMetadata? =
+    if (isPlayableSingle()) sampleMediaMetadata() else null
 
 /** Plays a single immediately (with autoplay radio, like the rest of Home); opens an album's page. */
 fun LatestRelease.openOrPlay(
@@ -53,4 +64,17 @@ fun LatestRelease.openOrPlay(
     } else {
         navController.navigate("album/$browseId")
     }
+}
+
+/**
+ * The sample track of every release that has one — the tracks a shuffle play draws from. Pure (no
+ * player/Android), so the selection is unit-testable; [shufflePlay] turns it into a queue.
+ */
+fun List<LatestRelease>.sampleTracks(): List<MediaMetadata> = mapNotNull { it.sampleMediaMetadata() }
+
+/** Shuffle-plays the feed's sample tracks as a flat queue (no-op when none are playable). */
+fun List<LatestRelease>.shufflePlay(playerConnection: PlayerConnection, title: String) {
+    val items = sampleTracks().map { it.toMediaItem() }
+    if (items.isEmpty()) return
+    playerConnection.playQueue(ListQueue(title = title, items = items.shuffled()))
 }
