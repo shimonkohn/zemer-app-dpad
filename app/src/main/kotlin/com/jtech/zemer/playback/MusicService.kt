@@ -1411,18 +1411,21 @@ class MusicService :
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
 
-            // Check for MediaStore URI first (local playback)
-            // Only use local file if starting from beginning (position 0) to avoid
-            // switching sources mid-stream when a download completes during playback
-            // Use a blocking call here because ResolvingDataSource.Factory requires synchronous code
+            // Check for MediaStore URI first (local playback).
+            // Use a blocking call here because ResolvingDataSource.Factory requires synchronous code.
             val song = runBlocking(Dispatchers.IO) {
                 database.song(mediaId).first()
             }
 
-            // A downloaded song plays from its local MediaStore file (only at position 0, so we don't
-            // switch sources mid-stream when a download finishes during playback).
+            // A downloaded song plays from its local MediaStore file at ANY byte position. The local
+            // file is random-access, so ExoPlayer (which builds the seek map from the local moov at
+            // prepare time, position 0) seeks into it correctly. The previous `position == 0L` guard
+            // meant a SEEK into a downloaded song fell through to STREAMING — and a googlevideo range
+            // request from a byte offset carries no moov/init atom, so the mp4 extractor read garbage
+            // and died ("Skipping atom with length > … (unsupported)" → Source error). That made
+            // downloaded songs unplayable whenever the user skipped to the middle.
             val mediaStoreUri = song?.song?.mediaStoreUri
-            if (mediaStoreUri != null && dataSpec.position == 0L) {
+            if (mediaStoreUri != null) {
                 if (downloadedFileOpens(mediaStoreUri)) {
                     scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
                     return@Factory dataSpec.withUri(mediaStoreUri.toUri())
@@ -1430,23 +1433,26 @@ class MusicService :
                 // The file is gone (a stale "downloaded" row — e.g. from an interrupted download or an
                 // older build that deleted the file). Self-repair: re-download it so it's local again
                 // next time, and stream THIS play instead of crashing with ENOENT. We don't clear the
-                // flag (no vanishing); the re-download replaces the dead URI on success.
+                // flag (no vanishing); the re-download replaces the dead URI on success. Only re-enqueue
+                // from the start (position 0): a seek on a missing file should stream this play without
+                // firing a fresh full download on every seek.
                 //
                 // The manager no-ops while a download for this id is active/complete — but NOT once it
-                // has FAILED. So we must skip re-enqueueing a download that already failed this session,
+                // has FAILED. So we also skip re-enqueueing a download that already failed this session,
                 // otherwise a permanently-unrecoverable source (deleted upstream / region-blocked) would
-                // fire a fresh full download attempt on EVERY play. A new session (state cleared) gets
-                // one fresh attempt.
-                val liveStatus = downloadUtil.mediaStoreDownloadState(mediaId)?.status
-                if (liveStatus == MediaStoreDownloadManager.DownloadState.Status.FAILED) {
-                    Timber.w("Downloaded file missing for $mediaId but its re-download already FAILED this session; streaming without re-enqueueing")
-                } else {
-                    Timber.w("Downloaded file missing for $mediaId; re-downloading to self-repair and streaming this play")
-                    song?.let { stale ->
-                        scope.launch(Dispatchers.IO) {
-                            runCatching {
-                                if (stale.song.isVideo) downloadUtil.downloadVideoToMediaStore(stale)
-                                else downloadUtil.downloadToMediaStore(stale)
+                // re-download on every play. A new session (state cleared) gets one fresh attempt.
+                if (dataSpec.position == 0L) {
+                    val liveStatus = downloadUtil.mediaStoreDownloadState(mediaId)?.status
+                    if (liveStatus == MediaStoreDownloadManager.DownloadState.Status.FAILED) {
+                        Timber.w("Downloaded file missing for $mediaId but its re-download already FAILED this session; streaming without re-enqueueing")
+                    } else {
+                        Timber.w("Downloaded file missing for $mediaId; re-downloading to self-repair and streaming this play")
+                        song?.let { stale ->
+                            scope.launch(Dispatchers.IO) {
+                                runCatching {
+                                    if (stale.song.isVideo) downloadUtil.downloadVideoToMediaStore(stale)
+                                    else downloadUtil.downloadToMediaStore(stale)
+                                }
                             }
                         }
                     }
