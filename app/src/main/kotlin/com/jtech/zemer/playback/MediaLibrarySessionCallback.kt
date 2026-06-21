@@ -267,8 +267,8 @@ constructor(
                     MusicService.PLAYLIST -> {
                         val likedSongCount = database.likedSongsCount().first()
                         // Persisted MediaStore downloads (the legacy ExoPlayer `downloads` map is dead) —
-                        // count the same rows the Downloaded playlist shows.
-                        val downloadedSongCount = database.downloadedSongsByCreateDateAsc().first().size
+                        // whitelist-filtered, since Android Auto is a content-filtered surface.
+                        val downloadedSongCount = database.downloadedSongsWhitelistedByCreateDateAsc().first().size
                         listOf(
                             browsableMediaItem(
                                 "${MusicService.PLAYLIST}/${PlaylistEntity.LIKED_PLAYLIST_ID}",
@@ -380,10 +380,11 @@ constructor(
                                         true
                                     )
 
-                                    // Persisted MediaStore downloads (the same query the Downloaded
-                                    // screen uses) — the legacy ExoPlayer map is dead.
+                                    // Persisted MediaStore downloads, whitelist-filtered — Android Auto
+                                    // is a content-filtered surface (pre-unification this used the
+                                    // whitelist-filtered allSongs()). The legacy ExoPlayer map is dead.
                                     PlaylistEntity.DOWNLOADED_PLAYLIST_ID ->
-                                        database.downloadedSongsByCreateDateAsc()
+                                        database.downloadedSongsWhitelistedByCreateDateAsc()
 
                                     else ->
                                         database.playlistSongs(playlistId).map { list ->
@@ -609,7 +610,7 @@ constructor(
                     val songs = when (playlistId) {
                         PlaylistEntity.LIKED_PLAYLIST_ID -> database.likedSongs(SongSortType.CREATE_DATE, descending = true)
                         PlaylistEntity.DOWNLOADED_PLAYLIST_ID ->
-                            database.downloadedSongsByCreateDateAsc()
+                            database.downloadedSongsWhitelistedByCreateDateAsc()
                         else -> database.playlistSongs(playlistId).map { list ->
                             list.map { it.song }
                         }

@@ -1386,6 +1386,25 @@ class MusicService :
             ).setCacheWriteDataSinkFactory(null)
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
 
+    /** Per-media-item source decision, made at the position-0 open that starts playback: true = playing
+     *  the local downloaded file, false/absent = streaming. Later opens (seeks, cache-span re-opens)
+     *  honor this so a song that started streaming never switches to the local file mid-playback when its
+     *  download finishes (the "source switching during download" bug, commit 1f48d89), while a song that
+     *  was already downloaded when playback began uses the local file at every position so seeks work.
+     *
+     *  KNOWN LIMITATION (accepted, not a TODO bandaid to "fix in place"): this is a per-byte
+     *  source decision inside a streaming `ResolvingDataSource`, so it cannot reconcile the fact that a
+     *  MediaStore download is a DIFFERENT container (m4a/itag140) than the streamed audio (webm/opus).
+     *  The one path it does NOT make perfect: if you DOWNLOAD a song WHILE actively listening to that
+     *  same song, that playing instance stays on the stream (it won't switch to the local file until the
+     *  song is re-selected), so offline it can only play as far as the stream cached. It does not crash;
+     *  re-tapping the song plays it from the local file. Every other path (download then play later,
+     *  seek a downloaded song, offline playback of a downloaded song, restart/resume) works.
+     *  The complete fix is architectural — route a downloaded song as a LOCAL `MediaItem` (content://
+     *  URI) at queue-build time so it never enters the stream pipeline (Media3-standard), instead of
+     *  guessing per read here. Deliberately deferred; do not "fix" this map/probe further — replace it. */
+    private val playbackSourceIsLocal = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+
     /** Whether the downloaded file at [uriString] actually opens. Returns false on ANY failure to open
      *  (ENOENT / null descriptor / FileNotFound / a SecurityException or other resolver error) so that
      *  playback falls back to STREAMING rather than handing ExoPlayer a URI we just failed to open
@@ -1417,31 +1436,32 @@ class MusicService :
                 database.song(mediaId).first()
             }
 
-            // A downloaded song plays from its local MediaStore file at ANY byte position. The local
-            // file is random-access, so ExoPlayer (which builds the seek map from the local moov at
-            // prepare time, position 0) seeks into it correctly. The previous `position == 0L` guard
-            // meant a SEEK into a downloaded song fell through to STREAMING — and a googlevideo range
-            // request from a byte offset carries no moov/init atom, so the mp4 extractor read garbage
-            // and died ("Skipping atom with length > … (unsupported)" → Source error). That made
-            // downloaded songs unplayable whenever the user skipped to the middle.
+            // Source selection for a downloaded song. We must satisfy BOTH:
+            //  (a) seeking a downloaded song must use its LOCAL file (it's random-access; a googlevideo
+            //      range request from a byte offset has no moov/init atom and the mp4 extractor dies —
+            //      "Skipping atom with length > … unsupported" → Source error), AND
+            //  (b) a song that STARTED streaming (not yet downloaded) must NOT switch to the local file
+            //      mid-playback when its download finishes — that mid-stream source switch is the bug
+            //      commit 1f48d89 fixed with a blanket `position == 0L` guard (which broke (a)).
+            // So we decide the source ONCE, at the position-0 open that begins playback of this item,
+            // remember it, and honor that decision for every later open (seek or cache-span re-open).
             val mediaStoreUri = song?.song?.mediaStoreUri
             if (mediaStoreUri != null) {
-                if (downloadedFileOpens(mediaStoreUri)) {
-                    scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
-                    return@Factory dataSpec.withUri(mediaStoreUri.toUri())
-                }
-                // The file is gone (a stale "downloaded" row — e.g. from an interrupted download or an
-                // older build that deleted the file). Self-repair: re-download it so it's local again
-                // next time, and stream THIS play instead of crashing with ENOENT. We don't clear the
-                // flag (no vanishing); the re-download replaces the dead URI on success. Only re-enqueue
-                // from the start (position 0): a seek on a missing file should stream this play without
-                // firing a fresh full download on every seek.
-                //
-                // The manager no-ops while a download for this id is active/complete — but NOT once it
-                // has FAILED. So we also skip re-enqueueing a download that already failed this session,
-                // otherwise a permanently-unrecoverable source (deleted upstream / region-blocked) would
-                // re-download on every play. A new session (state cleared) gets one fresh attempt.
+                val fileOpens = downloadedFileOpens(mediaStoreUri)
                 if (dataSpec.position == 0L) {
+                    // Start of playback for this item: pick the source and record it.
+                    playbackSourceIsLocal[mediaId] = fileOpens
+                    if (fileOpens) {
+                        scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                        return@Factory dataSpec.withUri(mediaStoreUri.toUri())
+                    }
+                    // The file is gone (a stale "downloaded" row — interrupted download or an older
+                    // build that deleted the file). Self-repair: re-download so it's local next time,
+                    // and stream THIS play instead of crashing with ENOENT. We don't clear the flag
+                    // (no vanishing); the re-download replaces the dead URI on success. Skip re-enqueue
+                    // if a download for this id already FAILED this session (the manager only no-ops
+                    // active/complete, not FAILED), else a permanently-unrecoverable source would
+                    // re-download on every play; a new session (state cleared) gets one fresh attempt.
                     val liveStatus = downloadUtil.mediaStoreDownloadState(mediaId)?.status
                     if (liveStatus == MediaStoreDownloadManager.DownloadState.Status.FAILED) {
                         Timber.w("Downloaded file missing for $mediaId but its re-download already FAILED this session; streaming without re-enqueueing")
@@ -1456,6 +1476,13 @@ class MusicService :
                             }
                         }
                     }
+                } else if (fileOpens && playbackSourceIsLocal[mediaId] == true) {
+                    // A later open (a SEEK, or a cache-span re-open) for an item that STARTED on the
+                    // local file → keep using the local file so seeks work. An item that started
+                    // streaming (playbackSourceIsLocal == false/absent) deliberately falls through to
+                    // the cache/stream path below — no mid-stream switch when its download completes.
+                    scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                    return@Factory dataSpec.withUri(mediaStoreUri.toUri())
                 }
             }
 
