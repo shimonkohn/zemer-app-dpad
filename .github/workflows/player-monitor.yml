@@ -4,40 +4,9 @@ on:
   schedule:
     - cron: '0 * * * *'   # every hour
   workflow_dispatch:        # manual trigger
-    inputs:
-      test_telegram:
-        description: 'Send a test Telegram notification to the monitor topic and exit (skips the scan)'
-        type: boolean
-        default: false
 
 jobs:
-  # Manual smoke test of the Telegram wiring only (no scan / no issues). Lets us confirm the
-  # bot can post to the monitor topic without waiting for a real unknown player to appear.
-  telegram-test:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.test_telegram }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send test Telegram notification
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: '-1004251718348'
-          TELEGRAM_THREAD_ID: '152'
-        run: |
-          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
-            echo "::error::TELEGRAM_BOT_TOKEN secret is not set"; exit 1
-          fi
-          MSG=$(printf 'New YouTube player detected: TESTHASH\n\n## New YouTube Player JS Detected (workflow self-test)\n\nThis is a test of the player-monitor Telegram wiring. If you can read this in the monitor topic, real new-player alerts (issue title + body) will post here too.')
-          RESP=$(curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d chat_id="${TELEGRAM_CHAT_ID}" \
-            -d message_thread_id="${TELEGRAM_THREAD_ID}" \
-            --data-urlencode "text=${MSG}")
-          echo "$RESP"
-          # Fail the step if Telegram rejected the message (ok:false) so a misconfig is a red run.
-          echo "$RESP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s||'{}'); if(!j.ok){console.error('Telegram API error: '+(j.description||'unknown'));process.exit(1);} console.log('Telegram OK, message_id='+j.result.message_id);})"
-
   check-player:
-    # Skip the real scan when this dispatch is only a Telegram smoke test.
-    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.test_telegram) }}
     runs-on: ubuntu-latest
     permissions:
       issues: write
