@@ -4,9 +4,40 @@ on:
   schedule:
     - cron: '0 * * * *'   # every hour
   workflow_dispatch:        # manual trigger
+    inputs:
+      test_telegram:
+        description: 'Send a test Telegram notification to the monitor topic and exit (skips the scan)'
+        type: boolean
+        default: false
 
 jobs:
+  # Manual smoke test of the Telegram wiring only (no scan / no issues). Lets us confirm the
+  # bot can post to the monitor topic without waiting for a real unknown player to appear.
+  telegram-test:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.test_telegram }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send test Telegram notification
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: '-1004251718348'
+          TELEGRAM_THREAD_ID: '152'
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+            echo "::error::TELEGRAM_BOT_TOKEN secret is not set"; exit 1
+          fi
+          MSG=$(printf 'New YouTube player detected: TESTHASH\n\n## New YouTube Player JS Detected (workflow self-test)\n\nThis is a test of the player-monitor Telegram wiring. If you can read this in the monitor topic, real new-player alerts (issue title + body) will post here too.')
+          RESP=$(curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d message_thread_id="${TELEGRAM_THREAD_ID}" \
+            --data-urlencode "text=${MSG}")
+          echo "$RESP"
+          # Fail the step if Telegram rejected the message (ok:false) so a misconfig is a red run.
+          echo "$RESP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s||'{}'); if(!j.ok){console.error('Telegram API error: '+(j.description||'unknown'));process.exit(1);} console.log('Telegram OK, message_id='+j.result.message_id);})"
+
   check-player:
+    # Skip the real scan when this dispatch is only a Telegram smoke test.
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.test_telegram) }}
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -66,6 +97,14 @@ jobs:
       - name: Open issues for unknown players
         if: steps.scan.outputs.unknown_count != '0'
         uses: actions/github-script@v7
+        env:
+          # Telegram notification target (same bot as release-build.yml).
+          # t.me/c/4251718348/152 -> chat_id -1004251718348, message_thread_id 152 (the "test" topic).
+          # The bot must be a member of that forum group with permission to post in the topic.
+          # Empty TELEGRAM_BOT_TOKEN simply skips the Telegram send (issue creation still runs).
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: '-1004251718348'
+          TELEGRAM_THREAD_ID: '152'
         with:
           github-token: ${{ steps.bot.outputs.token || github.token }}
           script: |
@@ -77,33 +116,66 @@ jobs:
               state: 'open',
               labels: 'player-update',
             });
+
+            // Plain-text Telegram notification carrying the issue title + body verbatim.
+            // Sent before issue creation so the alert still fires if the Issues API call fails
+            // (mirrors the email step's "alert matters more than the issue" rule).
+            async function notifyTelegram(title, body) {
+              const token = process.env.TELEGRAM_BOT_TOKEN;
+              if (!token) {
+                console.log('No TELEGRAM_BOT_TOKEN — skipping Telegram notification.');
+                return;
+              }
+              try {
+                const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    chat_id: process.env.TELEGRAM_CHAT_ID,
+                    message_thread_id: Number(process.env.TELEGRAM_THREAD_ID),
+                    text: `${title}\n\n${body}`,
+                    link_preview_options: { is_disabled: true },
+                  }),
+                });
+                if (!resp.ok) {
+                  console.log(`::warning::Telegram send failed: ${resp.status} ${await resp.text()}`);
+                }
+              } catch (e) {
+                console.log(`::warning::Telegram send errored: ${e.message}`);
+              }
+            }
+
             for (const u of scan.unknown) {
               const title = `New YouTube player detected: ${u.hash}`;
               if (open.data.some(i => i.title === title)) {
                 console.log(`Issue already open for ${u.hash}, skipping.`);
                 continue;
               }
+              const body = [
+                '## New YouTube Player JS Detected',
+                '',
+                `- **Player hash**: \`${u.hash}\``,
+                `- **MD5 fallback**: \`${u.md5}\``,
+                `- **sts**: \`${u.sts}\``,
+                `- **Observed this run**: seen ${u.count} of ${scan.samples} samples` +
+                  (u.count * 3 < scan.samples ? ' — low-rate **canary**, caught early before it rotates in' : ''),
+                `- **player_ias URL**: https://www.youtube.com/s/player/${u.hash}/player_ias.vflset/en_GB/base.js`,
+                '',
+                '## Required action',
+                '',
+                `1. Derive + empirically validate: \`node tests/validate-player-config.mjs ${u.hash}\` (HTTP 206 = ground truth; prints a paste-ready JSON entry)`,
+                '2. Add the entry to `library/src/main/assets/player_configs.json` in `zemer-cipher` (includes the MD5 alias)',
+                '3. Push to `zemer-cipher` `master` — **deployed apps self-heal from that file within minutes; no APK release needed**',
+                '4. Update the submodule pointer in `zemer-app` when convenient (keeps bundled defaults fresh for new installs)',
+              ].join('\n');
+
+              await notifyTelegram(title, body);
+
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 title,
-                body: [
-                  '## New YouTube Player JS Detected',
-                  '',
-                  `- **Player hash**: \`${u.hash}\``,
-                  `- **MD5 fallback**: \`${u.md5}\``,
-                  `- **sts**: \`${u.sts}\``,
-                  `- **Observed this run**: seen ${u.count} of ${scan.samples} samples` +
-                    (u.count * 3 < scan.samples ? ' — low-rate **canary**, caught early before it rotates in' : ''),
-                  `- **player_ias URL**: https://www.youtube.com/s/player/${u.hash}/player_ias.vflset/en_GB/base.js`,
-                  '',
-                  '## Required action',
-                  '',
-                  `1. Derive + empirically validate: \`node tests/validate-player-config.mjs ${u.hash}\` (HTTP 206 = ground truth; prints a paste-ready JSON entry)`,
-                  '2. Add the entry to `library/src/main/assets/player_configs.json` in `zemer-cipher` (includes the MD5 alias)',
-                  '3. Push to `zemer-cipher` `master` — **deployed apps self-heal from that file within minutes; no APK release needed**',
-                  '4. Update the submodule pointer in `zemer-app` when convenient (keeps bundled defaults fresh for new installs)',
-                ].join('\n'),
+                body,
                 labels: ['player-update', 'cipher'],
               });
               console.log(`Opened issue: ${title}`);
