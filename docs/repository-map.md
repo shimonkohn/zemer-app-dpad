@@ -116,7 +116,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `.gitmodules` | 6 lines | `[none]` |
 | `AGENTS.md` | 214 lines | `.md` |
 | `LICENSE` | 674 lines | `[none]` |
-| `README.md` | 11 lines | `.md` |
+| `README.md` | 19 lines | `.md` |
 | `app/.gitignore` | 1 lines | `[none]` |
 | `app/build.gradle.kts` | 283 lines | `.kts` |
 | `app/lint.xml` | 12 lines | `.xml` |
