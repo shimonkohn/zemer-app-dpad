@@ -2,7 +2,7 @@ name: YouTube Player Monitor
 
 on:
   schedule:
-    - cron: '0 * * * *'   # every hour
+    - cron: '*/30 * * * *'   # every 30 min (each run is a fresh runner IP, so cadence adds no per-IP load)
   workflow_dispatch:        # manual trigger
 
 jobs:

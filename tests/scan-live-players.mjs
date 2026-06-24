@@ -54,8 +54,13 @@ async function fetchText(url) {
 }
 const hashFrom = (body, re) => (body.match(re) || [])[1] || null;
 
+// A stable, always-available public video for the watch/embed surfaces. The player served is
+// bucketed by session/experiment, not by which video — so any reliable id surfaces the same canary.
+const PROBE_VID = "dQw4w9WgXcQ";
 const sampleIframe = async () => hashFrom(await fetchText("https://www.youtube.com/iframe_api"), IFRAME_RE);
 const sampleMusic = async () => hashFrom(await fetchText("https://music.youtube.com/"), PLAIN_RE);
+const sampleWatch = async () => hashFrom(await fetchText(`https://www.youtube.com/watch?v=${PROBE_VID}`), PLAIN_RE);
+const sampleEmbed = async () => hashFrom(await fetchText(`https://www.youtube.com/embed/${PROBE_VID}`), PLAIN_RE);
 
 // md5-of-first-10000-bytes alias + sts for an unknown hash — the same alias identity the app
 // (FunctionNameExtractor.extractPlayerHash) and the monitor's MD5 step compute.
@@ -80,11 +85,15 @@ async function main() {
   const requested = Number(samplesArg || process.env.SAMPLES || 30);
   const covered = coveredKeys(readFileSync(file, "utf8"), file); // throws on invalid file -> exit 1
 
-  // iframe_api is what the app's PlayerJsFetcher uses — sample it heavily. music.youtube.com
-  // is the app's home surface — sample it lightly to widen coverage without youtube.com-only noise.
+  // iframe_api is what the app's PlayerJsFetcher uses — sample it heavily (the `requested` count).
+  // music / watch / embed are sampled lightly: a canary often A/B-shows on one of these BEFORE it
+  // reaches iframe_api (early warning), and a hash unique to one surface is still caught.
+  const aux = Math.max(2, Math.floor(requested / 6));
   const samples = [];
   for (let i = 0; i < requested; i++) samples.push(await sampleIframe());
-  for (let i = 0; i < Math.max(2, Math.floor(requested / 6)); i++) samples.push(await sampleMusic());
+  for (let i = 0; i < aux; i++) samples.push(await sampleMusic());
+  for (let i = 0; i < aux; i++) samples.push(await sampleWatch());
+  for (let i = 0; i < aux; i++) samples.push(await sampleEmbed());
 
   const distinct = aggregate(samples);
   const unknown = [];
