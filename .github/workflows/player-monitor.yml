@@ -5,6 +5,13 @@ on:
     - cron: '*/30 * * * *'   # every 30 min (each run is a fresh runner IP, so cadence adds no per-IP load)
   workflow_dispatch:        # manual trigger
 
+# Serialize monitor runs: an overlapping schedule + manual dispatch must not both scan,
+# both see "no open issue", then both open a duplicate. Queue rather than cancel so an
+# in-progress scan (which may be mid-issue-creation) finishes cleanly.
+concurrency:
+  group: youtube-player-monitor
+  cancel-in-progress: false
+
 jobs:
   check-player:
     runs-on: ubuntu-latest
@@ -79,12 +86,19 @@ jobs:
           script: |
             const fs = require('fs');
             const scan = JSON.parse(fs.readFileSync('/tmp/scan.json', 'utf8'));
-            const open = await github.rest.issues.listForRepo({
+            // Dedup by issue TITLE across ALL open issues — NOT by label. Issues opened by the
+            // Zemer-Dude app token arrive with no labels applied (observed: #141/#142/#143 for
+            // a66f5a13 were all label-less), so a label-filtered query returns nothing and every
+            // run re-opens a duplicate. The title `New YouTube player detected: <hash>` is unique
+            // per hash and is the stable dedup key. paginate() so a long open-issue list can't
+            // hide an existing match past the first page.
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              labels: 'player-update',
+              per_page: 100,
             });
+            const openTitles = new Set(openIssues.map(i => i.title));
 
             // Plain-text Telegram notification carrying the issue title + body verbatim.
             // Sent before issue creation so the alert still fires if the Issues API call fails
@@ -116,7 +130,7 @@ jobs:
 
             for (const u of scan.unknown) {
               const title = `New YouTube player detected: ${u.hash}`;
-              if (open.data.some(i => i.title === title)) {
+              if (openTitles.has(title)) {
                 console.log(`Issue already open for ${u.hash}, skipping.`);
                 continue;
               }
