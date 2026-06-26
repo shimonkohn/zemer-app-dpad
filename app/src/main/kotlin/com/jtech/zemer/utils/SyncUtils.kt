@@ -363,7 +363,14 @@ class SyncUtils @Inject constructor(
                                         name = playlist.title,
                                         browseId = playlist.id,
                                         thumbnailUrl = allowedSongs.firstOrNull()?.thumbnail,
-                                        isEditable = playlist.isEditable,
+                                        // Editability comes from the playlist's OWN page
+                                        // (musicEditablePlaylistDetailHeaderRenderer), not the library
+                                        // grid item — the FEmusic_liked_playlists tiles never carry an
+                                        // EDIT menu icon, so playlist.isEditable is always false there,
+                                        // which hid every synced playlist from "Add to playlist"
+                                        // (its query is `WHERE isEditable`). The page signal correctly
+                                        // marks the user's own playlists editable and saved/system ones not.
+                                        isEditable = playlistPage.playlist.isEditable,
                                         bookmarkedAt = LocalDateTime.now(),
                                         remoteSongCount = allowedSongs.size,
                                         playEndpointParams = playlist.playEndpoint?.params,
@@ -372,10 +379,14 @@ class SyncUtils @Inject constructor(
                                     )
                                     database.insert(playlistEntity)
                                 } else {
-                                    // Update existing playlist entity with filtered metadata
+                                    // Update existing playlist entity with filtered metadata.
+                                    // Refresh isEditable from the page signal too, so playlists synced
+                                    // before this fix (stored isEditable=false) become addable on the
+                                    // next sync without needing a re-login.
                                     database.update(playlistEntity.copy(
                                         thumbnailUrl = allowedSongs.firstOrNull()?.thumbnail,
-                                        remoteSongCount = allowedSongs.size
+                                        remoteSongCount = allowedSongs.size,
+                                        isEditable = playlistPage.playlist.isEditable
                                     ))
                                 }
                                 // Sync only allowed songs for this playlist
