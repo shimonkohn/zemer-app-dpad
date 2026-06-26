@@ -22,8 +22,8 @@ android {
         applicationId = "com.jtech.zemer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 33
-        versionName = "33"
+        versionCode = 34
+        versionName = "34"
         buildConfigField("String", "ARCHITECTURE", "\"universal\"")
         val googleTokenExchangeUrl = (project.findProperty("googleTokenExchangeUrl") as String?) ?: ""
         buildConfigField("String", "GOOGLE_TOKEN_EXCHANGE_URL", "\"$googleTokenExchangeUrl\"")
