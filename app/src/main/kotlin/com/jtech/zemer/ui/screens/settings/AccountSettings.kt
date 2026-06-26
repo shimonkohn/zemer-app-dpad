@@ -71,6 +71,11 @@ import com.jtech.zemer.viewmodels.AccountSettingsViewModel
 import com.jtech.zemer.viewmodels.HomeViewModel
 import com.metrolist.innertube.utils.parseCookieString
 import com.metrolist.innertube.YouTube
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 
 @Composable
 fun AccountSettings(
@@ -132,6 +137,20 @@ fun AccountSettings(
 
         Spacer(Modifier.height(12.dp))
 
+        // Personal Google account identity — shown ONLY for a personal login (non-empty dataSyncId).
+        // Anonymous logins sign into a shared, pooled account, so surfacing its name/email here would
+        // be wrong and leak the pooled identity across anon users; gate strictly on dataSyncId, never
+        // on the SAPISID-based isLoggedIn (which is true for anonymous too).
+        if (dataSyncId.isNotBlank()) {
+            SignedInAccountCard(
+                name = accountNamePref.ifBlank { accountName.takeIf { it != "Guest" }.orEmpty() },
+                email = accountEmail,
+                handle = accountChannelHandle,
+                imageUrl = accountImageUrl,
+            )
+            Spacer(Modifier.height(12.dp))
+        }
+
         // 1. Login with Google (WebView)
         Button(
             onClick = {
@@ -168,9 +187,12 @@ fun AccountSettings(
             }
         }
 
+        // Offer Anonymous login only while signed out — once logged in, the Google button above is
+        // the single Logout control, so rendering this button too produced a duplicate Logout button.
+        if (!isLoggedIn) {
         Spacer(Modifier.height(8.dp))
 
-        // 3. Login as Anonymous
+        // Login as Anonymous
         Button(
             onClick = {
                 if (isLoggedIn) {
@@ -291,6 +313,7 @@ fun AccountSettings(
                 )
             }
         }
+        }
 
         Spacer(Modifier.height(12.dp))
 
@@ -330,7 +353,11 @@ fun AccountSettings(
             )
         }
 
-        if (isLoggedIn) {
+        // Account-personalization controls are personal-account only. "More content" routes browse
+        // through the login (an anonymous/pooled account would personalize to the shared pool), and
+        // "Auto sync" only runs for a personal account anyway — so gate both on dataSyncId, not the
+        // SAPISID-based isLoggedIn (which is true for anonymous too).
+        if (dataSyncId.isNotBlank()) {
             SwitchPreference(
                 title = { Text(stringResource(R.string.more_content)) },
                 description = null,
@@ -419,6 +446,78 @@ fun AccountSettings(
                     .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainer)
             )
+        }
+    }
+}
+
+/**
+ * Shows the signed-in personal Google account (avatar + name + email + handle). Callers must gate
+ * this on a personal login (non-empty dataSyncId) — anonymous sessions use a shared pooled account
+ * whose identity must never be surfaced here. Display only; no actions, so no focus treatment needed.
+ */
+@Composable
+private fun SignedInAccountCard(
+    name: String,
+    email: String,
+    handle: String,
+    imageUrl: String?,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.size(48.dp)
+        ) {
+            if (imageUrl != null) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = stringResource(R.string.account),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Icon(
+                    painter = painterResource(R.drawable.account),
+                    contentDescription = stringResource(R.string.account),
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+        }
+        Spacer(Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.signed_in_as),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (name.isNotBlank()) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            if (email.isNotBlank()) {
+                Text(
+                    text = email,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (handle.isNotBlank()) {
+                Text(
+                    text = handle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

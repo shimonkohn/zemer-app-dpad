@@ -192,6 +192,7 @@
 
     <string name="pause_remote_listen_history">Pause share listen history with YouTube Music</string>
     <string name="not_logged_in_youtube">Not logged in to YouTube</string>
+    <string name="signed_in_as">Signed in as</string>
 
     <string name="default_links">Open supported links</string>
     <string name="open_app_settings_error">Couldn\'t open app settings</string>
