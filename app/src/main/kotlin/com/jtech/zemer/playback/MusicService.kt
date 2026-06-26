@@ -90,6 +90,7 @@ import com.jtech.zemer.constants.MediaSessionConstants.CommandToggleShuffle
 import com.jtech.zemer.constants.MediaSessionConstants.CommandToggleStartRadio
 import com.jtech.zemer.constants.PauseListenHistoryKey
 import com.jtech.zemer.constants.PersistentQueueKey
+import com.jtech.zemer.constants.StopMusicOnTaskClearKey
 import com.jtech.zemer.constants.PlayerVolumeKey
 import com.jtech.zemer.constants.RepeatModeKey
 import com.jtech.zemer.constants.ShowLyricsKey
@@ -1737,6 +1738,16 @@ class MusicService :
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
 
     override fun onTaskRemoved(rootIntent: Intent?) {
+        // Issue #109: when "stop music on task clear" is enabled, swiping the app away from recents
+        // must stop playback and dismiss the media notification. A foreground media service keeps
+        // both alive while playing, so the notification otherwise lingered until force-stop. This is
+        // the canonical hook for a recents-swipe (more reliable than the Activity's onDestroy).
+        // onDestroy() still persists the queue first, so resume state is kept for next launch.
+        if (dataStore.get(StopMusicOnTaskClearKey, false)) {
+            player.pause()
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
         super.onTaskRemoved(rootIntent)
     }
 
