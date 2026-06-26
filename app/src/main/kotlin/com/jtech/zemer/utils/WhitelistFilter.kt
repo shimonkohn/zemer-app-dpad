@@ -7,6 +7,7 @@ import com.metrolist.innertube.models.ArtistItem
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.YTItem
+import kotlinx.coroutines.flow.firstOrNull
 import timber.log.Timber
 import java.util.concurrent.ConcurrentHashMap
 
@@ -207,6 +208,45 @@ suspend fun List<YTItem>.filterWhitelisted(
 
     Timber.d("WhitelistFilter: Result: ${result.size} items passed filter (${this.size - result.size} filtered out)")
     return result
+}
+
+/**
+ * Decide whether a song in the user's OWN synced playlist should be KEPT locally, keeping the app
+ * 100% whitelisted: keep the song only if at least one of its artists — resolved from the playlist
+ * renderer OR the local DB row — is whitelisted. Nothing unverified is ever kept (an empty allow-set,
+ * or a song with no whitelisted artist in either source, is dropped).
+ *
+ * The local-DB fallback is the fix for issue #130: YTM playlist renderers routinely omit artist ids
+ * or report a topic/"- Topic" channel that differs from the whitelisted artist channel, so a song the
+ * user added (saved locally with correct artist metadata) looked non-whitelisted and was wiped on
+ * sync even though it was by a whitelisted artist. Resolving the artist from the local row keeps that
+ * genuinely-whitelisted song without ever admitting a non-whitelisted one.
+ */
+fun shouldKeepPlaylistSong(
+    remoteArtistIds: Collection<String>,
+    localArtistIds: Collection<String>,
+    allowedArtistIds: Set<String>,
+): Boolean {
+    if (allowedArtistIds.isEmpty()) return false
+    return remoteArtistIds.any { it in allowedArtistIds } || localArtistIds.any { it in allowedArtistIds }
+}
+
+/**
+ * Whitelist filter for the user's OWN synced playlists, with local-DB artist enrichment (issue #130).
+ * Keeps the app 100% whitelisted (see [shouldKeepPlaylistSong]) while no longer dropping user-added
+ * songs whose playlist renderer carries sparse/mismatched artist ids.
+ *
+ * [allowedArtistIds] is passed in (not recomputed) so the caller can verify the whitelist is loaded
+ * and skip the sync entirely when it is empty — filtering against an empty allow-set correctly keeps
+ * nothing, which a caller must never turn into a playlist wipe.
+ */
+suspend fun List<SongItem>.filterWhitelistedWithLocalArtists(
+    database: MusicDatabase,
+    allowedArtistIds: Set<String>,
+): List<SongItem> = filter { song ->
+    val remoteIds = song.artists.mapNotNull { it.id }
+    val localIds = database.song(song.id).firstOrNull()?.artists?.map { it.id } ?: emptyList()
+    shouldKeepPlaylistSong(remoteIds, localIds, allowedArtistIds)
 }
 
 private suspend fun MusicDatabase.artistMatchesFilters(

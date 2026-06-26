@@ -334,12 +334,23 @@ class SyncUtils @Inject constructor(
                 // Filter playlists based on whitelist - only keep those with allowed songs
                 val localPlaylists = database.playlistsByNameAsc().first()
 
+                // 100% whitelisted: never reconcile playlists without a loaded whitelist. With no
+                // allow-set no song can be verified, and filtering against it would wipe every synced
+                // playlist; skip this pass and leave the already-filtered local copies intact.
+                val allowedArtistIds = WhitelistCache.allowedEntries(database, ContentFilterState.current)
+                    .map { it.artistId }.toHashSet()
+                if (allowedArtistIds.isEmpty()) return@onSuccess
+
                 allPlaylists.forEach { playlist ->
                     try {
                         val playlistPage = YouTube.playlist(playlist.id).completed().getOrNull()
-                        if (playlistPage != null) {
-                            // Filter songs within playlist by whitelist
-                            val allowedSongs = playlistPage.songs.filterWhitelisted(database)
+                        // A failed or empty per-playlist read must never restructure the library
+                        // (issue #130): keep the playlist and leave its local songs untouched.
+                        if (playlistPage != null && playlistPage.songs.isNotEmpty()) {
+                            // Keep only whitelisted songs (100% whitelist), resolving each song's
+                            // artist from the local DB row so a sparse/mismatched playlist renderer
+                            // can't drop a user-added song that is actually by a whitelisted artist.
+                            val allowedSongs = playlistPage.songs.filterWhitelistedWithLocalArtists(database, allowedArtistIds)
 
                             if (allowedSongs.isNotEmpty()) {
                                 // Only add playlist if it has at least one allowed song
@@ -378,17 +389,17 @@ class SyncUtils @Inject constructor(
                                 android.util.Log.d("SyncUtils", "Playlist ${playlist.title} removed - no allowed songs")
                             }
                         } else {
-                            // If playlist fetch failed, remove it from database
-                            localPlaylists.find { it.playlist.browseId == playlist.id }?.let { found ->
-                                database.update(found.playlist.localToggleLike())
-                            }
+                            // Fetch failed or returned no songs — do NOT delete. The playlist is still
+                            // listed remotely; keep it and protect it from the removal sweep below,
+                            // leaving its local songs untouched (issue #130).
+                            remotePlaylists.add(playlist)
+                            android.util.Log.d("SyncUtils", "Playlist ${playlist.title} read empty/failed - kept, not clobbered")
                         }
                     } catch (e: Exception) {
-                        // If playlist fetch fails, remove it from database
-                        localPlaylists.find { it.playlist.browseId == playlist.id }?.let { found ->
-                            database.update(found.playlist.localToggleLike())
-                        }
-                        android.util.Log.w("SyncUtils", "Failed to fetch playlist ${playlist.id}: ${e.message}")
+                        // A transient error must not delete the playlist: keep it and protect it from
+                        // the removal sweep, leaving local songs untouched.
+                        remotePlaylists.add(playlist)
+                        android.util.Log.w("SyncUtils", "Failed to fetch playlist ${playlist.id}, kept: ${e.message}")
                     }
                 }
 
@@ -450,6 +461,9 @@ class SyncUtils @Inject constructor(
 
         try {
             YouTube.playlist(browseId).completed().onSuccess { page ->
+                // Never wipe the local playlist on an empty/partial re-read (issue #130): an empty
+                // remote read is treated as transient, not as an emptied playlist.
+                if (page.songs.isEmpty()) return@onSuccess
                 val songs = page.songs
                     .filter { it.id in allowedSongIds }  // Only use pre-filtered songs
                     .filterIsInstance<SongItem>()
@@ -458,6 +472,9 @@ class SyncUtils @Inject constructor(
                 val localIds = database.playlistSongs(playlistId).first().sortedBy { it.map.position }.map { it.song.id }
 
                 if (remoteIds == localIds) return@onSuccess
+                // Filtering left nothing while the playlist locally still has songs — skip rather than
+                // clear, so a transient sparse read can't empty an otherwise-populated playlist.
+                if (songs.isEmpty() && localIds.isNotEmpty()) return@onSuccess
                 if (database.playlist(playlistId).firstOrNull() == null) return@onSuccess
 
                 // Pre-load existing songs to avoid blocking inside transaction
