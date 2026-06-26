@@ -147,7 +147,7 @@ class InnerTube {
         }
     }
 
-    private fun HttpRequestBuilder.ytClient(client: YouTubeClient, setLogin: Boolean = false) {
+    private fun HttpRequestBuilder.ytClient(client: YouTubeClient, setLogin: Boolean = false, sendVisitorData: Boolean = true) {
         contentType(ContentType.Application.Json)
         headers {
             append("X-Goog-Api-Format-Version", "1")
@@ -155,7 +155,7 @@ class InnerTube {
             append("X-YouTube-Client-Version", client.clientVersion)
             append("X-Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
             append("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
-            visitorData?.let { append("X-Goog-Visitor-Id", it) }
+            if (sendVisitorData) visitorData?.let { append("X-Goog-Visitor-Id", it) }
             if (setLogin && client.loginSupported) {
                 cookie?.let { cookie ->
                     append("cookie", cookie)
@@ -180,12 +180,15 @@ class InnerTube {
         params: String? = null,
         continuation: String? = null,
     ) = httpClient.post("search") {
-        ytClient(client, setLogin = false)
+        // Search omits visitorData: a shared/stale anonymous visitorData can be flagged by YouTube,
+        // which makes search silently return an empty result set. Search needs no visitor context,
+        // so we send none to keep it reliable regardless of the warmed token's state.
+        ytClient(client, setLogin = false, sendVisitorData = false)
         setBody(
             SearchBody(
                 context = client.toContext(
                     locale,
-                    visitorData,
+                    null,
                     null
                 ),
                 query = query,
