@@ -122,6 +122,6 @@ These are *measured*, not assumed:
 ### Keeping the twin in sync
 
 The deployed job is a self-contained copy in the **vps repo** (`flask_app/apps/api/zemer/`), run
-by a systemd timer 4x/day, served with ETag at `FEED_URL`
+by a systemd timer hourly, served with ETag at `FEED_URL`
 (`tests/recent-releases/README.md`, "Where it ships"). The README instructs keeping
 `build.mjs`/`lib.mjs`/`whitelist.mjs` there in sync with the algorithm here.
