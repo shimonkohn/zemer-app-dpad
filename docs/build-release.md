@@ -38,7 +38,7 @@
 | Check 16 KB page-size alignment | run: `bash scripts/check-16kb-alignment.sh app/build/outputs/apk/release/app-release.apk` |
 | Upload Crashlytics native symbols | run: `./gradlew :app:uploadCrashlyticsSymbolFileRelease` |
 | Upload APK artifact | `actions/upload-artifact@v4` (name=`release-apk`, path=`app/build/outputs/apk/release/*.apk`) |
-| Send Telegram notification | run: `if [ "${{ job.status }}" == "success" ]; then` |
+| Send Telegram notification | run: `if [ "$JOB_STATUS" == "success" ]; then` |
 
 ## Native code and submodules
 
