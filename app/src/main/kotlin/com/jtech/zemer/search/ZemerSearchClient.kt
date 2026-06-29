@@ -36,6 +36,26 @@ internal val zemerResponseJson = Json {
     coerceInputValues = true
 }
 
+/**
+ * The exact query parameters every `/search` request carries, in order. Pulled out of the HTTP call so
+ * the send-always / fail-closed contract is unit-testable without a live request: BOTH content flags
+ * ([allowFemale], [blockVideos]) are emitted on every request regardless of value. The server is
+ * default-OPEN — an omitted flag means "don't filter that category" — so omitting a false flag would
+ * silently leak that category the moment a server default ever changed. So we always send 0 or 1.
+ */
+internal fun zemerSearchParameters(
+    query: String,
+    allowFemale: Boolean,
+    blockVideos: Boolean,
+    k: Int,
+): List<Pair<String, String>> =
+    listOf(
+        "q" to query,
+        "allowFemale" to if (allowFemale) "1" else "0",
+        "blockVideos" to if (blockVideos) "1" else "0",
+        "k" to k.toString(),
+    )
+
 @Singleton
 class ZemerSearchClient @Inject constructor() {
 
@@ -53,10 +73,9 @@ class ZemerSearchClient @Inject constructor() {
         k: Int,
     ): ZemerSearchResponse {
         val response: HttpResponse = client.get("$BASE_URL/search") {
-            parameter("q", query)
-            parameter("allowFemale", if (allowFemale) "1" else "0")
-            if (blockVideos) parameter("blockVideos", "1")
-            parameter("k", k)
+            zemerSearchParameters(query, allowFemale, blockVideos, k).forEach { (name, value) ->
+                parameter(name, value)
+            }
             // The Community chip asks for a large k (a few hundred rows); give that heavier response more
             // headroom than the default ceiling, while the as-you-type / filter calls keep the tighter
             // default so a genuinely hung request still fails fast.

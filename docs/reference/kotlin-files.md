@@ -120,7 +120,7 @@ Every tracked Kotlin file is listed with hard metadata extracted from the file t
 | `app/src/main/kotlin/com/jtech/zemer/repositories/CachedSongsRepository.kt` | 96 | `com.jtech.zemer.repositories` | no | 22 | 18 | android.content, androidx.media3, dagger.hilt, java.time, javax.inject, kotlinx.coroutines |
 | `app/src/main/kotlin/com/jtech/zemer/search/SearchProvider.kt` | 15 | `com.jtech.zemer.search` | no | 0 | 1 |  |
 | `app/src/main/kotlin/com/jtech/zemer/search/ZemerResultMapper.kt` | 208 | `com.jtech.zemer.search` | no | 12 | 27 |  |
-| `app/src/main/kotlin/com/jtech/zemer/search/ZemerSearchClient.kt` | 81 | `com.jtech.zemer.search` | no | 13 | 10 | io.ktor, java.io, javax.inject, kotlinx.serialization |
+| `app/src/main/kotlin/com/jtech/zemer/search/ZemerSearchClient.kt` | 100 | `com.jtech.zemer.search` | no | 13 | 11 | io.ktor, java.io, javax.inject, kotlinx.serialization |
 | `app/src/main/kotlin/com/jtech/zemer/search/ZemerSearchModels.kt` | 72 | `com.jtech.zemer.search` | no | 2 | 34 | kotlinx.serialization |
 | `app/src/main/kotlin/com/jtech/zemer/search/ZemerSearchOptions.kt` | 28 | `com.jtech.zemer.search` | no | 5 | 6 | android.content |
 | `app/src/main/kotlin/com/jtech/zemer/search/ZemerSearchRepository.kt` | 82 | `com.jtech.zemer.search` | no | 11 | 21 | android.content, dagger.hilt, javax.inject, kotlinx.coroutines |
