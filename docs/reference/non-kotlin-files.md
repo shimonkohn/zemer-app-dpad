@@ -11,7 +11,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `.github/workflows/ui-audit.yml` | 38 lines | text `.yml` |
 | `.gitignore` | 115 lines | text `[none]` |
 | `.gitmodules` | 6 lines | text `[none]` |
-| `AGENTS.md` | 216 lines | text `.md` |
+| `AGENTS.md` | 241 lines | text `.md` |
 | `LICENSE` | 674 lines | text `[none]` |
 | `README.md` | 19 lines | text `.md` |
 | `app/.gitignore` | 1 lines | text `[none]` |
