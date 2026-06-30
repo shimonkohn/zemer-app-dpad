@@ -141,6 +141,12 @@ concurrent reader never sees a half-applied update.
   safe on Zemer results because it is a specific-id drop, **not** the artist-membership whitelist (which
   the app deliberately never runs over Zemer results, as it would clip legitimate Hebrew/community hits).
 - **No-op when empty:** an empty table changes nothing, so the override layer is a pure addition.
+- **Covers follow the filtered tracks, not the curator image:** a community/online playlist's raw
+  `playlist.thumbnail` (YouTube's curator art) bypasses the filter, so
+  `ui/screens/playlist/filteredPlaylistCover(songs)` derives the opened-playlist header cover and the
+  saved-to-Library cover from the first surviving track (`songs` is already `filterWhitelisted`-filtered)
+  — never the curator image. Otherwise a mostly-female playlist shows a female cover even with female
+  blocked.
 
 ## Sync integration points
 

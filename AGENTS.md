@@ -67,6 +67,31 @@ There are two signed-in states and telling them apart is non-obvious. A **person
 - **Synced playlists reconcile non-destructively and stay 100% whitelisted** (`SyncUtils.syncSavedPlaylists`/`syncPlaylist`, #130): keep a song only if a whitelisted artist is resolvable from the playlist renderer **or the local DB row** (`filterWhitelistedWithLocalArtists`). Do **not** restore the old `clearPlaylist()` + strict `filterWhitelisted` rebuild — it wiped user-added songs whose YTM renderer carried sparse/topic-channel artist ids while they stayed in YouTube Music. A failed/empty/partial remote read must never delete a playlist or its songs.
 - Still personalized-to-the-pool for anon (NOT yet gated): `YouTube.home()` (the Home feed and Android-Auto browse) uses the pooled cookie, so anon's Home can surface the pooled account's mixes (e.g. a "My top 50" row). Note the *Library* "My top 50" is a different thing — a **local** most-played auto-playlist (`mostPlayedSongs`), not a leak.
 
+### Content filtering (whitelist, conditional id overrides, filtered covers)
+
+The "Kosher" guarantee runs through one chokepoint — `utils/WhitelistFilter.kt` `filterWhitelisted`
+(applied on every YouTube/browse/playback surface) over the artist whitelist it reads. Two layers on top
+are non-obvious and regression-prone; full detail in `docs/whitelist/README.md`:
+
+- **Conditional id overrides** (`blockedContentIds` Firestore collection → `utils/BlockedIdsCache.kt`,
+  #161): a server-listed, read-only table of specific ids hidden *conditionally* by a **reason** —
+  `female` hides only when `!allowFemaleSingers`, `global` (and any unknown reason) hides for everyone,
+  all inert when filtering is off. The surgical complement to the artist whitelist: a *mixed* channel
+  stays whitelisted while specific items from it are dropped by id. Applied centrally in
+  `filterWhitelisted` **and** in `search/ZemerResultMapper.dropBlocked()` — the artist-membership
+  whitelist is deliberately never run over raw Zemer search results (it would clip legitimate
+  Hebrew/community hits), but a specific-id drop is safe there. Synced inside `syncArtistWhitelist` (no
+  user interaction), persisted to DataStore, loaded at startup; a failed sync keeps the previous table
+  (never unblocks). The `blockedContentIds` collection is managed by the separate **zemer-admin** app.
+- **Playlist covers come from the filtered tracks, never the raw curator image.** A community/online
+  playlist's `playlist.thumbnail` is YouTube's curator art and bypasses the filter, so a mostly-female
+  playlist would otherwise show a female cover even when female is blocked.
+  `ui/screens/playlist/filteredPlaylistCover(songs)` derives both the opened-playlist header cover and
+  the saved-to-Library cover from the first *content-filtered* track (`songs` is already
+  `filterWhitelisted`-filtered), falling back to the neutral `queue_music` placeholder / null
+  `thumbnailUrl` — **never** `playlist.thumbnail`. Mirrors the local-playlist screens; don't revert
+  either site.
+
 ### The player background system (one effective style, one extractor)
 
 The full player (`ui/player/Player.kt`) and the mini player (`ui/player/MiniPlayer.kt`) share a
