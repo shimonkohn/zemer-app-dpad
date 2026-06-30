@@ -273,8 +273,11 @@ fun OnlinePlaylistScreen(
                                         .fillMaxWidth(),
                                 ) {
                                     AsyncImage(
+                                        // Derive the header cover from the first content-filtered track,
+                                        // never the raw curator image (which can be female even when
+                                        // female is blocked). Null -> the queue_music placeholder below.
                                         model = ImageRequest.Builder(LocalContext.current)
-                                            .data(playlist.thumbnail)
+                                            .data(filteredPlaylistCover(songs) { it.thumbnail })
                                             .build(),
                                         contentDescription = null,
                                         placeholder = painterResource(R.drawable.queue_music),
@@ -342,7 +345,10 @@ fun OnlinePlaylistScreen(
                                                                 val playlistEntity = PlaylistEntity(
                                                                     name = playlist.title,
                                                                     browseId = playlist.id,
-                                                                    thumbnailUrl = playlist.thumbnail,
+                                                                    // Save the filtered-track cover, not the
+                                                                    // raw curator image, so a saved community
+                                                                    // playlist never shows a female cover.
+                                                                    thumbnailUrl = filteredPlaylistCover(songs) { it.thumbnail },
                                                                     isEditable = playlist.isEditable,
                                                                     playEndpointParams = playlist.playEndpoint?.params,
                                                                     shuffleEndpointParams = playlist.shuffleEndpoint?.params,
