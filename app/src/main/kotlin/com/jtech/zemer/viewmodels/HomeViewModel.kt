@@ -20,7 +20,10 @@ import com.jtech.zemer.db.entities.LocalItem
 import com.jtech.zemer.db.entities.Song
 import com.jtech.zemer.extensions.toEnum
 import com.jtech.zemer.models.toMediaMetadata
+import com.jtech.zemer.utils.ContentWhitelistDoc
 import com.jtech.zemer.utils.IsraeliArtistRegistry
+import com.jtech.zemer.utils.ZemerContentClient
+import com.jtech.zemer.utils.mirrorFirst
 import com.jtech.zemer.utils.ContentFilterConfig
 import com.jtech.zemer.utils.ContentFilterState
 import com.jtech.zemer.utils.SyncUtils
@@ -250,6 +253,12 @@ class HomeViewModel @Inject constructor(
     private suspend fun loadTrendingSongs(filters: ContentFilterConfig, hideExplicit: Boolean): List<SongItem> {
         val start = System.currentTimeMillis()
         val allowedIds = WhitelistCache.allowedEntries(database, filters).map { it.artistId }.toSet()
+        // Fail closed: with no whitelisted artists there is nothing to show — never fall back to raw charts.
+        // Reached only when the whitelist is empty; the whitelist-present path below is unchanged.
+        if (allowedIds.isEmpty()) {
+            Timber.w("HomeViewModel: whitelist empty — trending fail-closed (no raw charts)")
+            return emptyList()
+        }
         val charts = YouTube.getChartsPage().getOrNull()
         Timber.d("NET: YouTube.getChartsPage() took ${System.currentTimeMillis() - start}ms")
         if (charts == null) return emptyList()
@@ -385,27 +394,8 @@ class HomeViewModel @Inject constructor(
     private suspend fun checkAndUpdateArtistProfiles(cachedProfiles: List<HomeArtistProfile>) {
         runCatching {
             val firestoreStart = System.currentTimeMillis()
-            val snapshot = FirebaseFirestore.getInstance()
-                .collection("artistsWhitelist")
-                .get()
-                .await()
+            val profiles = fetchArtistProfilesMirrorFirst()
             val fetchTime = System.currentTimeMillis() - firestoreStart
-
-            val profiles = snapshot.documents.mapNotNull { doc ->
-                val id = doc.getString("id") ?: doc.getString("artistId") ?: return@mapNotNull null
-                val name = doc.getString("name") ?: doc.getString("artistName") ?: id
-                HomeArtistProfile(
-                    id = id,
-                    name = name,
-                    isAmerican = doc.getBoolean("isAmerican"),
-                    isIsraeli = IsraeliArtistRegistry.isIsraeli(id),
-                    isFemale = doc.getBoolean("isFemale"),
-                    isFamous = doc.getBoolean("isFamous"),
-                    isKids = doc.getBoolean("isKids"),
-                    isDJ = doc.getBoolean("isDJ"),
-                    isGroup = doc.getBoolean("isGroup"),
-                )
-            }
 
             // Check if data changed
             val changed = profiles.size != cachedProfiles.size ||
@@ -426,27 +416,8 @@ class HomeViewModel @Inject constructor(
     private suspend fun fetchArtistProfilesFromFirebase(fallback: List<HomeArtistProfile>): List<HomeArtistProfile> {
         return runCatching {
             val firestoreStart = System.currentTimeMillis()
-            val snapshot = FirebaseFirestore.getInstance()
-                .collection("artistsWhitelist")
-                .get()
-                .await()
-            Timber.d("NET: Firebase artistsWhitelist fetch took ${System.currentTimeMillis() - firestoreStart}ms (${snapshot.documents.size} docs)")
-
-            val profiles = snapshot.documents.mapNotNull { doc ->
-                val id = doc.getString("id") ?: doc.getString("artistId") ?: return@mapNotNull null
-                val name = doc.getString("name") ?: doc.getString("artistName") ?: id
-                HomeArtistProfile(
-                    id = id,
-                    name = name,
-                    isAmerican = doc.getBoolean("isAmerican"),
-                    isIsraeli = IsraeliArtistRegistry.isIsraeli(id),
-                    isFemale = doc.getBoolean("isFemale"),
-                    isFamous = doc.getBoolean("isFamous"),
-                    isKids = doc.getBoolean("isKids"),
-                    isDJ = doc.getBoolean("isDJ"),
-                    isGroup = doc.getBoolean("isGroup"),
-                )
-            }
+            val profiles = fetchArtistProfilesMirrorFirst()
+            Timber.d("NET: artistsWhitelist fetch took ${System.currentTimeMillis() - firestoreStart}ms (${profiles.size} docs)")
             homeArtistProfilesCache = profiles
             saveArtistProfilesToCache(profiles)
             profiles
@@ -454,6 +425,52 @@ class HomeViewModel @Inject constructor(
             Timber.w(it, "HomeViewModel: Failed to load artist profiles")
             fallback
         }
+    }
+
+    /**
+     * Artist profiles for Home — mirror-first (content.zemer.io) with the Firestore SDK as the exact
+     * fallback that ran before. Booleans stay nullable (null = unknown, distinct from false).
+     */
+    private suspend fun fetchArtistProfilesMirrorFirst(): List<HomeArtistProfile> =
+        mirrorFirst<List<HomeArtistProfile>>(
+            "homeArtistProfiles",
+            mirror = { ZemerContentClient.whitelist().mapNotNull { it.toHomeArtistProfile() } },
+            firebase = {
+                val snapshot = FirebaseFirestore.getInstance()
+                    .collection("artistsWhitelist")
+                    .get()
+                    .await()
+                snapshot.documents.mapNotNull { doc ->
+                    val id = doc.getString("id") ?: doc.getString("artistId") ?: return@mapNotNull null
+                    val name = doc.getString("name") ?: doc.getString("artistName") ?: id
+                    HomeArtistProfile(
+                        id = id,
+                        name = name,
+                        isAmerican = doc.getBoolean("isAmerican"),
+                        isIsraeli = IsraeliArtistRegistry.isIsraeli(id),
+                        isFemale = doc.getBoolean("isFemale"),
+                        isFamous = doc.getBoolean("isFamous"),
+                        isKids = doc.getBoolean("isKids"),
+                        isDJ = doc.getBoolean("isDJ"),
+                        isGroup = doc.getBoolean("isGroup"),
+                    )
+                }
+            },
+        )
+
+    private fun ContentWhitelistDoc.toHomeArtistProfile(): HomeArtistProfile? {
+        val resolvedId = id.takeIf { it.isNotBlank() } ?: artistId?.takeIf { it.isNotBlank() } ?: return null
+        return HomeArtistProfile(
+            id = resolvedId,
+            name = name ?: artistName ?: resolvedId,
+            isAmerican = isAmerican,
+            isIsraeli = IsraeliArtistRegistry.isIsraeli(resolvedId),
+            isFemale = isFemale,
+            isFamous = isFamous,
+            isKids = isKids,
+            isDJ = isDJ,
+            isGroup = isGroup,
+        )
     }
 
     private fun parseArtistProfilesCache(json: String): List<HomeArtistProfile> {
@@ -1001,7 +1018,11 @@ class HomeViewModel @Inject constructor(
                         selectionRandom,
                         recentArtistIds.toSet(),
                     )
-                } else loadHomePage(hideExplicit)
+                } else {
+                    // Fail closed: no whitelist -> no raw YouTube home feed (reached only when whitelist is empty).
+                    Timber.w("HomeViewModel: whitelist empty — home feed fail-closed (no raw content)")
+                    null
+                }
             }
             val exploreDeferred = viewModelScope.async(Dispatchers.IO) {
                 if (useWhitelist) {
@@ -1012,7 +1033,11 @@ class HomeViewModel @Inject constructor(
                         selectionRandom,
                         recentArtistIds.toSet(),
                     )
-                } else loadExplorePage(hideExplicit)
+                } else {
+                    // Fail closed: no whitelist -> no raw YouTube explore feed (reached only when whitelist is empty).
+                    Timber.w("HomeViewModel: whitelist empty — explore feed fail-closed (no raw content)")
+                    null
+                }
             }
 
             val trendingSongs = trendingDeferred.await()
