@@ -226,11 +226,17 @@ fun NavGraphBuilder.navigationBuilder(
         VideoPlayerScreen(navController, videoId, title, artist)
     }
     composable(
-        route = "online_playlist/{playlistId}",
+        // Optional `zemer` flag (default false) routes a Zemer-search playlist open through the
+        // server's `/playlist` endpoint; existing `online_playlist/{id}` links keep the default.
+        route = "online_playlist/{playlistId}?zemer={zemer}",
         arguments =
         listOf(
             navArgument("playlistId") {
                 type = NavType.StringType
+            },
+            navArgument("zemer") {
+                type = NavType.BoolType
+                defaultValue = false
             },
         ),
     ) {

@@ -10,6 +10,8 @@ import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.filterExplicit
 import com.jtech.zemer.constants.HideExplicitKey
 import com.jtech.zemer.db.MusicDatabase
+import com.jtech.zemer.search.ZemerSearchRepository
+import com.jtech.zemer.search.zemerSearchOptions
 import com.jtech.zemer.utils.dataStore
 import com.jtech.zemer.utils.getSuspend
 import com.jtech.zemer.utils.filterWhitelisted
@@ -30,11 +32,16 @@ import javax.inject.Inject
 class OnlinePlaylistViewModel @Inject constructor(
     @ApplicationContext val context: Context,
     val database: MusicDatabase,
+    private val zemerRepository: ZemerSearchRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val playlistId = requireNotNull(savedStateHandle.get<String>("playlistId")) {
         "playlistId is required but was not provided in navigation arguments"
     }
+
+    // A Zemer-sourced playlist opens through the server's `/playlist` endpoint (already whitelist-scoped)
+    // so its tracks/count/cover match the search card, instead of the InnerTube + local-whitelist path.
+    private val isZemer = savedStateHandle.get<Boolean>("zemer") == true
 
     val playlist = MutableStateFlow<PlaylistItem?>(null)
     val playlistSongs = MutableStateFlow<List<SongItem>>(emptyList())
@@ -66,6 +73,22 @@ class OnlinePlaylistViewModel @Inject constructor(
             _error.value = null
             continuation = null
             proactiveLoadJob?.cancel() // Cancel any ongoing proactive load
+
+            if (isZemer) {
+                // Server returns the whole filtered list in one shot — no InnerTube fetch, no local
+                // whitelist re-filter (that mismatch is the bug), and no pagination/proactive loading.
+                runCatching { zemerRepository.playlist(playlistId, zemerSearchOptions(context)) }
+                    .onSuccess { page ->
+                        playlist.value = page.playlist
+                        playlistSongs.value = page.songs
+                        _isLoading.value = false
+                    }.onFailure { throwable ->
+                        _error.value = throwable.message ?: "Failed to load playlist"
+                        _isLoading.value = false
+                        reportException(throwable)
+                    }
+                return@launch
+            }
 
             YouTube.playlist(playlistId)
                 .onSuccess { playlistPage ->

@@ -2,8 +2,12 @@ package com.jtech.zemer.search
 
 import android.content.Context
 import com.jtech.zemer.R
+import com.jtech.zemer.search.ZemerResultMapper.toSongItems
 import com.metrolist.innertube.YouTube.SearchFilter
+import com.metrolist.innertube.models.Artist
+import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SearchSuggestions
+import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.pages.SearchResult
 import com.metrolist.innertube.pages.SearchSummaryPage
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -11,6 +15,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/** A Zemer `/playlist` open, mapped to the UI types the online-playlist screen already renders. */
+data class ZemerPlaylistPage(val playlist: PlaylistItem, val songs: List<SongItem>)
 
 /**
  * Entry point for Zemer-engine search. It returns the same `YTItem`/page types the YouTube path does,
@@ -47,6 +54,29 @@ class ZemerSearchRepository @Inject constructor(
 
     suspend fun suggestions(query: String, options: ZemerSearchOptions): SearchSuggestions =
         ZemerResultMapper.suggestions(fetch(query, options, K_SUGGEST), options.hideExplicit, formatSongCount)
+
+    /**
+     * Open a playlist through the server's `/playlist` endpoint so the tracks, count and cover match the
+     * search card (which comes from the same server filter) — instead of the InnerTube fetch +
+     * local-whitelist path, which produced a different count. The header is a synthetic [PlaylistItem]:
+     * count comes from the returned (already-filtered) track list, and the cover from the server's
+     * filter-aware [ZemerPlaylistHeader.thumbnail]. Not cached — each open is a single fetch.
+     */
+    suspend fun playlist(id: String, options: ZemerSearchOptions): ZemerPlaylistPage {
+        val response = client.playlist(id, options.allowFemale, options.blockVideos)
+        val songs = response.toSongItems(options.hideExplicit)
+        val header = PlaylistItem(
+            id = id,
+            title = response.playlist.title,
+            author = response.playlist.artist.takeIf { it.isNotBlank() }?.let { Artist(name = it, id = null) },
+            songCountText = songs.size.takeIf { it > 0 }?.let(formatSongCount),
+            thumbnail = response.playlist.thumbnail,
+            playEndpoint = null,
+            shuffleEndpoint = null,
+            radioEndpoint = null,
+        )
+        return ZemerPlaylistPage(header, songs)
+    }
 
     private val cacheMutex = Mutex()
     private val cache = object : LinkedHashMap<String, ZemerSearchResponse>(16, 0.75f, true) {

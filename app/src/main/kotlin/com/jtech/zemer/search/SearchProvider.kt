@@ -13,3 +13,11 @@ enum class SearchProvider {
     ZEMER,
     YOUTUBE,
 }
+
+/**
+ * The `online_playlist` nav route for a playlist opened from a search result. Zemer-sourced playlists
+ * carry `?zemer=true` so the screen opens them through the server's `/playlist` endpoint (tracks/count/
+ * cover match the search card); YouTube-sourced playlists keep the plain InnerTube path.
+ */
+fun SearchProvider.onlinePlaylistRoute(playlistId: String): String =
+    if (this == SearchProvider.ZEMER) "online_playlist/$playlistId?zemer=true" else "online_playlist/$playlistId"

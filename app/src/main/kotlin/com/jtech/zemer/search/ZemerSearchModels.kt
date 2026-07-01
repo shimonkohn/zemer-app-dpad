@@ -70,3 +70,25 @@ data class ZemerPlaylist(
     // `total` would over-count vs. what the user gets when they open it). Absent on older server builds.
     @SerialName("whitelisted") val songCount: Int? = null,
 )
+
+/**
+ * Wire model for `GET /playlist` (search.zemer.io). [tracks] is already whitelist-scoped and
+ * content-filtered server-side (`tracks.size == whitelisted`), so the opened list, count and cover all
+ * come from the same source as the search card — never re-run the local artist whitelist over it. The
+ * header [ZemerPlaylistHeader.thumbnail] is filter-aware (derived from the first surviving track).
+ */
+@Serializable
+data class ZemerPlaylistResponse(
+    val playlist: ZemerPlaylistHeader = ZemerPlaylistHeader(),
+    val tracks: List<ZemerTrack> = emptyList(),
+    val total: Int = 0,
+    val whitelisted: Int = 0,
+)
+
+@Serializable
+data class ZemerPlaylistHeader(
+    val id: String = "",
+    val title: String = "",
+    val artist: String = "",
+    val thumbnail: String? = null,
+)

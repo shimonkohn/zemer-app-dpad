@@ -63,7 +63,11 @@ import androidx.navigation.NavController
 import com.jtech.zemer.LocalDatabase
 import com.jtech.zemer.LocalPlayerConnection
 import com.jtech.zemer.R
+import com.jtech.zemer.constants.SearchProviderKey
 import com.jtech.zemer.constants.SuggestionItemHeight
+import com.jtech.zemer.search.SearchProvider
+import com.jtech.zemer.search.onlinePlaylistRoute
+import com.jtech.zemer.utils.rememberEnumPreference
 import com.jtech.zemer.extensions.togglePlayPause
 import com.jtech.zemer.models.toMediaMetadata
 import com.jtech.zemer.playback.queues.YouTubeQueue
@@ -110,6 +114,9 @@ fun OnlineSearchScreen(
 
     val coroutineScope = rememberCoroutineScope()
     val viewState by viewModel.viewState.collectAsState()
+    // The dropdown follows the active engine (see OnlineSearchSuggestionViewModel), so a Zemer playlist
+    // shown here must open through the server path — route on the same provider preference.
+    val (searchProvider, _) = rememberEnumPreference(SearchProviderKey, SearchProvider.ZEMER)
 
     val lazyListState = rememberLazyListState()
     val firstItemKey = remember(viewState) {
@@ -284,7 +291,7 @@ fun OnlineSearchScreen(
                                     onDismiss()
                                 }
                                 is PlaylistItem -> {
-                                    navController.navigate("online_playlist/${item.id}")
+                                    navController.navigate(searchProvider.onlinePlaylistRoute(item.id))
                                     onDismiss()
                                 }
                             }
@@ -358,7 +365,7 @@ fun OnlineSearchScreen(
                                     onDismiss()
                                 }
                                 is PlaylistItem -> {
-                                    navController.navigate("online_playlist/${item.id}")
+                                    navController.navigate(searchProvider.onlinePlaylistRoute(item.id))
                                     onDismiss()
                                 }
                             }

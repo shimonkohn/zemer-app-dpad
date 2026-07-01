@@ -123,6 +123,15 @@ object ZemerResultMapper {
         playlists.filter { it.id.isNotBlank() }.map { it.toPlaylistItem(formatSongCount) }.distinctBy { it.id }.dropBlocked()
 
     /**
+     * A Zemer `/playlist` response as playable [SongItem]s. The server already whitelist-scoped and
+     * content-filtered the tracks, so — like every other Zemer surface — the local artist whitelist is
+     * NOT re-run here (re-filtering would re-introduce the card-vs-open count mismatch this endpoint
+     * fixes); only `hideExplicit` and the surgical id-overrides ([dropBlocked]) are applied.
+     */
+    fun ZemerPlaylistResponse.toSongItems(hideExplicit: Boolean): List<SongItem> =
+        songItems(tracks, hideExplicit)
+
+    /**
      * The grouped summary view (`filter == null`), matching the YouTube summary's shape exactly
      * (`YouTube.searchSummary`): items grouped by type into the same sections, in the same order, with
      * the same hardcoded English titles, so toggling engines never changes the summary's headers or

@@ -37,4 +37,33 @@ class ZemerSearchJsonTest {
         assertTrue(resp.categories.playlists.isEmpty())
         assertTrue(resp.categories.community.isEmpty())
     }
+
+    @Test
+    fun `playlist response decodes tracks and the filter-aware header`() {
+        val payload =
+            """{"playlist":{"id":"PL1","title":"Pesach","artist":"Curator",""" +
+                """"thumbnail":"https://i.ytimg.com/vi/vid0/mqdefault.jpg"},""" +
+                """"tracks":[{"videoId":"vid0","title":"T","artist":"A","explicit":false}],""" +
+                """"total":28,"whitelisted":1}"""
+
+        val resp = zemerResponseJson.decodeFromString(ZemerPlaylistResponse.serializer(), payload)
+
+        assertEquals("Pesach", resp.playlist.title)
+        assertEquals("https://i.ytimg.com/vi/vid0/mqdefault.jpg", resp.playlist.thumbnail)
+        assertEquals(listOf("vid0"), resp.tracks.map { it.videoId })
+        assertEquals(1, resp.whitelisted)
+        assertEquals(28, resp.total)
+    }
+
+    @Test
+    fun `sparse playlist response degrades to defaults, not an exception`() {
+        // A null header / null tracks (older or odd payload) must not fail the whole response.
+        val resp = zemerResponseJson.decodeFromString(
+            ZemerPlaylistResponse.serializer(),
+            """{"playlist":null,"tracks":null}""",
+        )
+
+        assertTrue(resp.tracks.isEmpty())
+        assertEquals("", resp.playlist.title)
+    }
 }

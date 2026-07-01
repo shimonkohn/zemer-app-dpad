@@ -89,6 +89,29 @@ class ZemerSearchClient @Inject constructor() {
         return zemerResponseJson.decodeFromString(ZemerSearchResponse.serializer(), response.bodyAsText())
     }
 
+    /**
+     * Fetch a single playlist already filtered to the whitelist + content flags by the server, so the
+     * opened list matches the search card exactly. The content flags are sent explicitly (same
+     * fail-closed contract as [search] — the server is default-OPEN). A large playlist is filtered
+     * server-side at open time, so this uses the larger request ceiling.
+     */
+    suspend fun playlist(
+        id: String,
+        allowFemale: Boolean,
+        blockVideos: Boolean,
+    ): ZemerPlaylistResponse {
+        val response: HttpResponse = client.get("$BASE_URL/playlist") {
+            parameter("id", id)
+            parameter("allowFemale", if (allowFemale) "1" else "0")
+            parameter("blockVideos", if (blockVideos) "1" else "0")
+            timeout { requestTimeoutMillis = LARGE_REQUEST_TIMEOUT_MS }
+        }
+        if (!response.status.isSuccess()) {
+            throw IOException("Zemer playlist returned HTTP ${response.status.value}")
+        }
+        return zemerResponseJson.decodeFromString(ZemerPlaylistResponse.serializer(), response.bodyAsText())
+    }
+
     companion object {
         const val BASE_URL = "https://search.zemer.io"
         private const val REQUEST_TIMEOUT_MS = 8_000L

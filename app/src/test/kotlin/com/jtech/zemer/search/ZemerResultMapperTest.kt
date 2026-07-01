@@ -5,6 +5,7 @@ import com.metrolist.innertube.models.AlbumItem
 import com.metrolist.innertube.models.ArtistItem
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SongItem
+import com.jtech.zemer.search.ZemerResultMapper.toSongItems
 import com.jtech.zemer.utils.BlockedIdsCache
 import com.jtech.zemer.utils.ContentFilterConfig
 import com.jtech.zemer.utils.ContentFilterState
@@ -346,6 +347,40 @@ class ZemerResultMapperTest {
         val queries = ZemerResultMapper.suggestions(resp, hideExplicit = false).queries
         assertEquals(5, queries.size) // capped at MAX_QUERY_SUGGESTIONS
         assertEquals(queries.size, queries.distinctBy { it.lowercase() }.size) // no case-dupes
+    }
+
+    @Test
+    fun `playlist response maps every server track to a SongItem without a local whitelist re-filter`() {
+        // The /playlist endpoint already whitelist-scoped the tracks, so opening keeps exactly what the
+        // server returned (minus blanks/dupes) — re-running the local artist filter here is the bug that
+        // made the opened count differ from the search card.
+        val resp = ZemerPlaylistResponse(
+            playlist = ZemerPlaylistHeader(id = "PL1", title = "Mix", artist = "Curator", thumbnail = "th"),
+            tracks = listOf(
+                ZemerTrack("a", "One", "Artist A"),
+                ZemerTrack("b", "Two", "Artist B"),
+                ZemerTrack("", "No id", "X"),        // blank id dropped, never crashes navigation
+                ZemerTrack("a", "Dup", "Artist A"),  // duplicate id de-duped (id-keyed list)
+            ),
+            total = 10,
+            whitelisted = 2,
+        )
+
+        val songs = resp.toSongItems(hideExplicit = false)
+        assertEquals(listOf("a", "b"), songs.map { it.id })
+        assertEquals("https://i.ytimg.com/vi/a/hqdefault.jpg", songs.first().thumbnail)
+    }
+
+    @Test
+    fun `playlist response honors hideExplicit`() {
+        val resp = ZemerPlaylistResponse(
+            tracks = listOf(
+                ZemerTrack("clean", "Clean", "A", explicit = false),
+                ZemerTrack("dirty", "Dirty", "B", explicit = true),
+            ),
+        )
+        assertEquals(listOf("clean"), resp.toSongItems(hideExplicit = true).map { it.id })
+        assertEquals(listOf("clean", "dirty"), resp.toSongItems(hideExplicit = false).map { it.id })
     }
 
     @After
