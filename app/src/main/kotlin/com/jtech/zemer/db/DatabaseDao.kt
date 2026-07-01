@@ -1439,9 +1439,19 @@ interface DatabaseDao {
     @Update
     fun update(artist: ArtistEntity)
 
-    /** Set only the artist image; used to batch-populate thumbnails from the whitelist sync in one transaction. */
-    @Query("UPDATE artist SET thumbnailUrl = :thumbnailUrl WHERE id = :artistId")
+    /**
+     * Set only the artist image, and only when the row has none (fill-only). Never overwrites an
+     * existing value: a device-resolved image (artist-page visit / the onError fallback resolver) is
+     * fresher than the batch server URL, and rewriting identical values on every sync would invalidate
+     * the artist table and re-emit every artist flow for a no-op. Stale URLs self-heal via the
+     * fallback resolver when they 404, so the server value is only ever a first fill.
+     */
+    @Query("UPDATE artist SET thumbnailUrl = :thumbnailUrl WHERE id = :artistId AND (thumbnailUrl IS NULL OR thumbnailUrl = '')")
     fun updateArtistThumbnailUrl(artistId: String, thumbnailUrl: String)
+
+    /** Overwrite the artist image unconditionally — for the fallback resolver replacing a dead URL. */
+    @Query("UPDATE artist SET thumbnailUrl = :thumbnailUrl WHERE id = :artistId")
+    fun replaceArtistThumbnailUrl(artistId: String, thumbnailUrl: String)
 
     @Update
     fun update(album: AlbumEntity)

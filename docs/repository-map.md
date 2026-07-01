@@ -179,7 +179,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/constants/PreferenceKeys.kt` | 578 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/constants/StatPeriod.kt` | 97 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/db/Converters.kt` | 20 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/db/DatabaseDao.kt` | 1709 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/db/DatabaseDao.kt` | 1719 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/db/MusicDatabase.kt` | 594 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/db/entities/Album.kt` | 33 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/db/entities/AlbumArtistMap.kt` | 29 lines | `.kt` |
@@ -304,7 +304,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/HideOnScrollFAB.kt` | 117 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/IconButton.kt` | 118 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/Items.kt` | 1571 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/ui/component/Library.kt` | 418 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/ui/component/Library.kt` | 417 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/Lyrics.kt` | 970 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/LyricsImageCard.kt` | 287 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/component/Material3MenuItem.kt` | 139 lines | `.kt` |
@@ -431,7 +431,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/ui/utils/ShapeUtils.kt` | 8 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/utils/ShowMediaInfo.kt` | 194 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/ui/utils/StringUtils.kt` | 34 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/ui/utils/YouTubeUtils.kt` | 34 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/ui/utils/YouTubeUtils.kt` | 40 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/AccessibilityUtils.kt` | 91 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/BlockedIdsCache.kt` | 74 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/ButtonInputCapture.kt` | 40 lines | `.kt` |
@@ -456,7 +456,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/utils/NotificationUtils.kt` | 35 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/PermissionHelper.kt` | 247 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/StringUtils.kt` | 31 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/utils/SyncUtils.kt` | 788 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/utils/SyncUtils.kt` | 782 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/UpdateChecker.kt` | 155 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/Updater.kt` | 55 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/utils/UrlValidator.kt` | 109 lines | `.kt` |
@@ -493,7 +493,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/viewmodels/ExploreViewModel.kt` | 78 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/viewmodels/HistoryViewModel.kt` | 108 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/viewmodels/HomeViewModel.kt` | 1515 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/viewmodels/KidZoneViewModel.kt` | 73 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/viewmodels/KidZoneViewModel.kt` | 56 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/viewmodels/LatestReleasesViewModel.kt` | 74 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/viewmodels/LibraryVideosViewModel.kt` | 47 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/viewmodels/LibraryViewModels.kt` | 462 lines | `.kt` |
@@ -512,7 +512,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/kotlin/com/jtech/zemer/viewmodels/ReportContentViewModel.kt` | 37 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/viewmodels/StatsViewModel.kt` | 175 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/viewmodels/TopPlaylistViewModel.kt` | 38 lines | `.kt` |
-| `app/src/main/kotlin/com/jtech/zemer/viewmodels/WhitelistedArtistsViewModel.kt` | 92 lines | `.kt` |
+| `app/src/main/kotlin/com/jtech/zemer/viewmodels/WhitelistedArtistsViewModel.kt` | 65 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/viewmodels/YouTubeBrowseViewModel.kt` | 52 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/widget/MusicWidget.kt` | 391 lines | `.kt` |
 | `app/src/main/kotlin/com/jtech/zemer/widget/WidgetLayout.kt` | 14 lines | `.kt` |
@@ -735,7 +735,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/test/kotlin/com/jtech/zemer/ui/player/PlayerBackgroundTest.kt` | 53 lines | `.kt` |
 | `app/src/test/kotlin/com/jtech/zemer/ui/screens/playlist/PlaylistHeaderCoverTest.kt` | 23 lines | `.kt` |
 | `app/src/test/kotlin/com/jtech/zemer/ui/utils/StringUtilsTest.kt` | 21 lines | `.kt` |
-| `app/src/test/kotlin/com/jtech/zemer/ui/utils/YouTubeUtilsTest.kt` | 45 lines | `.kt` |
+| `app/src/test/kotlin/com/jtech/zemer/ui/utils/YouTubeUtilsTest.kt` | 76 lines | `.kt` |
 | `app/src/test/kotlin/com/jtech/zemer/utils/BlockedIdsCacheTest.kt` | 62 lines | `.kt` |
 | `app/src/test/kotlin/com/jtech/zemer/utils/CrashReportingTreeTest.kt` | 64 lines | `.kt` |
 | `app/src/test/kotlin/com/jtech/zemer/utils/PlaylistSongWhitelistTest.kt` | 52 lines | `.kt` |
@@ -789,7 +789,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/repository-map.md` | 991 lines | `.md` |
 | `docs/ui/README.md` | 329 lines | `.md` |
 | `docs/ui/standards.md` | 290 lines | `.md` |
-| `docs/whitelist/README.md` | 231 lines | `.md` |
+| `docs/whitelist/README.md` | 256 lines | `.md` |
 | `gradle.properties` | 40 lines | `.properties` |
 | `gradle/libs.versions.toml` | 159 lines | `.toml` |
 | `gradle/wrapper/gradle-wrapper.jar` | 45457 bytes | `.jar` |

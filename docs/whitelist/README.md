@@ -22,6 +22,7 @@ This document covers the artist whitelist as implemented in the app source: data
 | `isGenZ` | `Boolean = false` | Captured from Firestore and stored. |
 | `isKids` | `Boolean = false` | Captured from Firestore and stored. |
 | `isKidZone` | `Boolean = false` | Used by Kid Zone / non-Kid-Zone DAO queries. |
+| `thumbnailUrl` | `@Ignore var String? = null` (body property) | **Transient, NOT a column** (no Room migration): the artist's channel image carried in from the whitelist fetch (mirror/Firestore `thumbnail` field). Consumed by `syncArtistWhitelist` to populate `Artist.thumbnailUrl`; Room ignores it when reading rows back. |
 
 ### DAO methods
 
@@ -39,6 +40,8 @@ The DAO exposes these whitelist-specific operations:
 | Boolean membership test | `isArtistWhitelisted(artistId: String)` |
 | Random IDs | `getRandomWhitelistedArtistIds(limit: Int)` |
 | Missing thumbnail IDs | `getWhitelistedArtistIdsMissingThumb(limit: Int)` |
+| Fill-only thumbnail write (sync) | `updateArtistThumbnailUrl(artistId, thumbnailUrl)` — only when the row has none |
+| Overwriting thumbnail write (fallback resolver) | `replaceArtistThumbnailUrl(artistId, thumbnailUrl)` |
 | Delete all whitelist rows | `clearWhitelist()` |
 | Delete one whitelist row | `removeFromWhitelist(artistId: String)` |
 
@@ -55,6 +58,28 @@ The DAO also uses `artist_whitelist` in many library queries so local songs, alb
 | `blockedContentIds` | `fetchBlockedIds()` reads all documents; each is one id-level **override** (see "Conditional id overrides"). Read-only — the app never writes/deletes this collection. |
 
 For each `artistsWhitelist` document, the fetcher accepts artist ID from `id` or `artistId`, artist name from `name` or `artistName`, and boolean flags from `isFemale`, `isChasid`, `isGenZ`, `isKids`, and `isKidZone`. Missing boolean flags default to `false`. Documents missing ID or name are skipped by the `return@forEach` statements.
+
+### Artist thumbnails (server-carried, fill-only)
+
+Each whitelist doc also carries a **`thumbnail`** (a yt3/lh3 channel-image URL, resolved once server-side;
+mirrored by `content.zemer.io/whitelist`). The pipeline, end to end:
+
+- `fetchWhitelist` sets it on the transient `ArtistWhitelistEntity.thumbnailUrl` (both mirror and
+  Firestore paths).
+- `syncArtistWhitelist` writes it onto `Artist.thumbnailUrl` inside the sync transaction — new artist
+  rows get it in their insert; existing rows via `updateArtistThumbnailUrl`, whose SQL is **fill-only**
+  (`AND (thumbnailUrl IS NULL OR thumbnailUrl = '')`): a null/blank server value never wipes anything,
+  a device-resolved image is never overwritten, and steady-state syncs touch zero rows (no Room
+  invalidation churn). The which-rows logic is the pure, tested `artistThumbnailUpdates(...)`.
+- If many whitelisted artists lack a thumbnail (>= `MISSING_THUMB_BOOTSTRAP_THRESHOLD`, e.g. an app
+  update while the whitelist version is unchanged), the version gate is bypassed once so a full fetch
+  can bootstrap them.
+- The UI (`WhitelistedArtistListItem`/`GridItem`) requests a small crop via `resize()`
+  (`ARTIST_AVATAR_PX`) and, on a load **error** (missing or rotted URL), falls back to the shared
+  **`ArtistThumbResolver`** — the ONE on-device resolver (app-wide `Semaphore(4)` bound; definitive
+  answers never retried; transient failures retried after a cooldown; column-targeted
+  `replaceArtistThumbnailUrl` write). Do not reintroduce per-ViewModel resolvers or a bulk post-sync
+  backfill — both patterns were removed for storming InnerTube and racing the sync transaction.
 
 ## Runtime caches
 

@@ -61,7 +61,6 @@ class SyncUtils @Inject constructor(
     private val isSyncingArtists = MutableStateFlow(false)
     private val isSyncingPlaylists = MutableStateFlow(false)
     private val isSyncingWhitelist = MutableStateFlow(false)
-    private val isBackfillingThumbs = MutableStateFlow(false)
 
     val isWhitelistSyncing: StateFlow<Boolean> = isSyncingWhitelist.asStateFlow()
 
@@ -584,8 +583,16 @@ class SyncUtils @Inject constructor(
                 val existingWhitelistIds = database.getAllWhitelistedArtistIdsSync()
                 val localEmpty = existingWhitelistIds.isEmpty()
 
+                // Thumbnails ride the whitelist fetch, so an install whose artist rows are largely
+                // thumb-less (e.g. an app update while the whitelist version is unchanged) must do one
+                // full fetch to bootstrap them — otherwise the version gate would defer the server
+                // thumbnails indefinitely and every avatar would fall back to a per-artist browse.
+                // A handful of artists legitimately have no server thumbnail, hence the threshold.
+                val manyThumbsMissing = !localEmpty &&
+                    database.getWhitelistedArtistIdsMissingThumb(MISSING_THUMB_BOOTSTRAP_THRESHOLD).size >= MISSING_THUMB_BOOTSTRAP_THRESHOLD
+
                 // Always fetch at least once per version (including version 1). Subsequent runs skip if already synced.
-                if (!forceSync && remoteVersion != null && remoteVersion <= localVersion && !localEmpty) {
+                if (!forceSync && remoteVersion != null && remoteVersion <= localVersion && !localEmpty && !manyThumbsMissing) {
                     runCatching { WhitelistCache.updateAll(database.getWhitelistEntriesSync()) }
                     refreshBlockedIds()
                     _whitelistSyncProgress.value = WhitelistSyncProgress(isComplete = true)
@@ -624,12 +631,10 @@ class SyncUtils @Inject constructor(
                     }
                     // Populate the per-artist thumbnail (carried in the synced whitelist) onto EXISTING artist
                     // rows too. Batched inside this transaction, so it's a single flow re-emit — not the old
-                    // write-per-thumbnail recompose storm. A null/blank thumbnail never wipes an existing one.
-                    whitelistEntries.forEach { entry ->
-                        val thumb = entry.thumbnailUrl
-                        if (!thumb.isNullOrBlank() && entry.artistId in existingArtistIds) {
-                            updateArtistThumbnailUrl(entry.artistId, thumb)
-                        }
+                    // write-per-thumbnail recompose storm. The DAO query is fill-only: a null/blank thumbnail
+                    // never wipes an existing one, and a device-resolved image is never overwritten.
+                    artistThumbnailUpdates(whitelistEntries, existingArtistIds).forEach { (artistId, thumb) ->
+                        updateArtistThumbnailUrl(artistId, thumb)
                     }
                 }
                 WhitelistCache.updateAll(whitelistEntries)
@@ -645,9 +650,6 @@ class SyncUtils @Inject constructor(
                     settings[LastWhitelistSyncTimeKey] = System.currentTimeMillis()
                     remoteVersion?.let { settings[LastWhitelistVersionKey] = it }
                 }
-
-                // Backfill artist thumbnails for whitelisted artists missing thumbs (limited to reduce load)
-                backfillMissingArtistThumbs(limit = 150)
             } catch (e: Exception) {
                 _whitelistSyncProgress.value = WhitelistSyncProgress(isComplete = true)
             } finally {
@@ -668,36 +670,6 @@ class SyncUtils @Inject constructor(
                 BlockedIdsCache.updateAll(overrides)
                 context.dataStore.edit { it[BlockedContentIdsKey] = BlockedIdsCache.serialize(overrides) }
             }
-        }
-    }
-
-    fun backfillMissingArtistThumbs(limit: Int = 150) {
-        if (isBackfillingThumbs.value) return
-        isBackfillingThumbs.value = true
-        syncScope.launch {
-            performBackfillMissingArtistThumbs(limit)
-            isBackfillingThumbs.value = false
-        }
-    }
-
-    private suspend fun performBackfillMissingArtistThumbs(limit: Int) {
-        try {
-            val missingIds = database.getWhitelistedArtistIdsMissingThumb(limit)
-            if (missingIds.isEmpty()) return
-
-            missingIds.forEachIndexed { index, artistId ->
-                runCatching {
-                    YouTube.artist(artistId).onSuccess { artistPage ->
-                        val thumb = artistPage.artist.thumbnail
-                        if (!thumb.isNullOrBlank()) {
-                            database.getArtistById(artistId)?.let { existing ->
-                                database.update(existing.copy(thumbnailUrl = thumb))
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
         }
     }
 
@@ -786,3 +758,25 @@ class SyncUtils @Inject constructor(
         }
     }
 }
+
+/**
+ * If at least this many whitelisted artists lack a thumbnail, the version-gate is bypassed once so a
+ * full whitelist fetch can bootstrap the server-carried thumbnails (app-update case). Well above the
+ * handful of artists that legitimately have no server thumbnail, so a bootstrapped install skips again.
+ */
+internal const val MISSING_THUMB_BOOTSTRAP_THRESHOLD = 25
+
+/**
+ * Which (artistId, thumbnailUrl) pairs the whitelist sync writes onto EXISTING artist rows — pure so
+ * the population rules are regression-tested: a null/blank server thumbnail is never written (never
+ * wipes), and only rows already in the artist table are targeted (new rows carry the thumbnail via
+ * their insert). The fill-only guard (never overwrite a device-resolved image) lives in the DAO query.
+ */
+internal fun artistThumbnailUpdates(
+    entries: List<com.jtech.zemer.db.entities.ArtistWhitelistEntity>,
+    existingArtistIds: Set<String>,
+): List<Pair<String, String>> =
+    entries.mapNotNull { entry ->
+        val thumb = entry.thumbnailUrl?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+        if (entry.artistId in existingArtistIds) entry.artistId to thumb else null
+    }

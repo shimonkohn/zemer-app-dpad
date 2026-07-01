@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jtech.zemer.db.MusicDatabase
 import com.jtech.zemer.db.entities.Artist
+import com.jtech.zemer.utils.ArtistThumbResolver
 import com.jtech.zemer.utils.SyncUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +22,7 @@ class KidZoneViewModel
 constructor(
     private val database: MusicDatabase,
     private val syncUtils: SyncUtils,
+    private val thumbResolver: ArtistThumbResolver,
 ) : ViewModel() {
     val searchQuery = MutableStateFlow("")
 
@@ -48,26 +50,7 @@ constructor(
             filteredByQuery
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    private val thumbRequests = mutableSetOf<String>()
-
-    fun requestThumb(artistId: String) {
-        synchronized(thumbRequests) {
-            if (!thumbRequests.add(artistId)) return
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                val pageResult = com.metrolist.innertube.YouTube.artist(artistId)
-                pageResult.onSuccess { artistPage ->
-                    val thumb = artistPage.artist.thumbnail
-                    if (!thumb.isNullOrBlank()) {
-                        database.getArtistById(artistId)?.let { existing ->
-                            database.update(existing.copy(thumbnailUrl = thumb))
-                        }
-                    }
-                }
-            }.onFailure {
-                thumbRequests.remove(artistId)
-            }
-        }
-    }
+    // Fallback for a missing/rotted synced thumbnail — the shared app-wide resolver (bounded,
+    // cooldown-retried, column-targeted write). See ArtistThumbResolver.
+    fun requestThumb(artistId: String) = thumbResolver.requestThumb(artistId)
 }

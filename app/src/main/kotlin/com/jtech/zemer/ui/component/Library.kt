@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +34,22 @@ import com.jtech.zemer.ui.utils.resize
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.WatchEndpoint
 import kotlinx.coroutines.CoroutineScope
+
+/**
+ * The ONE request builder for whitelisted-artist avatars — list and grid both use it so they share a
+ * cache entry and can never drift (different URLs would double-download every avatar). Requests a
+ * [ARTIST_AVATAR_PX] server-side crop of the ~2880px source (~10x smaller) and decodes at that size.
+ */
+@Composable
+private fun artistAvatarRequest(thumbnailUrl: String?): ImageRequest =
+    ImageRequest.Builder(LocalContext.current)
+        .data(thumbnailUrl?.resize(ARTIST_AVATAR_PX, ARTIST_AVATAR_PX))
+        .scale(Scale.FILL) // fill the target bounds to avoid narrow slices
+        .size(ARTIST_AVATAR_PX)
+        .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
+        .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
+        .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
+        .build()
 
 @Composable
 fun LibraryArtistListItem(
@@ -84,18 +99,8 @@ fun WhitelistedArtistListItem(
     subtitle = "", // No song count for whitelisted artists
     badges = {}, // No badges for whitelisted artists
     thumbnailContent = {
-        if (artist.artist.thumbnailUrl.isNullOrBlank()) {
-            LaunchedEffect(artist.id) { onRequestThumb() }
-        }
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(artist.artist.thumbnailUrl?.resize(ARTIST_AVATAR_PX, ARTIST_AVATAR_PX))
-                .scale(Scale.FILL) // fill the target bounds to avoid narrow slices
-                .size(ARTIST_AVATAR_PX)
-                .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .build(),
+            model = artistAvatarRequest(artist.artist.thumbnailUrl),
             contentDescription = null,
             modifier = Modifier
                 .size(ListThumbnailSize)
@@ -104,7 +109,8 @@ fun WhitelistedArtistListItem(
             alignment = Alignment.Center,
             placeholder = painterResource(R.drawable.artist),
             error = painterResource(R.drawable.artist),
-            // Fallback: a synced URL that rotated/404s re-resolves on-device (rare, bounded in the VM).
+            // Fallback for a null URL (coil resolves null data to Error) or one that rotated/404s:
+            // re-resolve on-device via the shared bounded resolver.
             onError = { onRequestThumb() },
         )
     },
@@ -178,21 +184,14 @@ fun WhitelistedArtistGridItem(
     subtitle = "", // No song count for whitelisted artists
     badges = {}, // No badges for whitelisted artists
     thumbnailContent = {
-        if (artist.artist.thumbnailUrl.isNullOrBlank()) {
-            LaunchedEffect(artist.id) { onRequestThumb() }
-        }
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(artist.artist.thumbnailUrl?.resize(ARTIST_AVATAR_PX, ARTIST_AVATAR_PX))
-                .size(ARTIST_AVATAR_PX)
-                .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .build(),
+            model = artistAvatarRequest(artist.artist.thumbnailUrl),
             contentDescription = null,
             contentScale = ContentScale.Crop,
+            placeholder = painterResource(R.drawable.artist),
             error = painterResource(R.drawable.artist),
-            // Fallback: a synced URL that rotated/404s re-resolves on-device (rare, bounded in the VM).
+            // Fallback for a null URL (coil resolves null data to Error) or one that rotated/404s:
+            // re-resolve on-device via the shared bounded resolver.
             onError = { onRequestThumb() },
             modifier = Modifier
                 .fillMaxSize()
