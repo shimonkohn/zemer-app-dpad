@@ -430,6 +430,7 @@
     <string name="signed_in">Signed in</string>
     <string name="not_signed_in">Not signed in</string>
     <string name="sign_in_to_continue">Sign in to continue</string>
+    <string name="sign_in_not_finished">Almost there! Your sign-in didn\'t finish — please try signing in again.</string>
     <string name="blocked">Blocked</string>
     <string name="allowed">Allowed</string>
 

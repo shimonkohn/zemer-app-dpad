@@ -92,11 +92,17 @@ fun LoginScreen(
                     }
 
                     override fun onPageFinished(view: WebView, url: String?) {
-                        loadUrl("javascript:Android.onRetrieveVisitorData(window.yt.config_.VISITOR_DATA)")
-                        loadUrl("javascript:Android.onRetrieveDataSyncId(window.yt.config_.DATASYNC_ID)")
+                        // Guarded extraction: yt.config_ may not exist yet at page-finish. The old raw
+                        // property chain THREW on slow pages, the callbacks never ran, and the login
+                        // persisted with a cookie but no dataSyncId — the pooled/anonymous state, so
+                        // playlist sync said "Not logged in to YouTube" for a personal login (#140).
+                        loadUrl(LoginCapture.EXTRACT_VISITOR_DATA_JS)
+                        loadUrl(LoginCapture.EXTRACT_DATA_SYNC_ID_JS)
 
                         if (url?.startsWith("https://music.youtube.com") == true) {
-                            innerTubeCookie = CookieManager.getInstance().getCookie(url)
+                            CookieManager.getInstance().getCookie(url)?.takeIf { it.isNotBlank() }?.let {
+                                innerTubeCookie = it
+                            }
 
                             android.util.Log.d("LoginScreen", "Login URL detected, extracting data...")
                             android.util.Log.d("LoginScreen", "Cookie extracted: ${if(innerTubeCookie.isNotEmpty()) "Yes (${innerTubeCookie.length} chars)" else "No"}")
@@ -106,8 +112,30 @@ fun LoginScreen(
                             if (!hasCompletedLogin) {
                                 hasCompletedLogin = true
                                 coroutineScope.launch {
-                                    // Restored original timing
-                                    kotlinx.coroutines.delay(500)
+                                    // Poll until BOTH the signed-in cookie and the personal dataSyncId are
+                                    // captured — restarting without the dataSyncId is what broke #140.
+                                    var attempt = 0
+                                    while (
+                                        !LoginCapture.isCaptureComplete(innerTubeCookie, dataSyncId) &&
+                                        attempt < LoginCapture.MAX_CAPTURE_ATTEMPTS
+                                    ) {
+                                        attempt++
+                                        kotlinx.coroutines.delay(LoginCapture.CAPTURE_RETRY_DELAY_MS)
+                                        webView?.loadUrl(LoginCapture.EXTRACT_VISITOR_DATA_JS)
+                                        webView?.loadUrl(LoginCapture.EXTRACT_DATA_SYNC_ID_JS)
+                                        CookieManager.getInstance().getCookie("https://music.youtube.com")
+                                            ?.takeIf { it.isNotBlank() }?.let { innerTubeCookie = it }
+                                    }
+
+                                    if (!LoginCapture.isCaptureComplete(innerTubeCookie, dataSyncId)) {
+                                        android.util.Log.e("LoginScreen", "Login capture incomplete after $attempt attempts (cookie=${innerTubeCookie.isNotEmpty()}, dataSyncId=${dataSyncId.isNotEmpty()})")
+                                        reportException(IllegalStateException("Login capture incomplete: cookie=${innerTubeCookie.isNotEmpty()}, dataSyncId=${dataSyncId.isNotEmpty()}"))
+                                        // Friendly, non-technical message; allow a later page-finish to retry.
+                                        Toast.makeText(context, context.getString(R.string.sign_in_not_finished), Toast.LENGTH_LONG).show()
+                                        hasCompletedLogin = false
+                                        return@launch
+                                    }
+                                    android.util.Log.d("LoginScreen", "Login capture complete after $attempt retries")
 
                                     try {
                                         // CRITICAL: Initialize YouTube object with new authentication data
@@ -160,19 +188,18 @@ fun LoginScreen(
                     @JavascriptInterface
                     fun onRetrieveVisitorData(newVisitorData: String?) {
                         android.util.Log.d("LoginScreen", "JavaScript onRetrieveVisitorData called: ${if(newVisitorData != null) "Yes" else "No"}")
-                        if (newVisitorData != null) {
-                            visitorData = newVisitorData
-                            android.util.Log.d("LoginScreen", "VisitorData set: ${newVisitorData.take(20)}...")
+                        newVisitorData?.takeIf { it.isNotBlank() }?.let {
+                            visitorData = it
+                            android.util.Log.d("LoginScreen", "VisitorData set: ${it.take(20)}...")
                         }
                     }
 
                     @JavascriptInterface
                     fun onRetrieveDataSyncId(newDataSyncId: String?) {
                         android.util.Log.d("LoginScreen", "JavaScript onRetrieveDataSyncId called: ${if(newDataSyncId != null) "Yes" else "No"}")
-                        if (newDataSyncId != null) {
-                            val cleanDataSyncId = newDataSyncId.substringBefore("||")
-                            dataSyncId = cleanDataSyncId
-                            android.util.Log.d("LoginScreen", "DataSyncId set: ${cleanDataSyncId}")
+                        LoginCapture.cleanDataSyncId(newDataSyncId)?.let {
+                            dataSyncId = it
+                            android.util.Log.d("LoginScreen", "DataSyncId set: $it")
                         }
                     }
                 }, "Android")
