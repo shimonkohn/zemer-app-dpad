@@ -311,7 +311,7 @@ Every tracked Kotlin file is listed with hard metadata extracted from the file t
 | `app/src/main/kotlin/com/jtech/zemer/utils/WhitelistCache.kt` | 40 | `com.jtech.zemer.utils` | no | 2 | 10 | java.util |
 | `app/src/main/kotlin/com/jtech/zemer/utils/WhitelistFetcher.kt` | 147 | `com.jtech.zemer.utils` | no | 6 | 32 | com.google, java.time, kotlinx.coroutines, timber.log |
 | `app/src/main/kotlin/com/jtech/zemer/utils/WhitelistFilter.kt` | 310 | `com.jtech.zemer.utils` | no | 10 | 42 | java.util, kotlinx.coroutines, timber.log |
-| `app/src/main/kotlin/com/jtech/zemer/utils/YTPlayerUtils.kt` | 629 | `com.jtech.zemer.utils` | no | 39 | 75 | android.net, androidx.core, androidx.media3, com.zemer, kotlinx.coroutines, okhttp3.OkHttpClient, timber.log |
+| `app/src/main/kotlin/com/jtech/zemer/utils/YTPlayerUtils.kt` | 642 | `com.jtech.zemer.utils` | no | 40 | 75 | android.net, androidx.core, androidx.media3, com.zemer, kotlinx.coroutines, okhttp3.OkHttpClient, timber.log |
 | `app/src/main/kotlin/com/jtech/zemer/utils/ZemerContentClient.kt` | 185 | `com.jtech.zemer.utils` | no | 21 | 43 | io.ktor, java.io, kotlinx.serialization, timber.log |
 | `app/src/main/kotlin/com/jtech/zemer/utils/ZemerLinkBuilder.kt` | 16 | `com.jtech.zemer.utils` | no | 0 | 6 |  |
 | `app/src/main/kotlin/com/jtech/zemer/utils/sabr/EjsNTransformSolver.kt` | 307 | `com.jtech.zemer.utils.sabr` | no | 17 | 37 | android.content, android.net, android.webkit, com.zemer, java.io, kotlin.coroutines, kotlinx.coroutines, timber.log |
