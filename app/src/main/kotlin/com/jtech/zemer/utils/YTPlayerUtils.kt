@@ -34,6 +34,7 @@ import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.metrolist.innertube.models.response.PlayerResponse
 import com.metrolist.innertube.utils.ResilientDns
 import com.metrolist.innertube.utils.parseCookieString
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -210,7 +211,11 @@ object YTPlayerUtils {
             YouTube.player(
                 videoId, playlistId, mainClient, signatureTimestamp,
                 webPlayerPot = if (mainClient.useWebPoTokens) poTokenResult?.playerRequestPoToken else null
-            ).getOrNull()
+            ).onFailure {
+                // Distinguish thrown request/parse failures from genuine playability rejections
+                // (both otherwise surface as a null response downstream).
+                Timber.tag(TAG).e(it, "player() request FAILED for main client %s", mainClient.clientName)
+            }.getOrNull()
         Timber.tag(TAG).d( "Main response status: ${mainPlayerResponse?.playabilityStatus?.status ?: "request failed"}")
         var audioConfig = mainPlayerResponse?.playerConfig?.audioConfig
         var videoDetails = mainPlayerResponse?.videoDetails
@@ -248,7 +253,11 @@ object YTPlayerUtils {
                     YouTube.player(
                         videoId, playlistId, client, signatureTimestamp,
                         webPlayerPot = if (client.useWebPoTokens) poTokenResult?.playerRequestPoToken else null
-                    ).getOrNull()
+                    ).onFailure {
+                        // A thrown network/HTTP/deserialization failure is not the same signal as
+                        // a "Status NOT OK" playability rejection — log which one it was.
+                        Timber.tag(TAG).e(it, "player() request FAILED for %s", client.clientName)
+                    }.getOrNull()
             }
 
             // process current client response
@@ -588,8 +597,12 @@ object YTPlayerUtils {
                     Timber.tag(TAG).d( "Custom cipher deobfuscation succeeded for $videoId")
                     url = deobfuscated
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                Timber.tag(TAG).e( "Custom cipher deobfuscation FAILED for $videoId", e)
+                // Throwable-first overload: passing e as a message vararg (no %s) silently
+                // dropped the exception class/message/stack from logcat and Crashlytics.
+                Timber.tag(TAG).e(e, "Custom cipher deobfuscation FAILED for %s", videoId)
             }
         }
 
@@ -598,7 +611,7 @@ object YTPlayerUtils {
             val extractorUrl = NewPipeUtils.getStreamUrl(format, videoId)
                 .onSuccess { Timber.tag(TAG).d( "NewPipe extractor succeeded for $videoId") }
                 .onFailure {
-                    Timber.tag(TAG).e( "NewPipe extractor FAILED for $videoId", it)
+                    Timber.tag(TAG).e(it, "NewPipe extractor FAILED for %s", videoId)
                 }
                 .getOrNull()
             if (extractorUrl != null) {
