@@ -2,9 +2,11 @@ package com.jtech.zemer.search
 
 import android.content.Context
 import com.jtech.zemer.R
+import com.jtech.zemer.search.ZemerResultMapper.toAlbumItem
 import com.jtech.zemer.search.ZemerResultMapper.toAlbumPage
 import com.jtech.zemer.search.ZemerResultMapper.toSongItems
 import com.metrolist.innertube.YouTube.SearchFilter
+import com.metrolist.innertube.models.AlbumItem
 import com.metrolist.innertube.models.Artist
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SearchSuggestions
@@ -20,6 +22,19 @@ import javax.inject.Singleton
 
 /** A Zemer `/playlist` open, mapped to the UI types the online-playlist screen already renders. */
 data class ZemerPlaylistPage(val playlist: PlaylistItem, val songs: List<SongItem>)
+
+/**
+ * A curated `/zemer-playlists?id=…` open: the server header plus playable, already-filtered tracks.
+ * [albums] = the curated albums as browsable rows (the detail screen's Albums chip). [albumTrackIds] =
+ * the videoIds that entered the playlist via an album expansion ([ZemerTrack.fromAlbum]) — the Songs
+ * chip's complement, and what Play/Shuffle plays under the Albums chip ([SongItem] can't carry it).
+ */
+data class ZemerCuratedPlaylistPage(
+    val playlist: ZemerCuratedPlaylist,
+    val songs: List<SongItem>,
+    val albums: List<AlbumItem>,
+    val albumTrackIds: Set<String>,
+)
 
 /**
  * Entry point for Zemer-engine search. It returns the same `YTItem`/page types the YouTube path does,
@@ -89,6 +104,38 @@ class ZemerSearchRepository @Inject constructor(
      */
     suspend fun album(browseId: String, playlistId: String?, options: ZemerSearchOptions): AlbumPage =
         client.album(browseId, options.allowFemale, options.blockVideos).toAlbumPage(playlistId)
+
+    /**
+     * The hand-curated "Zemer Playlists" section, in editorial order (rendered as received). Not
+     * cached — the doc'd contract is a plain re-fetch on screen open (single-digit-ms server reads),
+     * which also guarantees a response fetched under one flag set is never shown under another.
+     * Sparse/duplicate rows are dropped defensively (the id keys a Compose lazy list).
+     */
+    suspend fun curatedPlaylists(options: ZemerSearchOptions): List<ZemerCuratedPlaylist> =
+        client.curatedPlaylists(options.allowFemale, options.blockVideos)
+            .playlists
+            .filter { it.id.isNotBlank() }
+            .distinctBy { it.id }
+
+    /**
+     * One curated playlist's tracks, in curated order, filtered server-side for the same flags as the
+     * list. Null = 404 (gone, or nothing survives these flags) — the screen backs out gracefully.
+     */
+    suspend fun curatedPlaylist(id: String, options: ZemerSearchOptions): ZemerCuratedPlaylistPage? =
+        client.curatedPlaylist(id, options.allowFemale, options.blockVideos)?.let { response ->
+            ZemerCuratedPlaylistPage(
+                playlist = response.playlist,
+                songs = response.toSongItems(options.hideExplicit),
+                albums = response.albums
+                    .filter { it.id.isNotBlank() }
+                    .map { it.toAlbumItem() }
+                    .distinctBy { it.browseId },
+                albumTrackIds = response.tracks
+                    .filter { it.fromAlbum && it.videoId.isNotBlank() }
+                    .map { it.videoId }
+                    .toSet(),
+            )
+        }
 
     private val cacheMutex = Mutex()
     private val cache = object : LinkedHashMap<String, ZemerSearchResponse>(16, 0.75f, true) {

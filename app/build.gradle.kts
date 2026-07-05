@@ -234,6 +234,8 @@ dependencies {
 
     implementation(libs.coil)
     implementation(libs.coil.network.okhttp)
+    // SVG decode for the server-generated curated-playlist covers (/zemer-playlists/cover).
+    implementation(libs.coil.svg)
 
     implementation(libs.ucrop)
 

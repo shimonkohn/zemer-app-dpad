@@ -1,6 +1,7 @@
 package com.jtech.zemer.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
@@ -74,6 +75,7 @@ import com.jtech.zemer.ui.component.ArtistGridItem
 import com.jtech.zemer.ui.component.LocalBottomSheetPageState
 import com.jtech.zemer.ui.component.LocalMenuState
 import com.jtech.zemer.ui.component.NavigationTitle
+import com.jtech.zemer.ui.component.ZemerCuratedPlaylistGridItem
 import com.jtech.zemer.ui.component.SongGridItem
 import com.jtech.zemer.ui.component.SongListItem
 import com.jtech.zemer.ui.component.YouTubeGridItem
@@ -94,6 +96,7 @@ import com.jtech.zemer.utils.rememberPreference
 import com.jtech.zemer.latestreleases.LatestReleaseCard
 import com.jtech.zemer.viewmodels.HomeViewModel
 import com.jtech.zemer.viewmodels.LatestReleasesViewModel
+import com.jtech.zemer.viewmodels.ZemerCuratedPlaylistsViewModel
 import com.metrolist.innertube.models.AlbumItem
 import com.metrolist.innertube.models.ArtistItem
 import com.metrolist.innertube.models.PlaylistItem
@@ -135,6 +138,11 @@ fun HomeScreen(
     val featuredVideos = homeUiState.featuredVideos
     val latestReleasesViewModel: LatestReleasesViewModel = hiltViewModel()
     val latestReleases by latestReleasesViewModel.releases.collectAsState()
+    val zemerPlaylistsViewModel: ZemerCuratedPlaylistsViewModel = hiltViewModel()
+    val zemerPlaylists by zemerPlaylistsViewModel.playlists.collectAsState()
+    // The curated endpoint's freshness contract is a plain re-fetch on screen open (single-digit-ms
+    // server reads) — this also picks up a card removed by curation while a detail open 404'd.
+    LaunchedEffect(Unit) { zemerPlaylistsViewModel.refresh() }
     val (blockVideos, _) = rememberPreference(BlockVideosKey, false)
     homeUiState.isNewUser
 
@@ -398,7 +406,12 @@ fun HomeScreen(
             .pullToRefresh(
                 state = pullRefreshState,
                 isRefreshing = isRefreshing,
-                onRefresh = viewModel::refresh
+                onRefresh = {
+                    viewModel.refresh()
+                    // The curated "Zemer Playlists" feed is separate from HomeViewModel; re-check it
+                    // on every pull so newly curated playlists appear without an app restart.
+                    zemerPlaylistsViewModel.refresh()
+                }
             ),
         contentAlignment = Alignment.TopStart
     ) {
@@ -431,7 +444,8 @@ fun HomeScreen(
                 featuredAlbums.isNotEmpty() ||
                 (!blockVideos && featuredVideos.isNotEmpty()) ||
                 trendingSongs.isNotEmpty() ||
-                latestReleases.isNotEmpty()
+                latestReleases.isNotEmpty() ||
+                zemerPlaylists.isNotEmpty()
         val shouldShowShimmer = isLoading || (!hasLocalHomeContent && !hasRemoteHomeContent)
 
         LazyColumn(
@@ -552,6 +566,43 @@ fun HomeScreen(
                                     isPlaying = isPlaying,
                                     asGrid = true,
                                     coroutineScope = scope,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Hand-curated "Zemer Playlists" (server-rendered for the user's content-filter
+                // flags). Editorial order, never re-sorted; empty = nothing curated yet -> no section.
+                zemerPlaylists.takeIf { it.isNotEmpty() }?.let { playlists ->
+                    item(key = "zemer_playlists_title", contentType = "header") {
+                        NavigationTitle(
+                            title = stringResource(R.string.zemer_playlists),
+                            onClick = { navController.navigate("zemer_playlists") },
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+
+                    item(key = "zemer_playlists_list", contentType = "grid") {
+                        LazyRow(
+                            contentPadding = WindowInsets.systemBars
+                                .only(WindowInsetsSides.Horizontal)
+                                .asPaddingValues(),
+                            modifier = Modifier.animateItem()
+                        ) {
+                            items(
+                                items = playlists,
+                                key = { it.id },
+                                contentType = { "zemer_playlist" }
+                            ) { playlist ->
+                                ZemerCuratedPlaylistGridItem(
+                                    playlist = playlist,
+                                    // The compact 128dp row card: runtime overflows its two subtitle
+                                    // lines, so it shows the song count alone (full label on See all).
+                                    showRuntime = false,
+                                    modifier = Modifier.clickable {
+                                        navController.navigate("zemer_playlist/${playlist.id}")
+                                    }
                                 )
                             }
                         }

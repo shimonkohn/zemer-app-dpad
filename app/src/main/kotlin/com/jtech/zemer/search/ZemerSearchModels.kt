@@ -50,6 +50,12 @@ data class ZemerTrack(
     // `/album` tracks only; absent (null) on the search categories.
     val durationSec: Int? = null,
     val trackNumber: Int? = null,
+    // Curated `/zemer-playlists?id=…` tracks only: true = the track entered the playlist via an
+    // `albumIds` expansion, false/absent = a direct song pick. Drives the detail screen's
+    // All/Albums/Songs chips; absent until the server ships it (requested in
+    // handoff-docs/zemer-curated-playlists-track-provenance-request.md) — then every track reads
+    // as a Song, which is safe.
+    val fromAlbum: Boolean = false,
 )
 
 @Serializable
@@ -105,6 +111,46 @@ data class ZemerPlaylistHeader(
 @Serializable
 data class ZemerAlbumResponse(
     val album: ZemerAlbumHeader = ZemerAlbumHeader(),
+    val tracks: List<ZemerTrack> = emptyList(),
+)
+
+/**
+ * Wire model for `GET /zemer-playlists` (no `id`) — the hand-curated "Zemer Playlists" section. The
+ * server returns the playlists in editorial order (render as received, never re-sort), with counts,
+ * covers and runtimes already computed AGAINST THE FLAGS SENT — so nothing here is re-filtered
+ * client-side. An empty list is a normal state (nothing curated yet): the section just doesn't render.
+ */
+@Serializable
+data class ZemerCuratedPlaylistsResponse(
+    val count: Int = 0,
+    val playlists: List<ZemerCuratedPlaylist> = emptyList(),
+)
+
+@Serializable
+data class ZemerCuratedPlaylist(
+    // A stable server slug ("shabbos"), NOT a YouTube playlist id — it must never be routed through
+    // any YouTube-playlist code path.
+    val id: String = "",
+    val title: String = "",
+    // Always filter-safe: the server derives it from a member track that survives the sent flags.
+    val thumbnail: String? = null,
+    val trackCount: Int = 0,
+    // Null = unknown; the runtime label is hidden then.
+    val totalDurationSec: Int? = null,
+)
+
+/**
+ * Wire model for `GET /zemer-playlists?id=…` — one curated playlist's tracks, in curated order,
+ * already filtered server-side for the flags sent. Tracks reuse [ZemerTrack]; the extra per-track
+ * fields the endpoint sends (`playCount`, `releaseDate`, `isVideo`) are ignored by the lenient reader.
+ * [albums] = the curator's `albumIds` as browsable rows (same shape as the `/search` album category —
+ * [ZemerAlbum]), post-filter, in curated order; absent on an older server (Albums chip just empty —
+ * requested in handoff-docs/zemer-curated-playlists-albums-list-request.md).
+ */
+@Serializable
+data class ZemerCuratedPlaylistResponse(
+    val playlist: ZemerCuratedPlaylist = ZemerCuratedPlaylist(),
+    val albums: List<ZemerAlbum> = emptyList(),
     val tracks: List<ZemerTrack> = emptyList(),
 )
 

@@ -8,6 +8,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import kotlinx.serialization.json.Json
 import java.io.IOException
@@ -55,6 +56,32 @@ internal fun zemerSearchParameters(
         "blockVideos" to if (blockVideos) "1" else "0",
         "k" to k.toString(),
     )
+
+/**
+ * The exact query parameters a `/zemer-playlists` request carries, in order ([id] = null for the
+ * list view). Extracted so the fail-closed flag contract is unit-testable: the server is default-OPEN
+ * (an omitted flag means "don't filter"), so ALL THREE content flags are always sent explicitly.
+ * `kidZone` is always off for the same reason as [ZemerSearchClient.album]: the section lives on the
+ * Home screen, which is never reachable from inside the KidZone tab.
+ */
+internal fun zemerCuratedPlaylistsParameters(
+    id: String?,
+    allowFemale: Boolean,
+    blockVideos: Boolean,
+): List<Pair<String, String>> = buildList {
+    if (id != null) add("id" to id)
+    add("allowFemale" to if (allowFemale) "1" else "0")
+    add("blockVideos" to if (blockVideos) "1" else "0")
+    add("kidZone" to "0")
+}
+
+/**
+ * Resolves a server-relative asset path against [ZemerSearchClient.BASE_URL]. The curated-playlists
+ * endpoint returns its generated covers as relative paths ("/zemer-playlists/cover?id=…") so the
+ * asset stays host-agnostic server-side; absolute URLs (track art on i.ytimg.com) pass through.
+ */
+internal fun resolveZemerUrl(url: String?): String? =
+    url?.let { if (it.startsWith("/")) ZemerSearchClient.BASE_URL + it else it }
 
 @Singleton
 class ZemerSearchClient @Inject constructor() {
@@ -136,6 +163,56 @@ class ZemerSearchClient @Inject constructor() {
         }
         return zemerResponseJson.decodeFromString(ZemerAlbumResponse.serializer(), response.bodyAsText())
     }
+
+    /**
+     * The hand-curated "Zemer Playlists" list, ready to render: order, counts, covers and runtimes are
+     * all server-computed for the flags sent (see [zemerCuratedPlaylistsParameters]). An empty list is
+     * normal — nothing curated yet.
+     */
+    suspend fun curatedPlaylists(
+        allowFemale: Boolean,
+        blockVideos: Boolean,
+    ): ZemerCuratedPlaylistsResponse {
+        val response = curatedPlaylistsRequest(id = null, allowFemale, blockVideos)
+        if (!response.status.isSuccess()) {
+            throw IOException("Zemer curated playlists returned HTTP ${response.status.value}")
+        }
+        val decoded = zemerResponseJson.decodeFromString(ZemerCuratedPlaylistsResponse.serializer(), response.bodyAsText())
+        return decoded.copy(playlists = decoded.playlists.map { it.withAbsoluteThumbnail() })
+    }
+
+    /**
+     * One curated playlist's tracks, filtered server-side for the flags sent. Returns null on 404 —
+     * the playlist doesn't exist (or no track survives these flags), which the caller handles by
+     * backing out and refreshing the list rather than as an error.
+     */
+    suspend fun curatedPlaylist(
+        id: String,
+        allowFemale: Boolean,
+        blockVideos: Boolean,
+    ): ZemerCuratedPlaylistResponse? {
+        val response = curatedPlaylistsRequest(id, allowFemale, blockVideos)
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) {
+            throw IOException("Zemer curated playlist returned HTTP ${response.status.value}")
+        }
+        val decoded = zemerResponseJson.decodeFromString(ZemerCuratedPlaylistResponse.serializer(), response.bodyAsText())
+        return decoded.copy(playlist = decoded.playlist.withAbsoluteThumbnail())
+    }
+
+    private fun ZemerCuratedPlaylist.withAbsoluteThumbnail(): ZemerCuratedPlaylist =
+        copy(thumbnail = resolveZemerUrl(thumbnail))
+
+    private suspend fun curatedPlaylistsRequest(
+        id: String?,
+        allowFemale: Boolean,
+        blockVideos: Boolean,
+    ): HttpResponse =
+        client.get("$BASE_URL/zemer-playlists") {
+            zemerCuratedPlaylistsParameters(id, allowFemale, blockVideos).forEach { (name, value) ->
+                parameter(name, value)
+            }
+        }
 
     companion object {
         const val BASE_URL = "https://search.zemer.io"

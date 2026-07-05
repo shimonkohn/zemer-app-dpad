@@ -25,6 +25,7 @@ import com.jtech.zemer.ui.screens.playlist.DownloadedVideosScreen
 import com.jtech.zemer.ui.screens.playlist.LocalPlaylistScreen
 import com.jtech.zemer.ui.screens.playlist.OnlinePlaylistScreen
 import com.jtech.zemer.ui.screens.playlist.TopPlaylistScreen
+import com.jtech.zemer.ui.screens.playlist.ZemerCuratedPlaylistScreen
 import com.jtech.zemer.ui.screens.recognition.RecognitionHistoryScreen
 import com.jtech.zemer.ui.screens.search.OnlineSearchResult
 import com.jtech.zemer.ui.screens.settings.AboutScreen
@@ -86,6 +87,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("latest_releases") {
         LatestReleasesScreen(navController, scrollBehavior)
+    }
+    composable("zemer_playlists") {
+        ZemerPlaylistsScreen(navController, scrollBehavior)
     }
     composable("charts_screen") {
        ChartsScreen(navController)
@@ -252,6 +256,19 @@ fun NavGraphBuilder.navigationBuilder(
         ),
     ) {
         OnlinePlaylistScreen(navController, scrollBehavior)
+    }
+    composable(
+        // A hand-curated "Zemer Playlists" entry; {playlistId} is a server slug (e.g. "shabbos"),
+        // never a YouTube playlist id, so it gets its own screen instead of online_playlist.
+        route = "zemer_playlist/{playlistId}",
+        arguments =
+        listOf(
+            navArgument("playlistId") {
+                type = NavType.StringType
+            },
+        ),
+    ) {
+        ZemerCuratedPlaylistScreen(navController, scrollBehavior)
     }
     composable(
         route = "local_playlist/{playlistId}",

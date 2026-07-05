@@ -40,7 +40,8 @@ object ZemerResultMapper {
             title = title,
             artists = listOf(Artist(name = artist, id = null)),
             album = null,
-            duration = null,
+            // Present on /album and /zemer-playlists tracks; the search categories send none.
+            duration = durationSec,
             thumbnail = thumbnailFor(videoId),
             explicit = explicit,
         )
@@ -134,6 +135,14 @@ object ZemerResultMapper {
         songItems(tracks, hideExplicit)
 
     /**
+     * A curated `/zemer-playlists?id=…` response as playable [SongItem]s, in curated order. Filtering
+     * (whitelist, female, videos, id-overrides) already ran server-side against the sent flags, so —
+     * like every Zemer surface — only `hideExplicit` and the surgical [dropBlocked] run here.
+     */
+    fun ZemerCuratedPlaylistResponse.toSongItems(hideExplicit: Boolean): List<SongItem> =
+        songItems(tracks, hideExplicit)
+
+    /**
      * A Zemer `/album` response as the [AlbumPage] the album screen + DB persist flow already consume,
      * so the Zemer path reuses that whole pipeline unchanged. Like every Zemer surface the tracks are
      * whitelist-scoped server-side, so only the surgical id-overrides ([dropBlocked]) run here
@@ -157,7 +166,6 @@ object ZemerResultMapper {
             .map { track ->
                 track.toSongItem().copy(
                     album = Album(name = albumItem.title, id = albumItem.browseId),
-                    duration = track.durationSec,
                     // Prefer the square album art over the derived (letterboxed) video frame.
                     thumbnail = album.thumbnail ?: thumbnailFor(track.videoId),
                 )

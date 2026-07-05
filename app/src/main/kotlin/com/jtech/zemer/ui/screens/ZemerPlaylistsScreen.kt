@@ -1,0 +1,80 @@
+package com.jtech.zemer.ui.screens
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavController
+import com.jtech.zemer.LocalPlayerAwareWindowInsets
+import com.jtech.zemer.R
+import com.jtech.zemer.constants.GridThumbnailHeight
+import com.jtech.zemer.ui.component.IconButton
+import com.jtech.zemer.ui.component.ZemerCuratedPlaylistGridItem
+import com.jtech.zemer.ui.utils.backToMain
+import com.jtech.zemer.viewmodels.ZemerCuratedPlaylistsViewModel
+
+/**
+ * The "See all" screen for the Home "Zemer Playlists" section: every curated playlist as a vertical
+ * grid, in the server's editorial order. Uses its own [ZemerCuratedPlaylistsViewModel] instance (a
+ * fresh fetch on open — the endpoint's freshness contract is a plain re-fetch); when the feed is
+ * empty/unavailable the grid is simply empty.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ZemerPlaylistsScreen(
+    navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
+    viewModel: ZemerCuratedPlaylistsViewModel = hiltViewModel(),
+) {
+    val playlists by viewModel.playlists.collectAsState()
+    LaunchedEffect(Unit) { viewModel.refresh() }
+
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = GridThumbnailHeight + 24.dp),
+        contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+    ) {
+        items(
+            items = playlists,
+            key = { it.id },
+        ) { playlist ->
+            ZemerCuratedPlaylistGridItem(
+                playlist = playlist,
+                fillMaxWidth = true,
+                modifier = Modifier.clickable {
+                    navController.navigate("zemer_playlist/${playlist.id}")
+                },
+            )
+        }
+    }
+
+    TopAppBar(
+        title = { Text(stringResource(R.string.zemer_playlists)) },
+        navigationIcon = {
+            IconButton(
+                onClick = navController::navigateUp,
+                onLongClick = navController::backToMain,
+            ) {
+                Icon(
+                    painterResource(R.drawable.arrow_back),
+                    contentDescription = null,
+                )
+            }
+        },
+        scrollBehavior = scrollBehavior,
+    )
+}

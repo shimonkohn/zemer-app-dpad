@@ -18,6 +18,7 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.CachePolicy
 import coil3.request.allowHardware
 import coil3.request.crossfade
+import coil3.svg.SvgDecoder
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.YouTubeLocale
 import com.jtech.zemer.constants.*
@@ -403,7 +404,11 @@ class App : Application(), SingletonImageLoader.Factory {
         return ImageLoader.Builder(this).apply {
             crossfade(false)
             allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-            components { add(OkHttpNetworkFetcherFactory(okHttpClient)) }
+            components {
+                add(OkHttpNetworkFetcherFactory(okHttpClient))
+                // The curated-playlist covers are server-generated SVGs (/zemer-playlists/cover).
+                add(SvgDecoder.Factory())
+            }
             if (cacheSize == 0) {
                 diskCachePolicy(CachePolicy.DISABLED)
             } else {
