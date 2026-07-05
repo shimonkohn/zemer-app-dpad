@@ -2,7 +2,6 @@ package com.jtech.zemer.ui.screens.playlist
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,13 +25,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -99,10 +96,8 @@ import com.jtech.zemer.ui.component.FontSizeRange
 import com.jtech.zemer.ui.component.IconButton
 import com.jtech.zemer.ui.component.LocalMenuState
 import com.jtech.zemer.ui.component.YouTubeListItem
-import com.jtech.zemer.ui.component.shimmer.ButtonPlaceholder
 import com.jtech.zemer.ui.component.shimmer.ListItemPlaceHolder
 import com.jtech.zemer.ui.component.shimmer.ShimmerHost
-import com.jtech.zemer.ui.component.shimmer.TextPlaceholder
 import com.jtech.zemer.ui.menu.SelectionMediaMetadataMenu
 import com.jtech.zemer.ui.menu.YouTubePlaylistMenu
 import com.jtech.zemer.ui.menu.YouTubeSongMenu
@@ -215,43 +210,7 @@ fun OnlinePlaylistScreen(
             playlist.let { playlist ->
                 if (isLoading) {
                     item(key = "loading_shimmer") {
-                        ShimmerHost {
-                            Column(Modifier.padding(12.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Spacer(
-                                        modifier =
-                                        Modifier
-                                            .size(AlbumThumbnailSize)
-                                            .clip(RoundedCornerShape(ThumbnailCornerRadius))
-                                            .background(MaterialTheme.colorScheme.onSurface),
-                                    )
-
-                                    Spacer(Modifier.width(16.dp))
-
-                                    Column(
-                                        verticalArrangement = Arrangement.Center,
-                                    ) {
-                                        TextPlaceholder()
-                                        TextPlaceholder()
-                                        TextPlaceholder()
-                                    }
-                                }
-
-                                Spacer(Modifier.padding(8.dp))
-
-                                Row {
-                                    ButtonPlaceholder(Modifier.weight(1f))
-
-                                    Spacer(Modifier.width(12.dp))
-
-                                    ButtonPlaceholder(Modifier.weight(1f))
-                                }
-                            }
-
-                            repeat(6) {
-                                ListItemPlaceHolder()
-                            }
-                        }
+                        PlaylistHeaderShimmer()
                     }
                 } else if (playlist != null) {
                     if (!isSearching) {
@@ -411,54 +370,24 @@ fun OnlinePlaylistScreen(
 
                                 Spacer(Modifier.height(12.dp))
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    if (songs.isNotEmpty()) {
-                                        Button(
-                                            onClick = {
-                                                playerConnection.playQueue(
-                                                    ListQueue(
-                                                        title = playlist.title,
-                                                        items = songs.map { it.toMediaItem() },
-                                                    )
-                                                )
-                                            },
-                                            contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.play),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(ButtonDefaults.IconSize)
+                                PlaylistPlayShuffleButtons(
+                                    onPlay = {
+                                        playerConnection.playQueue(
+                                            ListQueue(
+                                                title = playlist.title,
+                                                items = songs.map { it.toMediaItem() },
                                             )
-                                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                                            Text(stringResource(R.string.play))
-                                        }
-                                    }
-
-                                    playlist.shuffleEndpoint?.let {
-                                        OutlinedButton(
-                                            onClick = {
-                                                val shuffledSongs = songs.map { it.toMediaItem() }.shuffled()
-                                                playerConnection.playQueue(
-                                                    ListQueue(
-                                                        title = playlist.title,
-                                                        items = shuffledSongs,
-                                                    )
-                                                )
-                                            },
-                                            contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.shuffle),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(ButtonDefaults.IconSize)
+                                        )
+                                    }.takeIf { songs.isNotEmpty() },
+                                    onShuffle = {
+                                        playerConnection.playQueue(
+                                            ListQueue(
+                                                title = playlist.title,
+                                                items = songs.map { it.toMediaItem() }.shuffled(),
                                             )
-                                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                                            Text(stringResource(R.string.shuffle))
-                                        }
-                                    }
-                                }
+                                        )
+                                    }.takeIf { playlist.shuffleEndpoint != null },
+                                )
                             }
                         }
                     }

@@ -119,10 +119,10 @@ data class ZemerAlbumResponse(
  * server returns the playlists in editorial order (render as received, never re-sort), with counts,
  * covers and runtimes already computed AGAINST THE FLAGS SENT — so nothing here is re-filtered
  * client-side. An empty list is a normal state (nothing curated yet): the section just doesn't render.
+ * (The wire `count` is ignored — [playlists]`.size` after the repository's cleanup is the truth.)
  */
 @Serializable
 data class ZemerCuratedPlaylistsResponse(
-    val count: Int = 0,
     val playlists: List<ZemerCuratedPlaylist> = emptyList(),
 )
 

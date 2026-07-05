@@ -1,5 +1,6 @@
 package com.jtech.zemer.ui.screens
 
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -56,7 +57,9 @@ fun ZemerPlaylistsScreen(
                 playlist = playlist,
                 fillMaxWidth = true,
                 modifier = Modifier.clickable {
-                    navController.navigate("zemer_playlist/${playlist.id}")
+                    // The slug is server-controlled: encode so an unexpected '/'/'?' can never
+                    // break route matching (a crash on tap).
+                    navController.navigate("zemer_playlist/${Uri.encode(playlist.id)}")
                 },
             )
         }

@@ -2,6 +2,8 @@ package com.jtech.zemer.search
 
 import com.jtech.zemer.ui.component.ZemerRuntimeLabel
 import com.jtech.zemer.ui.component.zemerCuratedPlaylistRuntime
+import com.jtech.zemer.utils.ContentFilterConfig
+import com.jtech.zemer.viewmodels.zemerOptionsStillCurrent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -50,7 +52,7 @@ class ZemerCuratedPlaylistsTest {
 
         val resp = zemerResponseJson.decodeFromString(ZemerCuratedPlaylistsResponse.serializer(), payload)
 
-        assertEquals(2, resp.count)
+        // The wire `count` is deliberately unmodeled — playlists.size is the truth.
         assertEquals(listOf("shabbos", "kumzitz"), resp.playlists.map { it.id })
         assertEquals(9840, resp.playlists.first().totalDurationSec)
         assertNull(resp.playlists.last().totalDurationSec) // null runtime survives as null (label hidden)
@@ -97,6 +99,41 @@ class ZemerCuratedPlaylistsTest {
         )
         assertEquals(false, resp.tracks.single().fromAlbum)
         assertTrue(resp.albums.isEmpty())
+    }
+
+    @Test
+    fun `stale-flag guard - a response only publishes while its options match the live config`() {
+        val options = ZemerSearchOptions(allowFemale = true, blockVideos = false, hideExplicit = false)
+
+        assertEquals(
+            true,
+            zemerOptionsStillCurrent(options, ContentFilterConfig(allowFemaleSingers = true, blockVideos = false)),
+        )
+        // The crux: a fetch issued before a flag flip must be dropped, not shown.
+        assertEquals(
+            false,
+            zemerOptionsStillCurrent(options, ContentFilterConfig(allowFemaleSingers = false, blockVideos = false)),
+        )
+        assertEquals(
+            false,
+            zemerOptionsStillCurrent(options, ContentFilterConfig(allowFemaleSingers = true, blockVideos = true)),
+        )
+    }
+
+    @Test
+    fun `curated albums map with blank-id drop and browseId dedup`() {
+        val resp = ZemerCuratedPlaylistResponse(
+            albums = listOf(
+                ZemerAlbum(id = "MPRE1", title = "A1", artist = "X"),
+                ZemerAlbum(id = "", title = "sparse"),
+                ZemerAlbum(id = "MPRE1", title = "dup"),
+                ZemerAlbum(id = "MPRE2", title = "A2", artist = "Y"),
+            ),
+        )
+
+        val items = with(ZemerResultMapper) { resp.toAlbumItems() }
+
+        assertEquals(listOf("MPRE1", "MPRE2"), items.map { it.browseId })
     }
 
     // ---- mapping ----

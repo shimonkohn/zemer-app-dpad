@@ -143,6 +143,15 @@ object ZemerResultMapper {
         songItems(tracks, hideExplicit)
 
     /**
+     * The curated albums as browsable [AlbumItem] rows (the detail screen's Albums chip), with the
+     * same defense-in-depth every other Zemer collection gets: sparse-row drop, de-dup, and the
+     * surgical id-overrides ([dropBlocked]) — a Firestore-blocked album must not render as a row
+     * even if the server's serve-time strip lags the app's fresher local table.
+     */
+    fun ZemerCuratedPlaylistResponse.toAlbumItems(): List<AlbumItem> =
+        albums.filter { it.id.isNotBlank() }.map { it.toAlbumItem() }.distinctBy { it.browseId }.dropBlocked()
+
+    /**
      * A Zemer `/album` response as the [AlbumPage] the album screen + DB persist flow already consume,
      * so the Zemer path reuses that whole pipeline unchanged. Like every Zemer surface the tracks are
      * whitelist-scoped server-side, so only the surgical id-overrides ([dropBlocked]) run here

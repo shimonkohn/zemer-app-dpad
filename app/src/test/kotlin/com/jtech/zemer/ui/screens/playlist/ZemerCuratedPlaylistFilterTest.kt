@@ -4,6 +4,8 @@ import com.jtech.zemer.latestreleases.LatestReleaseFilter
 import com.metrolist.innertube.models.Artist
 import com.metrolist.innertube.models.SongItem
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -47,5 +49,16 @@ class ZemerCuratedPlaylistFilterTest {
     fun `old server without fromAlbum - empty album set - ALBUMS empty, SONGS is everything`() {
         assertEquals(emptyList<SongItem>(), filterCuratedTracks(songs, emptySet(), LatestReleaseFilter.ALBUMS))
         assertEquals(songs, filterCuratedTracks(songs, emptySet(), LatestReleaseFilter.SONGS))
+    }
+
+    @Test
+    fun `empty-state gates on the SELECTED chip's content, never the raw ALL list`() {
+        // ALBUMS chip renders album rows: empty albums -> empty state even with visible songs.
+        assertTrue(isCuratedChipEmpty(LatestReleaseFilter.ALBUMS, albumCount = 0, visibleSongCount = 5))
+        assertFalse(isCuratedChipEmpty(LatestReleaseFilter.ALBUMS, albumCount = 3, visibleSongCount = 0))
+        // ALL/SONGS render the filtered tracks.
+        assertTrue(isCuratedChipEmpty(LatestReleaseFilter.SONGS, albumCount = 3, visibleSongCount = 0))
+        assertFalse(isCuratedChipEmpty(LatestReleaseFilter.ALL, albumCount = 0, visibleSongCount = 5))
+        assertTrue(isCuratedChipEmpty(LatestReleaseFilter.ALL, albumCount = 0, visibleSongCount = 0))
     }
 }

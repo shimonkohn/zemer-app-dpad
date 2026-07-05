@@ -38,11 +38,27 @@ internal val zemerResponseJson = Json {
 }
 
 /**
- * The exact query parameters every `/search` request carries, in order. Pulled out of the HTTP call so
- * the send-always / fail-closed contract is unit-testable without a live request: BOTH content flags
- * ([allowFemale], [blockVideos]) are emitted on every request regardless of value. The server is
- * default-OPEN — an omitted flag means "don't filter that category" — so omitting a false flag would
- * silently leak that category the moment a server default ever changed. So we always send 0 or 1.
+ * THE single encoding of the send-always / fail-closed content-flag contract, appended by every
+ * request builder ([zemerSearchParameters], [ZemerSearchClient.playlist]/[ZemerSearchClient.album],
+ * [zemerCuratedPlaylistsParameters]). The server is default-OPEN — an omitted flag means "don't
+ * filter that category" — so ALL flags are emitted on every request regardless of value; omitting a
+ * false flag would silently leak that category the moment a server default ever changed.
+ * [includeKidZone] adds `kidZone=0` for the endpoints that take it: those surfaces are never
+ * reachable from inside the KidZone tab, but the flag is still sent explicitly.
+ */
+internal fun zemerContentFlagParameters(
+    allowFemale: Boolean,
+    blockVideos: Boolean,
+    includeKidZone: Boolean = false,
+): List<Pair<String, String>> = buildList {
+    add("allowFemale" to if (allowFemale) "1" else "0")
+    add("blockVideos" to if (blockVideos) "1" else "0")
+    if (includeKidZone) add("kidZone" to "0")
+}
+
+/**
+ * The exact query parameters every `/search` request carries, in order. Pulled out of the HTTP call
+ * so the fail-closed contract ([zemerContentFlagParameters]) is unit-testable without a live request.
  */
 internal fun zemerSearchParameters(
     query: String,
@@ -50,19 +66,12 @@ internal fun zemerSearchParameters(
     blockVideos: Boolean,
     k: Int,
 ): List<Pair<String, String>> =
-    listOf(
-        "q" to query,
-        "allowFemale" to if (allowFemale) "1" else "0",
-        "blockVideos" to if (blockVideos) "1" else "0",
-        "k" to k.toString(),
-    )
+    listOf("q" to query) + zemerContentFlagParameters(allowFemale, blockVideos) + ("k" to k.toString())
 
 /**
  * The exact query parameters a `/zemer-playlists` request carries, in order ([id] = null for the
- * list view). Extracted so the fail-closed flag contract is unit-testable: the server is default-OPEN
- * (an omitted flag means "don't filter"), so ALL THREE content flags are always sent explicitly.
- * `kidZone` is always off for the same reason as [ZemerSearchClient.album]: the section lives on the
- * Home screen, which is never reachable from inside the KidZone tab.
+ * list view). Extracted so the fail-closed flag contract ([zemerContentFlagParameters]) is
+ * unit-testable without a live request.
  */
 internal fun zemerCuratedPlaylistsParameters(
     id: String?,
@@ -70,9 +79,7 @@ internal fun zemerCuratedPlaylistsParameters(
     blockVideos: Boolean,
 ): List<Pair<String, String>> = buildList {
     if (id != null) add("id" to id)
-    add("allowFemale" to if (allowFemale) "1" else "0")
-    add("blockVideos" to if (blockVideos) "1" else "0")
-    add("kidZone" to "0")
+    addAll(zemerContentFlagParameters(allowFemale, blockVideos, includeKidZone = true))
 }
 
 /**
@@ -129,8 +136,9 @@ class ZemerSearchClient @Inject constructor() {
     ): ZemerPlaylistResponse {
         val response: HttpResponse = client.get("$BASE_URL/playlist") {
             parameter("id", id)
-            parameter("allowFemale", if (allowFemale) "1" else "0")
-            parameter("blockVideos", if (blockVideos) "1" else "0")
+            zemerContentFlagParameters(allowFemale, blockVideos).forEach { (name, value) ->
+                parameter(name, value)
+            }
             timeout { requestTimeoutMillis = LARGE_REQUEST_TIMEOUT_MS }
         }
         if (!response.status.isSuccess()) {
@@ -153,9 +161,9 @@ class ZemerSearchClient @Inject constructor() {
     ): ZemerAlbumResponse {
         val response: HttpResponse = client.get("$BASE_URL/album") {
             parameter("id", id)
-            parameter("allowFemale", if (allowFemale) "1" else "0")
-            parameter("blockVideos", if (blockVideos) "1" else "0")
-            parameter("kidZone", "0")
+            zemerContentFlagParameters(allowFemale, blockVideos, includeKidZone = true).forEach { (name, value) ->
+                parameter(name, value)
+            }
             timeout { requestTimeoutMillis = LARGE_REQUEST_TIMEOUT_MS }
         }
         if (!response.status.isSuccess()) {

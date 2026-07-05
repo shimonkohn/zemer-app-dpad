@@ -2,7 +2,7 @@ package com.jtech.zemer.search
 
 import android.content.Context
 import com.jtech.zemer.R
-import com.jtech.zemer.search.ZemerResultMapper.toAlbumItem
+import com.jtech.zemer.search.ZemerResultMapper.toAlbumItems
 import com.jtech.zemer.search.ZemerResultMapper.toAlbumPage
 import com.jtech.zemer.search.ZemerResultMapper.toSongItems
 import com.metrolist.innertube.YouTube.SearchFilter
@@ -126,10 +126,7 @@ class ZemerSearchRepository @Inject constructor(
             ZemerCuratedPlaylistPage(
                 playlist = response.playlist,
                 songs = response.toSongItems(options.hideExplicit),
-                albums = response.albums
-                    .filter { it.id.isNotBlank() }
-                    .map { it.toAlbumItem() }
-                    .distinctBy { it.browseId },
+                albums = response.toAlbumItems(),
                 albumTrackIds = response.tracks
                     .filter { it.fromAlbum && it.videoId.isNotBlank() }
                     .map { it.videoId }

@@ -1,33 +1,28 @@
 package com.jtech.zemer.ui.screens.playlist
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -64,7 +59,10 @@ import com.jtech.zemer.constants.AlbumThumbnailSize
 import com.jtech.zemer.constants.ThumbnailCornerRadius
 import com.jtech.zemer.extensions.toMediaItem
 import com.jtech.zemer.extensions.togglePlayPause
+import com.jtech.zemer.latestreleases.LatestReleaseFilter
 import com.jtech.zemer.playback.queues.ListQueue
+import com.jtech.zemer.search.SearchProvider
+import com.jtech.zemer.search.onlineAlbumRoute
 import com.jtech.zemer.ui.component.AutoResizeText
 import com.jtech.zemer.ui.component.ChipsRow
 import com.jtech.zemer.ui.component.FontSizeRange
@@ -72,17 +70,10 @@ import com.jtech.zemer.ui.component.IconButton
 import com.jtech.zemer.ui.component.LocalMenuState
 import com.jtech.zemer.ui.component.YouTubeListItem
 import com.jtech.zemer.ui.component.zemerCuratedPlaylistRuntimeLabel
-import com.jtech.zemer.ui.component.shimmer.ButtonPlaceholder
-import com.jtech.zemer.ui.component.shimmer.ListItemPlaceHolder
-import com.jtech.zemer.ui.component.shimmer.ShimmerHost
-import com.jtech.zemer.ui.component.shimmer.TextPlaceholder
-import com.jtech.zemer.search.SearchProvider
-import com.jtech.zemer.search.onlineAlbumRoute
 import com.jtech.zemer.ui.menu.YouTubeAlbumMenu
 import com.jtech.zemer.ui.menu.YouTubeSongMenu
 import com.jtech.zemer.ui.utils.backToMain
 import com.jtech.zemer.utils.joinByBullet
-import com.jtech.zemer.latestreleases.LatestReleaseFilter
 import com.jtech.zemer.viewmodels.ZemerCuratedPlaylistViewModel
 import com.jtech.zemer.viewmodels.ZemerCuratedPlaylistViewModel.UiState
 import com.metrolist.innertube.models.SongItem
@@ -103,10 +94,22 @@ internal fun filterCuratedTracks(
 }
 
 /**
+ * True when the currently selected chip has nothing to render — the ALBUMS chip shows album rows,
+ * every other chip shows the filtered tracks. This (not the raw ALL list) gates the empty-state
+ * message: a chip whose filtered result is empty must say so, never show a silent blank body.
+ */
+internal fun isCuratedChipEmpty(
+    filter: LatestReleaseFilter,
+    albumCount: Int,
+    visibleSongCount: Int,
+): Boolean = if (filter == LatestReleaseFilter.ALBUMS) albumCount == 0 else visibleSongCount == 0
+
+/**
  * Detail screen for one hand-curated "Zemer Playlists" entry. Deliberately its OWN small screen —
  * the id is a server slug, not a YouTube playlist id, so it must never route through the
- * YouTube-playlist screen (whose save/like/menu actions all assume a YouTube id). Header + numbered
- * track rows; tracks play like any Zemer search result.
+ * YouTube-playlist screen (whose save/like/menu actions all assume a YouTube id). Header + All/
+ * Albums/Songs chips (the Latest Releases chip set) + track/album rows; tracks play like any Zemer
+ * search result, albums open the album screen through the server path.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -144,47 +147,30 @@ fun ZemerCuratedPlaylistScreen(
         filterCuratedTracks(loadedSongs, loadedPage?.albumTrackIds.orEmpty(), filter)
     }
 
+    val showSongMenu: (SongItem) -> Unit = { song ->
+        menuState.show {
+            YouTubeSongMenu(
+                song = song,
+                navController = navController,
+                onDismiss = menuState::dismiss,
+            )
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             state = lazyListState,
-            contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)
-                .asPaddingValues(),
+            contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
             when (val uiState = state) {
                 UiState.Loading, UiState.NotFound -> {
                     item(key = "loading_shimmer") {
-                        ShimmerHost {
-                            Column(Modifier.padding(12.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Spacer(
-                                        modifier = Modifier
-                                            .size(AlbumThumbnailSize)
-                                            .clip(RoundedCornerShape(ThumbnailCornerRadius))
-                                            .background(MaterialTheme.colorScheme.onSurface),
-                                    )
-                                    Spacer(Modifier.width(16.dp))
-                                    Column(verticalArrangement = Arrangement.Center) {
-                                        TextPlaceholder()
-                                        TextPlaceholder()
-                                    }
-                                }
-                                Spacer(Modifier.padding(8.dp))
-                                Row {
-                                    ButtonPlaceholder(Modifier.weight(1f))
-                                    Spacer(Modifier.width(12.dp))
-                                    ButtonPlaceholder(Modifier.weight(1f))
-                                }
-                            }
-                            repeat(6) {
-                                ListItemPlaceHolder()
-                            }
-                        }
+                        PlaylistHeaderShimmer()
                     }
                 }
 
                 is UiState.Loaded -> {
                     val playlist = uiState.page.playlist
-                    val songs = uiState.page.songs
 
                     item(key = "playlist_header") {
                         Column(
@@ -194,8 +180,8 @@ fun ZemerCuratedPlaylistScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 AsyncImage(
-                                    // The server guarantees this cover is filter-safe (derived from a
-                                    // member track surviving the sent flags); null -> placeholder.
+                                    // The server guarantees this cover is filter-safe (a generated
+                                    // title card, never member art); null -> placeholder.
                                     model = ImageRequest.Builder(LocalContext.current)
                                         .data(playlist.thumbnail)
                                         .build(),
@@ -220,7 +206,7 @@ fun ZemerCuratedPlaylistScreen(
 
                                     Text(
                                         text = joinByBullet(
-                                            pluralStringResource(R.plurals.n_song, songs.size, songs.size),
+                                            pluralStringResource(R.plurals.n_song, loadedSongs.size, loadedSongs.size),
                                             // Null runtime = unknown; the label is simply hidden.
                                             zemerCuratedPlaylistRuntimeLabel(playlist.totalDurationSec),
                                         ),
@@ -233,49 +219,24 @@ fun ZemerCuratedPlaylistScreen(
                             Spacer(Modifier.height(12.dp))
 
                             if (visibleSongs.isNotEmpty()) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    Button(
-                                        onClick = {
-                                            playerConnection.playQueue(
-                                                ListQueue(
-                                                    title = playlist.title,
-                                                    items = visibleSongs.map { it.toMediaItem() },
-                                                )
+                                PlaylistPlayShuffleButtons(
+                                    onPlay = {
+                                        playerConnection.playQueue(
+                                            ListQueue(
+                                                title = playlist.title,
+                                                items = visibleSongs.map { it.toMediaItem() },
                                             )
-                                        },
-                                        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.play),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(ButtonDefaults.IconSize)
                                         )
-                                        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                                        Text(stringResource(R.string.play))
-                                    }
-
-                                    OutlinedButton(
-                                        onClick = {
-                                            playerConnection.playQueue(
-                                                ListQueue(
-                                                    title = playlist.title,
-                                                    items = visibleSongs.map { it.toMediaItem() }.shuffled(),
-                                                )
+                                    },
+                                    onShuffle = {
+                                        playerConnection.playQueue(
+                                            ListQueue(
+                                                title = playlist.title,
+                                                items = visibleSongs.map { it.toMediaItem() }.shuffled(),
                                             )
-                                        },
-                                        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.shuffle),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(ButtonDefaults.IconSize)
                                         )
-                                        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                                        Text(stringResource(R.string.shuffle))
-                                    }
-                                }
+                                    },
+                                )
                             }
                         }
                     }
@@ -293,7 +254,7 @@ fun ZemerCuratedPlaylistScreen(
                         )
                     }
 
-                    if (songs.isEmpty()) {
+                    if (isCuratedChipEmpty(filter, uiState.page.albums.size, visibleSongs.size)) {
                         item(key = "empty_playlist") {
                             Column(
                                 modifier = Modifier
@@ -312,10 +273,10 @@ fun ZemerCuratedPlaylistScreen(
                     // Albums chip: the curated albums as browsable rows (tap opens the album screen
                     // via the server /album path). Play/Shuffle above still play the chip's tracks.
                     if (filter == LatestReleaseFilter.ALBUMS) {
-                        itemsIndexed(
+                        items(
                             items = uiState.page.albums,
-                            key = { _, album -> album.browseId },
-                        ) { index, album ->
+                            key = { it.browseId },
+                        ) { album ->
                             YouTubeListItem(
                                 item = album,
                                 isActive = mediaMetadata?.album?.id == album.browseId,
@@ -353,17 +314,7 @@ fun ZemerCuratedPlaylistScreen(
                             isActive = mediaMetadata?.id == song.id,
                             isPlaying = isPlaying,
                             trailingContent = {
-                                IconButton(
-                                    onClick = {
-                                        menuState.show {
-                                            YouTubeSongMenu(
-                                                song = song,
-                                                navController = navController,
-                                                onDismiss = menuState::dismiss,
-                                            )
-                                        }
-                                    },
-                                ) {
+                                IconButton(onClick = { showSongMenu(song) }) {
                                     Icon(
                                         painter = painterResource(R.drawable.more_vert),
                                         contentDescription = null,
@@ -387,13 +338,7 @@ fun ZemerCuratedPlaylistScreen(
                                     },
                                     onLongClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        menuState.show {
-                                            YouTubeSongMenu(
-                                                song = song,
-                                                navController = navController,
-                                                onDismiss = menuState::dismiss,
-                                            )
-                                        }
+                                        showSongMenu(song)
                                     },
                                 )
                                 .animateItem(),
@@ -441,6 +386,7 @@ fun ZemerCuratedPlaylistScreen(
                     )
                 }
             },
+            scrollBehavior = scrollBehavior,
         )
     }
 }
