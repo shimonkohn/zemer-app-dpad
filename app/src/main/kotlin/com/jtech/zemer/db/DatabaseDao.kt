@@ -17,6 +17,8 @@ import com.jtech.zemer.constants.ArtistSongSortType
 import com.jtech.zemer.constants.ArtistSortType
 import com.jtech.zemer.constants.PlaylistSortType
 import com.jtech.zemer.constants.SongSortType
+import com.jtech.zemer.tracking.Tracker
+import com.jtech.zemer.tracking.TrackingActionKind
 import com.jtech.zemer.db.entities.Album
 import com.jtech.zemer.db.entities.AlbumArtistMap
 import com.jtech.zemer.db.entities.AlbumEntity
@@ -1022,6 +1024,16 @@ interface DatabaseDao {
 
     @Transaction
     fun addSongToPlaylist(playlist: Playlist, songIds: List<String>) {
+        // Anonymous telemetry (spec §3.5): every user add-to-playlist path converges here (dialogs,
+        // import, Android Auto); playlist SYNC writes PlaylistSongMap directly and correctly
+        // bypasses this. Per the spec's id rule ("videoId, or playlist id for collection-level
+        // actions"): a single add reports the song, a bulk add (playlist import) reports ONE
+        // collection-level event — a 500-song import must not flood the 500-cap event queue.
+        when {
+            songIds.size == 1 -> Tracker.action(TrackingActionKind.ADD_PLAYLIST, songIds.first())
+            songIds.size > 1 ->
+                Tracker.action(TrackingActionKind.ADD_PLAYLIST, playlist.playlist.browseId ?: playlist.id)
+        }
         var position = playlist.songCount
         songIds.forEach { id ->
             insert(

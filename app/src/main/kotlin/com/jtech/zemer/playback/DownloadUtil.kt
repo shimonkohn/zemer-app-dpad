@@ -259,8 +259,14 @@ constructor(
     fun mediaStoreDownloadState(songId: String): MediaStoreDownloadManager.DownloadState? =
         mediaStoreDownloadManager.getDownloadState(songId)
 
-    fun downloadToMediaStore(song: com.jtech.zemer.db.entities.Song) {
-        mediaStoreDownloadManager.downloadSong(song)
+    /**
+     * [fromUser] = false for machine-initiated enqueues (auto-download-on-like, the missing-file
+     * self-repair) so the telemetry `download` action stays a pure user-intent signal. The event
+     * itself fires inside the manager, AFTER its already-downloading/completed no-op check — a
+     * collection re-tap that enqueues nothing must not report downloads.
+     */
+    fun downloadToMediaStore(song: com.jtech.zemer.db.entities.Song, fromUser: Boolean = true) {
+        mediaStoreDownloadManager.downloadSong(song, fromUser)
     }
 
     /**
@@ -270,8 +276,9 @@ constructor(
     fun downloadVideoToMediaStore(
         song: com.jtech.zemer.db.entities.Song,
         maxVideoBitrateKbps: Int? = null,
+        fromUser: Boolean = true,
     ) {
-        mediaStoreDownloadManager.downloadVideo(song, maxVideoBitrateKbps)
+        mediaStoreDownloadManager.downloadVideo(song, maxVideoBitrateKbps, fromUser)
     }
 
     fun cancelMediaStoreDownload(songId: String) {

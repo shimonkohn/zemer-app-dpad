@@ -121,6 +121,7 @@ import com.jtech.zemer.playback.queues.EmptyQueue
 import com.jtech.zemer.playback.queues.Queue
 import com.jtech.zemer.playback.queues.YouTubeQueue
 import com.jtech.zemer.playback.queues.filterExplicit
+import com.jtech.zemer.tracking.Tracker
 import com.jtech.zemer.utils.CoilBitmapLoader
 import com.jtech.zemer.utils.filterWhitelisted
 import com.jtech.zemer.utils.NetworkConnectivityObserver
@@ -809,6 +810,8 @@ class MusicService :
         currentQueue = queue
         queueTitle = null
         player.shuffleModeEnabled = false
+        // Tracking: the tapped/preloaded item is always user-chosen context for this queue.
+        Tracker.playSources.onQueueStarted(queue.playSource, listOfNotNull(queue.preloadItem?.id))
         queue.preloadItem?.let { preloadItem ->
             player.setMediaItem(preloadItem.toMediaItem())
             player.prepare()
@@ -819,6 +822,19 @@ class MusicService :
                 withContext(Dispatchers.IO) {
                     queue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false))
                 }
+            // Tracking: initial items keep the queue's source when they are the chosen context
+            // (album/playlist tracks); a radio queue's fill beyond the tapped song reports "radio".
+            // Guarded: a slow-loading queue the user already replaced must not register its items
+            // over the newer queue's registrations.
+            if (currentQueue === queue) {
+                initialStatus.items.map { it.mediaId }.let { ids ->
+                    if (queue.initialItemsAreContext) {
+                        Tracker.playSources.registerContext(queue.playSource, ids)
+                    } else {
+                        Tracker.playSources.registerRadio(ids)
+                    }
+                }
+            }
             if (queue.preloadItem != null && player.playbackState == STATE_IDLE) return@launch
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
@@ -881,6 +897,10 @@ class MusicService :
 
             // Add radio songs after current song
             player.addMediaItems(initialStatus.items.drop(1))
+            // Tracking: only the ADDED items are autoplay — item 0 is the currently-playing song,
+            // which must keep whatever source it already had (registerRadio would flip an
+            // unregistered current song to "radio" mid-listen).
+            Tracker.playSources.registerRadio(initialStatus.items.drop(1).map { it.mediaId })
             currentQueue = radioQueue
         }
     }
@@ -1018,9 +1038,9 @@ class MusicService :
                 if (dataStore.get(AutoDownloadOnLikeKey, false) && song.liked) {
                     // Trigger download for the liked song (use video download if isVideo)
                     if (it.song.isVideo) {
-                        downloadUtil.downloadVideoToMediaStore(it)
+                        downloadUtil.downloadVideoToMediaStore(it, fromUser = false)
                     } else {
-                        downloadUtil.downloadToMediaStore(it)
+                        downloadUtil.downloadToMediaStore(it, fromUser = false)
                     }
                 }
             }
@@ -1175,6 +1195,16 @@ class MusicService :
             scope.launch(SilentHandler) {
                 val mediaItems =
                     currentQueue.nextPage().filterExplicit(dataStore.get(HideExplicitKey, false))
+                // Tracking: a chosen playlist's later pages are still the chosen context (spec:
+                // tracks continuing from an originally-chosen context KEEP its source); only a
+                // radio queue's pages are autoplay.
+                mediaItems.map { it.mediaId }.let { ids ->
+                    if (currentQueue.continuationIsContext) {
+                        Tracker.playSources.registerContext(currentQueue.playSource, ids)
+                    } else {
+                        Tracker.playSources.registerRadio(ids)
+                    }
+                }
                 if (player.playbackState != STATE_IDLE) {
                     player.addMediaItems(mediaItems.drop(1))
                 }
@@ -1471,8 +1501,8 @@ class MusicService :
                         song?.let { stale ->
                             scope.launch(Dispatchers.IO) {
                                 runCatching {
-                                    if (stale.song.isVideo) downloadUtil.downloadVideoToMediaStore(stale)
-                                    else downloadUtil.downloadToMediaStore(stale)
+                                    if (stale.song.isVideo) downloadUtil.downloadVideoToMediaStore(stale, fromUser = false)
+                                    else downloadUtil.downloadToMediaStore(stale, fromUser = false)
                                 }
                             }
                         }
@@ -1564,6 +1594,17 @@ class MusicService :
                         )
                     )
                 }
+                // Telemetry: remember which client (and, for deciphered web clients, which player
+                // hash) served this stream, so the listen's `play` event can carry it.
+                Tracker.onStreamResolved(
+                    mediaId,
+                    nonNullPlayback.streamClient,
+                    playerHash = if (nonNullPlayback.streamClient in WEB_STREAM_CLIENTS) {
+                        CipherDeobfuscator.lastUsedPlayerHash
+                    } else {
+                        null
+                    },
+                )
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId, nonNullPlayback) }
 
                 val streamUrl = nonNullPlayback.streamUrl
@@ -1611,6 +1652,21 @@ class MusicService :
         playbackStats: PlaybackStats,
     ) {
         val mediaItem = eventTime.timeline.getWindow(eventTime.windowIndex, Timeline.Window()).mediaItem
+
+        // Anonymous telemetry (docs/tracking/README.md): one event per listen, when it ends —
+        // EVERY listen however short (a 5-second skip is the negative signal the algorithm needs;
+        // the server applies any qualification gate at analysis time). totalPlayTimeMs is the
+        // accumulated actual play time: pauses excluded, seek-backs not double-counted. A session
+        // with ZERO play time is not a listen — a restored persisted queue opens a stats session
+        // for the current item without the user ever pressing play; those phantoms must not count.
+        if (playbackStats.totalPlayTimeMs > 0) {
+            Tracker.play(
+                videoId = mediaItem.mediaId,
+                secs = (playbackStats.totalPlayTimeMs / 1000L).toInt(),
+                dur = mediaItem.metadata?.duration?.takeIf { it > 0 },
+                source = Tracker.playSources.sourceFor(mediaItem.mediaId),
+            )
+        }
 
         if (playbackStats.totalPlayTimeMs >= (
                     dataStore[HistoryDuration]?.times(1000f)
@@ -1770,6 +1826,9 @@ class MusicService :
 
         const val CHANNEL_ID = "music_channel_01"
         const val NOTIFICATION_ID = 888
+        // Clients whose streams run the cipher — only these have a meaningful player hash to report
+        // on the telemetry `play` event (mirrors ShowMediaInfo's isWebStream set).
+        val WEB_STREAM_CLIENTS = setOf("WEB_REMIX", "WEB_CREATOR", "TVHTML5", "WEB")
         const val ERROR_CODE_NO_STREAM = 1000001
         const val CHUNK_LENGTH = 512 * 1024L
         const val PERSISTENT_QUEUE_FILE = "persistent_queue.data"

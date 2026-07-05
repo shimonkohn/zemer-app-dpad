@@ -52,6 +52,7 @@ import com.jtech.zemer.models.toMediaMetadata
 import com.jtech.zemer.playback.DownloadMenuLogic
 import com.jtech.zemer.playback.DownloadStateResolver
 import com.jtech.zemer.playback.queues.YouTubeQueue
+import com.jtech.zemer.tracking.PlaySource
 import com.jtech.zemer.ui.component.AlreadyInPlaylistDialog
 import com.jtech.zemer.ui.component.DefaultDialog
 import com.jtech.zemer.ui.component.Material3MenuGroup
@@ -71,6 +72,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.jtech.zemer.tracking.Tracker
+import com.jtech.zemer.tracking.TrackingActionKind
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MutableCollectionMutableState")
@@ -305,7 +308,7 @@ fun YouTubePlaylistMenu(
                                 },
                                 text = stringResource(R.string.play),
                                 onClick = {
-                                    playerConnection.playQueue(YouTubeQueue(playEndpoint, preloadItem = null, database))
+                                    playerConnection.playQueue(YouTubeQueue(playEndpoint, preloadItem = null, database, playSource = PlaySource.playlist(playlist.id)))
                                     onDismiss()
                                 }
                             )
@@ -324,7 +327,7 @@ fun YouTubePlaylistMenu(
                                 },
                                 text = stringResource(R.string.shuffle),
                                 onClick = {
-                                    playerConnection.playQueue(YouTubeQueue(shuffleEndpoint, preloadItem = null, database))
+                                    playerConnection.playQueue(YouTubeQueue(shuffleEndpoint, preloadItem = null, database, playSource = PlaySource.playlist(playlist.id)))
                                     onDismiss()
                                 }
                             )
@@ -343,7 +346,7 @@ fun YouTubePlaylistMenu(
                                 },
                                 text = stringResource(R.string.start_radio),
                                 onClick = {
-                                    playerConnection.playQueue(YouTubeQueue(radioEndpoint, preloadItem = null, database))
+                                    playerConnection.playQueue(YouTubeQueue(radioEndpoint, preloadItem = null, database, playSource = PlaySource.RADIO))
                                     onDismiss()
                                 }
                             )
@@ -450,6 +453,7 @@ fun YouTubePlaylistMenu(
                             icon = { Icon(painterResource(R.drawable.share), null, Modifier.size(24.dp)) },
                             title = { Text(stringResource(R.string.share)) },
                             onClick = {
+                                Tracker.action(TrackingActionKind.SHARE, playlist.id)
                                 val intent = Intent().apply {
                                     action = Intent.ACTION_SEND
                                     type = "text/plain"
