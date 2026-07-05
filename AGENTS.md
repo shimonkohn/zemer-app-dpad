@@ -92,6 +92,31 @@ are non-obvious and regression-prone; full detail in `docs/whitelist/README.md`:
   `thumbnailUrl` — **never** `playlist.thumbnail`. Mirrors the local-playlist screens; don't revert
   either site.
 
+### Zemer curated playlists (the Home "Zemer Playlists" shelf)
+
+Hand-curated playlists served ready-to-render by the search server's `/zemer-playlists` endpoint;
+full detail in `docs/zemer_playlists/README.md`. The rules that must not regress:
+
+- **Ids are server slugs (`"acapella"`), never YouTube playlist ids** — they get their own screens
+  (`zemer_playlist/{id}` detail, `zemer_playlists` see-all) and must never enter a YouTube-playlist
+  code path (`online_playlist/…`, save-to-library, playlist menus).
+- **All three content flags are sent explicitly on every request** (the server is default-OPEN;
+  `zemerCuratedPlaylistsParameters()` is the unit-tested contract), and the repository deliberately
+  does **not** cache — a plain re-fetch per screen-open is the endpoint's freshness contract and
+  guarantees a response fetched under one flag set is never shown under another. No client
+  re-filtering beyond the usual `dropBlocked` + `hideExplicit`.
+- **Covers are server-generated SVGs at relative URLs** — resolved by `resolveZemerUrl()` and
+  decoded by the `SvgDecoder` registered in `App.newImageLoader` (that's why `coil-svg` exists).
+- Empty list = hidden section (normal state); detail 404 = back out + Home re-fetch. The Home shelf
+  is backed by its own `ZemerCuratedPlaylistsViewModel` (LatestReleases isolation pattern) so a feed
+  failure can never affect the rest of Home.
+- The detail screen's **All/Albums/Songs chips reuse `LatestReleaseFilter`** and split on the
+  server's `fromAlbum`/`albums` fields (both optional — an old server just empties the Albums chip).
+  Rows, Play and Shuffle all read the same filtered list; rows never pass `albumIndex` (the shared
+  row renders a number *instead of* artwork).
+- App↔server field changes travel as request docs in `~/zemer-fix/handoff-docs/`, never as direct
+  edits to the zemer-search repo.
+
 ### The player background system (one effective style, one extractor)
 
 The full player (`ui/player/Player.kt`) and the mini player (`ui/player/MiniPlayer.kt`) share a
