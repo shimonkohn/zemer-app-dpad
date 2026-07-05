@@ -318,7 +318,6 @@ fun ZemerCuratedPlaylistScreen(
                         ) { index, album ->
                             YouTubeListItem(
                                 item = album,
-                                albumIndex = index + 1,
                                 isActive = mediaMetadata?.album?.id == album.browseId,
                                 isPlaying = isPlaying,
                                 modifier = Modifier
@@ -346,9 +345,11 @@ fun ZemerCuratedPlaylistScreen(
                         items = visibleSongs,
                         key = { _, song -> song.id },
                     ) { index, song ->
+                        // No albumIndex: the shared row shows the number INSTEAD of the artwork (an
+                        // album-screen convention where all rows share one cover) — here every row
+                        // has its own art, so the art wins, like the online-playlist screen.
                         YouTubeListItem(
                             item = song,
-                            albumIndex = index + 1,
                             isActive = mediaMetadata?.id == song.id,
                             isPlaying = isPlaying,
                             trailingContent = {
