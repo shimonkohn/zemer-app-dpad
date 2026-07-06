@@ -88,6 +88,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import androidx.navigation.NavController
+import com.jtech.zemer.LocalDatabase
 import com.jtech.zemer.LocalPlayerConnection
 import com.jtech.zemer.R
 import com.jtech.zemer.constants.ListItemHeight
@@ -113,6 +114,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import com.jtech.zemer.ui.component.focusBorder
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.math.roundToInt
@@ -347,7 +349,6 @@ fun Queue(
                             tint = TextBackgroundColor
                         )
                     }
-
                     Spacer(modifier = Modifier.weight(1f))
 
                     Box(
@@ -776,12 +777,17 @@ fun Queue(
                                                     }
                                                 } else {
                                                     if (index == currentWindowIndex) {
-                                                        playerConnection.player.togglePlayPause()
+                                                        playerConnection.playPause()
                                                     } else {
                                                         playerConnection.player.seekToDefaultPosition(
                                                             window.firstPeriodIndex,
                                                         )
-                                                        playerConnection.player.playWhenReady = true
+                                                        // While casting, the resulting media-item
+                                                        // transition reloads the receiver; don't start
+                                                        // local audio over the cast stream.
+                                                        if (!playerConnection.isCasting.value) {
+                                                            playerConnection.player.playWhenReady = true
+                                                        }
                                                     }
                                                 }
                                             },

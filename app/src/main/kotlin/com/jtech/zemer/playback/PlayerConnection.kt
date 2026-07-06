@@ -17,36 +17,60 @@ import com.jtech.zemer.extensions.getQueueWindows
 import com.jtech.zemer.extensions.metadata
 import com.jtech.zemer.playback.MusicService.MusicBinder
 import com.jtech.zemer.playback.queues.Queue
+import com.jtech.zemer.extensions.togglePlayPause
 import com.jtech.zemer.utils.reportException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import org.fcast.sender_sdk.DeviceConnectionState
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlayerConnection(
     context: Context,
     binder: MusicBinder,
     val database: MusicDatabase,
-    scope: CoroutineScope,
+    parentScope: CoroutineScope,
 ) : Player.Listener {
     val service = binder.service
     val player = service.player
 
+    // Instance-owned scope (a child of the host's scope) so [dispose] cancels every collector/launch this
+    // connection started. The host re-creates a PlayerConnection on each service re-bind; without this the
+    // UI-state collectors (isCasting / isPlaying / currentSong …) would pile up on the long-lived
+    // lifecycleScope. The cast control plane itself lives on the service-scoped CastController, not here.
+    val scope = CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
+
     val playbackState = MutableStateFlow(player.playbackState)
     private val playWhenReady = MutableStateFlow(player.playWhenReady)
+
+    val isCasting = service.discoveryHandler.remoteConnectionState.map { connectionState: DeviceConnectionState ->
+        connectionState is DeviceConnectionState.Connected
+    }.stateIn(scope, SharingStarted.Lazily, false)
+
     val isPlaying =
-        combine(playbackState, playWhenReady) { playbackState, playWhenReady ->
-            playWhenReady && playbackState != STATE_ENDED
+        combine(playbackState, playWhenReady, isCasting, service.discoveryHandler.remotePlaybackState) { playbackState, playWhenReady, casting, remoteState ->
+            if (casting) {
+                // Once the receiver reports its state, mirror it. In the brief window after connecting but
+                // before the first remote playbackStateChanged arrives, fall back to the cast play intent
+                // (shouldPlay) — NOT the local player, which we just paused, so the button would otherwise
+                // flash "paused" while the receiver is actually starting playback.
+                if (remoteState != null) CastPlayback.isPlaying(remoteState)
+                else service.discoveryHandler.shouldPlay
+            } else {
+                playWhenReady && playbackState != STATE_ENDED
+            }
         }.stateIn(
             scope,
             SharingStarted.Lazily,
             player.playWhenReady && player.playbackState != STATE_ENDED
         )
+
     val mediaMetadata = MutableStateFlow(player.currentMetadata)
+
     val currentSong =
         mediaMetadata.flatMapLatest {
             database.song(it?.id)
@@ -89,6 +113,12 @@ class PlayerConnection(
 
     fun playQueue(queue: Queue) {
         service.playQueue(queue)
+        // While casting, hand the queue-start bookkeeping to the service-owned controller (pause local,
+        // record the play intent, force the upcoming PLAYLIST_CHANGED to reload the receiver). current
+        // mediaItem here is stale — the queue hasn't loaded yet — so the reload happens on the transition.
+        if (isCasting.value) {
+            service.castController.onPlayQueueWhileCasting()
+        }
     }
 
     fun startRadioSeamlessly() {
@@ -111,12 +141,79 @@ class PlayerConnection(
         service.toggleLike()
     }
 
+    fun playPause() {
+        if (isCasting.value) {
+            // isRemotePlaying falls back to the play intent before the receiver's first state report,
+            // matching the isPlaying flow — so the tap toggles what the button shows.
+            if (service.discoveryHandler.isRemotePlaying()) {
+                service.discoveryHandler.pause()
+            } else {
+                service.discoveryHandler.play()
+            }
+        } else {
+            player.togglePlayPause()
+        }
+    }
+
+    /**
+     * The play/pause-button action: replay from the start when the local queue has ended ([localEnded]),
+     * otherwise toggle. While casting the receiver is the source of truth, so always toggle the remote —
+     * never restart the (paused) local player on top of the cast stream.
+     */
+    fun playPauseOrReplay(localEnded: Boolean) {
+        if (localEnded && !isCasting.value) {
+            player.seekTo(0, 0)
+            player.playWhenReady = true
+        } else {
+            playPause()
+        }
+    }
+
+    fun seekTo(positionMs: Long) {
+        if (isCasting.value) {
+            service.discoveryHandler.seek(CastPlayback.msToRemoteSeconds(positionMs))
+        } else {
+            player.seekTo(positionMs)
+        }
+    }
+
+    /**
+     * Pause the cast receiver because a full-screen local video is taking over the phone's audio, so the
+     * receiver isn't playing underneath it. Returns whether we actually paused an active cast, so the
+     * caller can [resumeCastAfterVideo] only what it interrupted. No-op (returns false) when not casting
+     * or the receiver was already paused.
+     */
+    fun pauseCastForVideo(): Boolean {
+        val pause = CastPlayback.shouldPauseCastForVideo(isCasting.value, service.discoveryHandler.remotePlaybackState.value)
+        if (pause) service.discoveryHandler.pause()
+        return pause
+    }
+
+    /** Resume the cast receiver after the local video closed — only if we paused it and it's still connected. */
+    fun resumeCastAfterVideo(pausedByVideo: Boolean) {
+        if (CastPlayback.shouldResumeCastAfterVideo(pausedByVideo, isCasting.value)) service.discoveryHandler.play()
+    }
+
+    /** Current playback position (ms) — the smoothed remote clock while casting, else the local player. */
+    fun currentPositionMs(): Long =
+        if (isCasting.value) CastPlayback.remoteSecondsToMs(service.discoveryHandler.interpolatedRemoteTimeSec())
+        else player.currentPosition
+
+    /** Current item duration (ms) — the remote clock while casting, else the local player. */
+    fun currentDurationMs(): Long =
+        if (isCasting.value) CastPlayback.remoteSecondsToMs(service.discoveryHandler.remoteDuration.value)
+        else player.duration
+
     fun seekToNext() {
         if (!player.currentTimeline.isEmpty && player.isCommandAvailable(COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)) {
             try {
                 player.seekToNext()
-                player.prepare()
-                player.playWhenReady = true
+                // While casting the local player stays paused (the receiver plays); the resulting
+                // media-item transition reloads the receiver. Only resume local audio when not casting.
+                if (!isCasting.value) {
+                    player.prepare()
+                    player.playWhenReady = true
+                }
             } catch (e: Exception) {
             }
         }
@@ -125,9 +222,17 @@ class PlayerConnection(
     fun seekToPrevious() {
         if (!player.currentTimeline.isEmpty && player.isCommandAvailable(COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)) {
             try {
-                player.seekToPrevious()
-                player.prepare()
-                player.playWhenReady = true
+                // While casting the local clock is frozen at the connect position, so seekToPrevious's
+                // "restart current track if >3s in" misfires: a within-item seek fires no media-item
+                // transition and the receiver is never reloaded. Skip straight to the previous item,
+                // like the widget path (MusicService.onStartCommand ACTION_PREV).
+                if (isCasting.value) {
+                    player.seekToPreviousMediaItem()
+                } else {
+                    player.seekToPrevious()
+                    player.prepare()
+                    player.playWhenReady = true
+                }
             } catch (e: Exception) {
             }
         }
@@ -149,6 +254,9 @@ class PlayerConnection(
         mediaItem: MediaItem?,
         reason: Int,
     ) {
+        // The cast receiver reload is owned by the service-scoped CastController (driven from
+        // MusicService.onMediaItemTransition), so it survives this Activity-scoped connection being
+        // disposed. Here we only update the UI-facing state.
         mediaMetadata.value = mediaItem?.metadata
         currentMediaItemIndex.value = player.currentMediaItemIndex
         currentWindowIndex.value = player.getCurrentQueueIndex()
@@ -203,5 +311,9 @@ class PlayerConnection(
 
     fun dispose() {
         player.removeListener(this)
+        // Cancel every collector/launch this connection owns. The cast control plane (including the
+        // handler's onDisconnect callback) lives on the service-scoped CastController, so it is
+        // intentionally NOT torn down here — casting keeps working across Activity rebinds.
+        scope.cancel()
     }
 }

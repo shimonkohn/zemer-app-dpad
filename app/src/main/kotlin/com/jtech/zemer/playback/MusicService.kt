@@ -150,6 +150,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -167,6 +168,7 @@ import java.util.concurrent.Executor
 import java.time.LocalDateTime
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
+import org.fcast.sender_sdk.*
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -191,13 +193,36 @@ class MusicService :
     @Inject
     lateinit var mediaLibrarySessionCallback: MediaLibrarySessionCallback
 
+    private var deviceDiscoverer: NsdDeviceDiscoverer? = null
+    val discoveryHandler = FCastDiscoveryHandler()
+
+    // The FCast native lib is downloaded on demand (not bundled). Lazy so it is built after the service's
+    // base context is attached; its init applies the libraryOverride if a verified copy is already cached.
+    val castLibLoader by lazy { CastNativeLibLoader(this) }
+
+    // The cast control plane (auto-advance detectors + receiver reload + disconnect recovery), owned by
+    // the (process-scoped) service so casting keeps advancing through its queue even after the UI Activity
+    // is destroyed. Lazily built on first cast use; its init wires the detectors and the onDisconnect hook.
+    val castController by lazy { CastController(this, scope) }
+
+    // Orchestration for a user-initiated connect from the picker: stream resolve + click-time NSD
+    // address re-resolve + awaiting the receiver's Connected/Disconnected outcome (see CastConnector).
+    val castConnector by lazy { CastConnector(this) }
+
+    // On-demand rebuild of the picker's device list (discovery burst + re-resolve + prune) — the SDK's
+    // own discoverer never re-checks a device once found (see CastDeviceRefresher).
+    val castDeviceRefresher by lazy { CastDeviceRefresher(this, discoveryHandler) }
+
     private lateinit var audioManager: AudioManager
     private var audioFocusRequest: AudioFocusRequest? = null
     private var lastAudioFocusState = AudioManager.AUDIOFOCUS_NONE
     private var wasPlayingBeforeAudioFocusLoss = false
     private var hasAudioFocus = false
 
-    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    // Service-lifetime scope. Also used by the cast picker to launch connects: an Activity-bound scope
+    // would be cancelled by onStop mid-connect, stranding the picker's spinner and skipping the
+    // timeout abort (CastConnector's TIMED_OUT handler.disconnect()).
+    val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var startRadioJob: Job? = null
     private val binder = MusicBinder()
 
@@ -249,6 +274,90 @@ class MusicService :
 
     val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
 
+    // MIME of the resolved stream per mediaId, populated by resolveStreamUrl — the cast receiver needs
+    // the real container (webm/opus vs mp4), not the local decoder's (often-null) output format.
+    private val songMimeCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    fun streamContentType(mediaId: String): String = songMimeCache[mediaId] ?: "audio/mp4"
+
+    /**
+     * Stage 2 of the cast-403 fix: the receiver fetches googlevideo *through the phone*, so the
+     * fetching network identity equals the minting one by construction (googlevideo binds stream URLs
+     * to the minter's address and 403s other identities past the first free MiB — receivers behind
+     * CGNAT IPv4 or on a different v6 prefix can never fetch our URLs directly). The resolver runs on
+     * relay worker threads, never the main thread, so blocking on the resolve is fine.
+     */
+    val castStreamRelay = CastStreamRelay { mediaId, forceRefresh ->
+        if (forceRefresh) invalidateStreamCache(mediaId)
+        runBlocking { resolveStreamUrl(mediaId) }?.let { RelayUpstream(it, streamContentType(mediaId)) }
+    }
+
+    // lazy: a Service has no Context until attachBaseContext, and stopping the relay on a session that
+    // never acquired must not eagerly construct the system-service locks just to no-op release them.
+    private val castSessionLocks by lazy { CastSessionLocks(this) }
+
+    /**
+     * The URL the cast receiver should be handed for [mediaId]: the relay URL when the relay can
+     * serve, else [rawUrl] (direct googlevideo — Stage 1's error-recovery ladder still backs that up).
+     * Runs the relay's socket bind + route probe on IO.
+     */
+    suspend fun relayedStreamUrl(mediaId: String, rawUrl: String): String = withContext(Dispatchers.IO) {
+        val relayed = runCatching { castStreamRelay.urlFor(mediaId) }
+            .onFailure { reportException(it, "Cast relay URL") }
+            .getOrNull()
+        if (relayed != null) {
+            castSessionLocks.acquire()
+            relayed
+        } else {
+            Timber.tag("CastRelay").w("Relay unavailable — handing the receiver the direct URL for %s", mediaId)
+            rawUrl
+        }
+    }
+
+    /** Tears down the relay + its Wi-Fi/CPU locks; called when a cast session is truly over. */
+    fun stopCastRelay() {
+        castStreamRelay.stop()
+        castSessionLocks.release()
+    }
+
+    /** Cast-lib state for the picker UI (downloading / failed / ready); the native lib isn't bundled. */
+    val castLibState get() = castLibLoader.state
+
+    /**
+     * Start NSD discovery if the FCast native lib is already present — never downloads it (that needs
+     * explicit consent via [downloadCastLib]; the lib is ~5 MB and not bundled). No-op until ready, and
+     * idempotent: sender-sdk 0.4.0's NsdDeviceDiscoverer has no stop API, so discovery then runs until
+     * the process dies.
+     */
+    fun startDiscovery() {
+        if (deviceDiscoverer == null && castLibLoader.isReady) {
+            deviceDiscoverer = NsdDeviceDiscoverer(this, discoveryHandler)
+        }
+    }
+
+    /**
+     * User-consented one-time download of the FCast native lib (not bundled, to save ~5 MB). Download
+     * only — discovery is started separately by [startDiscovery] when the picker is open and ready, so
+     * consenting from Settings doesn't kick off background NSD discovery. Progress/failure via
+     * [castLibState]; safe to call repeatedly (no-op when ready or already downloading).
+     */
+    fun downloadCastLib() {
+        if (castLibLoader.isReady || castLibState.value is CastLibState.Downloading) return
+        scope.launch { withContext(Dispatchers.IO) { castLibLoader.ensure() } }
+    }
+
+    val currentStreamUrl: String?
+        get() = player.currentMediaItem?.mediaId?.let { id ->
+            songUrlCache[id]?.takeIf { it.second > System.currentTimeMillis() }?.first
+        }
+
+    // The cast receiver needs the real container MIME (populated by resolveStreamUrl). Do NOT fall back
+    // to player.audioFormat.sampleMimeType — that is the decoder's codec MIME (e.g. audio/mp4a-latm,
+    // audio/opus), the wrong granularity for a container, which makes the receiver reject the stream.
+    // Delegates to streamContentType so the cache lookup + default container MIME live in one place.
+    val currentContentType: String?
+        get() = player.currentMediaItem?.mediaId?.let { streamContentType(it) }
+
     private var consecutivePlaybackErr = 0
 
     // Use shared URL cache from DownloadUtil for consistency between playback and downloads
@@ -256,6 +365,8 @@ class MusicService :
 
     override fun onCreate() {
         super.onCreate()
+        // Cast discovery is started lazily by startDiscovery() the first time the user opens the cast
+        // picker — not here — so we don't run NSD discovery on every launch.
         // Media3's MediaLibraryService handles foreground notification automatically
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider(
@@ -297,7 +408,7 @@ class MusicService :
                 .build()
                 .apply {
                     addListener(this@MusicService)
-                    sleepTimer = SleepTimer(scope, this)
+                    sleepTimer = SleepTimer(scope, this@MusicService)
                     addListener(sleepTimer)
                     addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
                     setOffloadEnabled(dataStore.get(AudioOffload, false))
@@ -314,7 +425,7 @@ class MusicService :
         }
         mediaSession =
             MediaLibrarySession
-                .Builder(this, player, mediaLibrarySessionCallback)
+                .Builder(this, CastAwarePlayer(player, discoveryHandler, scope), mediaLibrarySessionCallback)
                 .setSessionActivity(
                     PendingIntent.getActivity(
                         this,
@@ -395,6 +506,21 @@ class MusicService :
             updateWidget()
         }
 
+        // The widget otherwise repaints only from local-player callbacks, which are silent while casting
+        // (the local player stays paused): repaint on remote connect/play/pause edges so its icon always
+        // matches what a tap will do, and run the seek-bar ticker off the remote clock while it plays.
+        combine(
+            discoveryHandler.remoteConnectionState,
+            discoveryHandler.remotePlaybackState,
+        ) { _, state -> discoveryHandler.isConnected && CastPlayback.isPlaying(state) }
+            .distinctUntilChanged()
+            // Skip the initial not-casting emission: repainting at service start would flash an empty
+            // widget before the restored queue's metadata lands. Cast edges all come later.
+            .drop(1)
+            .collect(scope) { remotePlaying ->
+                if (remotePlaying) startWidgetTicker() else updateWidget()
+            }
+
         combine(
             currentMediaMetadata.distinctUntilChangedBy { it?.id },
             dataStore.data.map { it[ShowLyricsKey] ?: false }.distinctUntilChanged(),
@@ -443,6 +569,8 @@ class MusicService :
 
                     // Clear stream cache when auth changes to force fresh URLs with new auth
                     songUrlCache.clear()
+                    // Keep the cast-MIME cache in lockstep with the URL cache it's populated alongside.
+                    songMimeCache.clear()
 
                     // Log authentication state change for debugging
                     val isLoggedIn = cookie != null && "SAPISID" in parseCookieString(cookie ?: "")
@@ -665,15 +793,27 @@ class MusicService :
 
     private var widgetTickerJob: Job? = null
 
+    /** The playing state the widget should render — the receiver's while casting, else the local player's. */
+    private fun widgetIsPlaying(): Boolean =
+        if (discoveryHandler.isConnected) discoveryHandler.isRemotePlaying() else player.isPlaying
+
     private fun updateWidget() {
         scope.launch {
+            // While casting the local player is deliberately paused and its clock frozen, so render the
+            // remote state/clock instead — otherwise the widget's icon contradicts what a tap does
+            // (its ACTION_PLAY_PAUSE routes to the receiver).
+            val casting = discoveryHandler.isConnected
             val metadata = currentMediaMetadata.value
-            val isPlaying = player.isPlaying
+            val isPlaying = widgetIsPlaying()
             val title = metadata?.title ?: getString(R.string.app_name)
             val artist = metadata?.artists?.joinToString(", ") { it.name } ?: ""
             val albumArtUrl = metadata?.thumbnailUrl
-            val positionMs = player.currentPosition.coerceAtLeast(0L)
-            val durationMs = player.duration.takeIf { it > 0L } ?: 0L
+            val positionMs =
+                (if (casting) CastPlayback.remoteSecondsToMs(discoveryHandler.interpolatedRemoteTimeSec()) else player.currentPosition)
+                    .coerceAtLeast(0L)
+            val durationMs =
+                (if (casting) CastPlayback.remoteSecondsToMs(discoveryHandler.remoteDuration.value) else player.duration)
+                    .takeIf { it > 0L } ?: 0L
 
             MusicWidget.updateWidget(
                 context = this@MusicService,
@@ -694,7 +834,7 @@ class MusicService :
             // Only spin the per-second ticker when a widget is actually placed — checked once per
             // playback session rather than every tick, so users with no widget pay nothing.
             if (!MusicWidget.hasPlacedWidget(this@MusicService)) return@launch
-            while (isActive && player.isPlaying) {
+            while (isActive && widgetIsPlaying()) {
                 updateWidget()
                 delay(1000)
             }
@@ -817,7 +957,10 @@ class MusicService :
         queue.preloadItem?.let { preloadItem ->
             player.setMediaItem(preloadItem.toMediaItem())
             player.prepare()
-            player.playWhenReady = playWhenReady
+            // While casting, the receiver is the one that plays: onMediaItemTransition() (via
+            // CastController) pauses local and triggers the remote load. Never let local playback
+            // start on top of it.
+            player.playWhenReady = CastPlayback.shouldStartLocalPlayback(playWhenReady, discoveryHandler.isConnected)
         }
         scope.launch(SilentHandler) {
             val initialStatus =
@@ -866,7 +1009,8 @@ class MusicService :
                     initialStatus.position,
                 )
                 player.prepare()
-                player.playWhenReady = playWhenReady
+                // Same cast guard as the preload branch above.
+                player.playWhenReady = CastPlayback.shouldStartLocalPlayback(playWhenReady, discoveryHandler.isConnected)
             }
         }
     }
@@ -1209,6 +1353,47 @@ class MusicService :
         )
     }
 
+    /**
+     * Resolves a playable stream URL (and caches its MIME) for the cast path. Reuses the validated
+     * YTPlayerUtils.playerResponseForPlayback() — the same cipher/poToken resolution the local player
+     * goes through — so streaming correctness is shared, not a second implementation. It deliberately
+     * skips the local-only FormatEntity persistence and recoverSong backfill that createDataSourceFactory
+     * does: the receiver only needs a URL + container, not the song-details metadata.
+     */
+    suspend fun resolveStreamUrl(mediaId: String): String? {
+        // Trust the cached URL only when its container MIME is cached too. songUrlCache is the shared
+        // cache also populated by local playback, which may not have recorded the MIME; returning a URL
+        // whose MIME then defaults to "audio/mp4" makes the receiver reject an opus/webm stream.
+        songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let { cached ->
+            if (songMimeCache.containsKey(mediaId)) return cached.first
+        }
+
+        return withContext(Dispatchers.IO) {
+            val playbackData = YTPlayerUtils.playerResponseForPlayback(
+                mediaId,
+                audioQuality = audioQuality,
+                connectivityManager = connectivityManager,
+            ).getOrNull()
+
+            val streamUrl = playbackData?.streamUrl
+            if (streamUrl != null) {
+                songUrlCache[mediaId] =
+                    streamUrl to System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L)
+                songMimeCache[mediaId] = playbackData.format.mimeType.split(";")[0]
+            }
+            streamUrl
+        }
+    }
+
+    /**
+     * Drops the cached stream URL + MIME for [mediaId] so the next [resolveStreamUrl] fetches a fresh
+     * one — used by the cast error recovery when the receiver repeatedly fails to fetch the cached URL.
+     */
+    fun invalidateStreamCache(mediaId: String) {
+        songUrlCache.remove(mediaId)
+        songMimeCache.remove(mediaId)
+    }
+
     override fun onMediaItemTransition(
         mediaItem: MediaItem?,
         reason: Int,
@@ -1217,6 +1402,12 @@ class MusicService :
 
         setupLoudnessEnhancer()
         updateWidget()
+
+        // The cast receiver reload on a track change is owned by the (process-scoped) CastController, so it
+        // runs whether or not a PlayerConnection is currently bound — auto-advance survives the UI Activity
+        // being destroyed mid-cast. It is the single owner (PlayerConnection no longer reloads), so the
+        // receiver is loaded exactly once per transition.
+        castController.onMediaItemTransition(mediaItem, reason)
 
         // Auto load more songs
         if (dataStore.get(AutoLoadMoreKey, true) &&
@@ -1644,6 +1835,9 @@ class MusicService :
 
                 songUrlCache[mediaId] =
                     streamUrl to System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
+                // Keep the cast-MIME cache coherent with the URL cache it's written alongside, so a song
+                // played locally first then cast carries its real container (not the "audio/mp4" default).
+                songMimeCache[mediaId] = format.mimeType.split(";")[0]
                 return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
             }
         }
@@ -1708,7 +1902,7 @@ class MusicService :
             !dataStore.get(PauseListenHistoryKey, false)
         ) {
             database.query {
-                incrementTotalPlayTime(mediaItem.mediaId, playbackStats.totalPlayTimeMs)
+                incrementTotalPlayTime(songId = mediaItem.mediaId, playTime = playbackStats.totalPlayTimeMs)
                 try {
                     insert(
                         Event(
@@ -1799,6 +1993,17 @@ class MusicService :
         if (dataStore.get(PersistentQueueKey, true)) {
             saveQueueToDisk()
         }
+        // Tear down any active cast session so the receiver doesn't keep playing an orphaned stream
+        // after the service dies. Clear onDisconnect first so the async Disconnected callback can't
+        // seek/prepare the player we're about to release. (sender-sdk 0.4.0's NsdDeviceDiscoverer has
+        // no stop API, so the NSD discovery itself can't be halted here.)
+        discoveryHandler.onDisconnect = null
+        discoveryHandler.connectedDevice?.let { device ->
+            runCatching { device.stopPlayback() }
+            runCatching { device.disconnect() }
+        }
+        // After the receiver is told to stop: nothing will fetch through the relay anymore.
+        stopCastRelay()
         connectivityObserver.unregister()
         abandonAudioFocus()
         releaseLoudnessEnhancer()
@@ -1816,10 +2021,26 @@ class MusicService :
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             MusicWidget.ACTION_PLAY_PAUSE -> {
-                if (player.isPlaying) player.pause() else player.play()
+                if (discoveryHandler.isConnected) {
+                    // isRemotePlaying falls back to the play intent before the receiver's first state
+                    // report, matching the widget's rendered icon (widgetIsPlaying).
+                    if (discoveryHandler.isRemotePlaying()) {
+                        discoveryHandler.pause()
+                    } else {
+                        discoveryHandler.play()
+                    }
+                } else if (player.isPlaying) {
+                    player.pause()
+                } else {
+                    player.play()
+                }
             }
+            // The local skip advances the queue, whose media-item transition reloads the receiver while
+            // casting. PREV uses seekToPreviousMediaItem when casting: the local clock is meaningless
+            // remotely, so seekToPrevious's "restart current track if >3s in" would misfire.
             MusicWidget.ACTION_NEXT -> player.seekToNext()
-            MusicWidget.ACTION_PREV -> player.seekToPrevious()
+            MusicWidget.ACTION_PREV ->
+                if (discoveryHandler.isConnected) player.seekToPreviousMediaItem() else player.seekToPrevious()
         }
         return super.onStartCommand(intent, flags, startId)
     }

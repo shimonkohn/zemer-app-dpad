@@ -174,6 +174,9 @@ android {
         jniLibs {
             useLegacyPackaging = false
             pickFirsts += "**/libcoverart.so"
+            // The FCast sender-SDK native lib is NOT bundled (~5.3 MB) — it is downloaded on demand from
+            // ZemerTeam/zemer-cast when the user enables casting (see CastNativeLibLoader).
+            excludes += "**/libfcast_sender_sdk.so"
             keepDebugSymbols += listOf(
                 "**/libandroidx.graphics.path.so",
                 "**/libdatastore_shared_counter.so",
@@ -297,4 +300,9 @@ dependencies {
 
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
+
+    implementation("org.futo.gitlab.videostreaming.fcast-sdk-jitpack:sender-sdk-minimal:0.4.0") {
+        exclude(group = "net.java.dev.jna")
+    }
+    implementation("net.java.dev.jna:jna:5.13.0@aar")
 }

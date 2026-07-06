@@ -118,6 +118,7 @@ fun LyricsScreen(
 
     val playbackState by playerConnection.playbackState.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
+    val isCasting by playerConnection.isCasting.collectAsState()
     val repeatMode by playerConnection.repeatMode.collectAsState()
     val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
     playerConnection.service.playerVolume.collectAsState()
@@ -179,8 +180,9 @@ fun LyricsScreen(
         if (playbackState == STATE_READY) {
             while (isActive) {
                 delay(500)
-                position = player.currentPosition
-                duration = player.duration
+                // Cast-aware clock (the local player is paused while casting), same as Player.kt/Lyrics.kt.
+                position = playerConnection.currentPositionMs()
+                duration = playerConnection.currentDurationMs()
             }
         }
     }
@@ -352,7 +354,7 @@ fun LyricsScreen(
                                         onValueChange = { sliderPosition = it.toLong() },
                                         onValueChangeFinished = {
                                             sliderPosition?.let {
-                                                player.seekTo(it)
+                                                playerConnection.seekTo(it)
                                                 position = it
                                             }
                                             sliderPosition = null
@@ -368,7 +370,7 @@ fun LyricsScreen(
                                         onValueChange = { sliderPosition = it.toLong() },
                                         onValueChangeFinished = {
                                             sliderPosition?.let {
-                                                player.seekTo(it)
+                                                playerConnection.seekTo(it)
                                                 position = it
                                             }
                                             sliderPosition = null
@@ -388,7 +390,7 @@ fun LyricsScreen(
                                         onValueChange = { sliderPosition = it.toLong() },
                                         onValueChangeFinished = {
                                             sliderPosition?.let {
-                                                player.seekTo(it)
+                                                playerConnection.seekTo(it)
                                                 position = it
                                             }
                                             sliderPosition = null
@@ -446,7 +448,9 @@ fun LyricsScreen(
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
-                                IconButton(onClick = { player.seekToPrevious() }, modifier = Modifier.size(48.dp)) {
+                                // While casting, route through the cast-aware wrapper (seekToPreviousMediaItem — a raw
+                                // seekToPrevious would rewind the paused local player without reloading the receiver).
+                                IconButton(onClick = { if (isCasting) playerConnection.seekToPrevious() else playerConnection.player.seekToPrevious() }, modifier = Modifier.size(48.dp)) {
                                     Icon(
                                         painter = painterResource(R.drawable.skip_previous),
                                         contentDescription = null,
@@ -456,7 +460,7 @@ fun LyricsScreen(
                                 }
    
                                 IconButton(
-                                    onClick = { player.togglePlayPause() }, 
+                                    onClick = { playerConnection.playPause() }, 
                                     modifier = Modifier.size(72.dp)
                                 ) {
                                     Box(
@@ -477,7 +481,7 @@ fun LyricsScreen(
                                     }
                                 }
     
-                                IconButton(onClick = { player.seekToNext() }, modifier = Modifier.size(48.dp)) {
+                                IconButton(onClick = { playerConnection.player.seekToNext() }, modifier = Modifier.size(48.dp)) {
                                     Icon(
                                         painter = painterResource(R.drawable.skip_next),
                                         contentDescription = null,
@@ -594,7 +598,7 @@ fun LyricsScreen(
                                     onValueChange = { sliderPosition = it.toLong() },
                                     onValueChangeFinished = {
                                         sliderPosition?.let {
-                                            player.seekTo(it)
+                                            playerConnection.seekTo(it)
                                             position = it
                                         }
                                         sliderPosition = null
@@ -610,7 +614,7 @@ fun LyricsScreen(
                                     onValueChange = { sliderPosition = it.toLong() },
                                     onValueChangeFinished = {
                                         sliderPosition?.let {
-                                            player.seekTo(it)
+                                            playerConnection.seekTo(it)
                                             position = it
                                         }
                                         sliderPosition = null
@@ -630,7 +634,7 @@ fun LyricsScreen(
                                     onValueChange = { sliderPosition = it.toLong() },
                                     onValueChangeFinished = {
                                         sliderPosition?.let {
-                                            player.seekTo(it)
+                                            playerConnection.seekTo(it)
                                             position = it
                                         }
                                         sliderPosition = null
@@ -688,7 +692,9 @@ fun LyricsScreen(
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
-                            IconButton(onClick = { player.seekToPrevious() }, modifier = Modifier.size(48.dp)) {
+                            // While casting, route through the cast-aware wrapper (seekToPreviousMediaItem — a raw
+                            // seekToPrevious would rewind the paused local player without reloading the receiver).
+                            IconButton(onClick = { if (isCasting) playerConnection.seekToPrevious() else playerConnection.player.seekToPrevious() }, modifier = Modifier.size(48.dp)) {
                                 Icon(
                                     painter = painterResource(R.drawable.skip_previous),
                                     contentDescription = null,
@@ -698,7 +704,7 @@ fun LyricsScreen(
                             }
    
                             IconButton(
-                                onClick = { player.togglePlayPause() }, 
+                                onClick = { playerConnection.playPause() }, 
                                 modifier = Modifier.size(72.dp)
                             ) {
                                 Box(
@@ -719,7 +725,7 @@ fun LyricsScreen(
                                 }
                             }
     
-                            IconButton(onClick = { player.seekToNext() }, modifier = Modifier.size(48.dp)) {
+                            IconButton(onClick = { playerConnection.player.seekToNext() }, modifier = Modifier.size(48.dp)) {
                                 Icon(
                                     painter = painterResource(R.drawable.skip_next),
                                     contentDescription = null,

@@ -121,7 +121,6 @@ import com.jtech.zemer.constants.QueuePeekHeight
 import com.jtech.zemer.constants.SliderStyle
 import com.jtech.zemer.constants.SliderStyleKey
 import com.jtech.zemer.constants.UseNewPlayerDesignKey
-import com.jtech.zemer.extensions.togglePlayPause
 import com.jtech.zemer.extensions.toggleRepeatMode
 import com.jtech.zemer.models.MediaMetadata
 import com.jtech.zemer.ui.component.DefaultDialog
@@ -211,6 +210,7 @@ fun BottomSheetPlayer(
 
     val playbackState by playerConnection.playbackState.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
+    val isCasting by playerConnection.isCasting.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     val automix by playerConnection.service.automixItems.collectAsState()
@@ -397,12 +397,14 @@ fun BottomSheetPlayer(
         )
     }
 
-    LaunchedEffect(playbackState) {
-        if (playbackState == STATE_READY) {
+    LaunchedEffect(playbackState, isCasting) {
+        if (playbackState == STATE_READY || isCasting) {
             while (isActive) {
                 delay(500)
-                position = playerConnection.player.currentPosition
-                duration = playerConnection.player.duration
+                // The single cast-aware position/duration source (remote clock while casting, else local)
+                // — shared with Lyrics/Thumbnail so the seek bar can't drift from the other surfaces.
+                position = playerConnection.currentPositionMs()
+                duration = playerConnection.currentDurationMs()
             }
         }
     }
@@ -860,7 +862,7 @@ fun BottomSheetPlayer(
                             },
                             onValueChangeFinished = {
                                 sliderPosition?.let {
-                                    playerConnection.player.seekTo(it)
+                                    playerConnection.seekTo(it)
                                     position = it
                                 }
                                 sliderPosition = null
@@ -879,7 +881,7 @@ fun BottomSheetPlayer(
                             },
                             onValueChangeFinished = {
                                 sliderPosition?.let {
-                                    playerConnection.player.seekTo(it)
+                                    playerConnection.seekTo(it)
                                     position = it
                                 }
                                 sliderPosition = null
@@ -903,7 +905,7 @@ fun BottomSheetPlayer(
                             },
                             onValueChangeFinished = {
                                 sliderPosition?.let {
-                                    playerConnection.player.seekTo(it)
+                                    playerConnection.seekTo(it)
                                     position = it
                                 }
                                 sliderPosition = null
@@ -998,12 +1000,7 @@ fun BottomSheetPlayer(
                         )
                         FilledIconButton(
                             onClick = {
-                                if (playbackState == STATE_ENDED) {
-                                    playerConnection.player.seekTo(0, 0)
-                                    playerConnection.player.playWhenReady = true
-                                } else {
-                                    playerConnection.player.togglePlayPause()
-                                }
+                                playerConnection.playPauseOrReplay(playbackState == STATE_ENDED)
                             },
                             interactionSource = playPauseInteraction,
                             colors = IconButtonDefaults.filledIconButtonColors(
@@ -1121,12 +1118,7 @@ fun BottomSheetPlayer(
                             .focusable()
                             .onFocusChanged { landscapePlayFocused.value = it.isFocused }
                             .clickable {
-                                if (playbackState == STATE_ENDED) {
-                                    playerConnection.player.seekTo(0, 0)
-                                    playerConnection.player.playWhenReady = true
-                                } else {
-                                    playerConnection.player.togglePlayPause()
-                                }
+                                playerConnection.playPauseOrReplay(playbackState == STATE_ENDED)
                             },
                     ) {
                         Image(

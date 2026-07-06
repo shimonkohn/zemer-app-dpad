@@ -193,6 +193,8 @@ import com.jtech.zemer.db.MusicDatabase
 import com.jtech.zemer.db.entities.SearchHistory
 import com.jtech.zemer.models.DpadDirection
 import com.jtech.zemer.models.toMediaMetadata
+import com.jtech.zemer.playback.CastVolumeKeyAction
+import com.jtech.zemer.playback.CastVolumeKeys
 import com.jtech.zemer.playback.DownloadUtil
 import com.jtech.zemer.playback.MusicService
 import com.jtech.zemer.playback.MusicService.MusicBinder
@@ -208,6 +210,7 @@ import com.jtech.zemer.ui.component.RecognizeMusicFab
 import com.jtech.zemer.ui.screens.recognition.RecognizeMusicDialogActivity
 import com.jtech.zemer.ui.component.SearchProviderToggle
 import com.jtech.zemer.ui.component.TopSearch
+import com.jtech.zemer.ui.component.castVolumeKeyModifier
 import com.jtech.zemer.constants.SearchProviderKey
 import com.jtech.zemer.search.SearchProvider
 import com.jtech.zemer.ui.component.rememberBottomSheetState
@@ -301,6 +304,9 @@ class MainActivity : ComponentActivity() {
                 service: IBinder?,
             ) {
                 if (service is MusicBinder) {
+                    // Re-bind (onStop unbinds, onStart re-binds) re-delivers onServiceConnected; dispose
+                    // any previous connection first so its cast collectors/listener don't accumulate.
+                    playerConnection?.dispose()
                     playerConnection =
                         PlayerConnection(this@MainActivity, service, database, lifecycleScope)
                 }
@@ -369,6 +375,12 @@ class MainActivity : ComponentActivity() {
         try {
             unbindService(serviceConnection)
         } catch (e: IllegalArgumentException) {
+        } finally {
+            // unbindService does NOT deliver onServiceDisconnected, so dispose here — otherwise the cast
+            // collectors + the 1 Hz stall poll keep running on the backgrounded Activity. onStart re-binds
+            // and re-creates the connection (onServiceConnected already disposes any leftover first).
+            playerConnection?.dispose()
+            playerConnection = null
         }
         super.onStop()
     }
@@ -391,6 +403,9 @@ class MainActivity : ComponentActivity() {
             unbindService(serviceConnection)
         } catch (e: IllegalArgumentException) {
         } finally {
+            // Dispose (cancel collectors + clear the handler's onDisconnect) before dropping the ref so
+            // the service-singleton handler isn't left pointing at this destroyed connection's closure.
+            playerConnection?.dispose()
             playerConnection = null
         }
     }
@@ -1951,7 +1966,11 @@ class MainActivity : ComponentActivity() {
                                     properties = DialogProperties(usePlatformDefaultWidth = false),
                                 ) {
                                     Surface(
-                                        modifier = Modifier.padding(24.dp),
+                                        // A dialog is its own window: volume keys while casting need the
+                                        // overlay handler, same as the Dialog.kt dialogs.
+                                        modifier = Modifier
+                                            .then(castVolumeKeyModifier())
+                                            .padding(24.dp),
                                         shape = RoundedCornerShape(16.dp),
                                         color = AlertDialogDefaults.containerColor,
                                         tonalElevation = AlertDialogDefaults.TonalElevation,
@@ -2147,6 +2166,26 @@ class MainActivity : ComponentActivity() {
 
     private fun isProtectedKey(keyCode: Int): Boolean {
         return keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_POWER
+    }
+
+    // Routes hardware volume keys to the cast receiver's volume while FCast/Chromecast is connected —
+    // see CastVolumeKeys.decide for why ACTION_UP is consumed rather than ignored. Independent of the
+    // D-pad remapping above; does not touch handleAccessibilityKey/handleMappedKeyEvent.
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val handler = playerConnection?.service?.discoveryHandler
+        when (CastVolumeKeys.decide(event.keyCode, event.action, handler?.isConnected == true)) {
+            CastVolumeKeyAction.AdjustUp -> {
+                handler?.adjustVolume(+1)
+                return true
+            }
+            CastVolumeKeyAction.AdjustDown -> {
+                handler?.adjustVolume(-1)
+                return true
+            }
+            CastVolumeKeyAction.Consume -> return true
+            CastVolumeKeyAction.Ignore -> {}
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {

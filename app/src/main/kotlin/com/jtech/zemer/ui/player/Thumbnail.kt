@@ -67,6 +67,7 @@ import coil3.compose.AsyncImage
 import com.jtech.zemer.LocalPlayerConnection
 import com.jtech.zemer.R
 import com.jtech.zemer.constants.CropAlbumArtKey
+import com.jtech.zemer.playback.SeekMath
 import com.jtech.zemer.constants.HidePlayerThumbnailKey
 import com.jtech.zemer.constants.PlayerBackgroundStyle
 import com.jtech.zemer.constants.PlayerBackgroundStyleKey
@@ -180,6 +181,9 @@ fun Thumbnail(
     LaunchedEffect(itemScrollOffset) {
         if (!thumbnailLazyGridState.isScrollInProgress || !swipeThumbnail || itemScrollOffset != 0 || currentMediaIndex < 0) return@LaunchedEffect
 
+        // Swipe = "skip to the adjacent track" and must preserve play/pause state, so use the raw
+        // media-item seeks (not the transport wrappers that restart-on-prev and force play). While
+        // casting, the resulting media-item transition reloads the receiver.
         if (currentItem > currentMediaIndex && canSkipNext) {
             playerConnection.player.seekToNext()
         } else if (currentItem < currentMediaIndex && canSkipPrevious) {
@@ -295,8 +299,11 @@ fun Thumbnail(
                                     .pointerInput(Unit) {
                                         detectTapGestures(
                                             onDoubleTap = { offset ->
-                                                val currentPosition = playerConnection.player.currentPosition
-                                                val duration = playerConnection.player.duration
+                                                // Both position AND duration must follow the cast clock
+                                                // while casting — using the local duration here would
+                                                // clamp the forward seek to TIME_UNSET (jumping to 0).
+                                                val currentPosition = playerConnection.currentPositionMs()
+                                                val duration = playerConnection.currentDurationMs()
 
                                                 val now = System.currentTimeMillis()
                                                 if (incrementalSeekSkipEnabled && now - lastTapTime < 1000) {
@@ -311,14 +318,19 @@ fun Thumbnail(
                                                 if ((layoutDirection == LayoutDirection.Ltr && offset.x < size.width / 2) ||
                                                     (layoutDirection == LayoutDirection.Rtl && offset.x > size.width / 2)
                                                 ) {
-                                                    playerConnection.player.seekTo(
+                                                    playerConnection.seekTo(
                                                         (currentPosition - skipAmount).coerceAtLeast(0)
                                                     )
                                                     seekDirection =
                                                         context.getString(R.string.seek_backward_dynamic, skipAmount / 1000)
                                                 } else {
-                                                    playerConnection.player.seekTo(
-                                                        (currentPosition + skipAmount).coerceAtMost(duration)
+                                                    // Clamps to the end only when the duration is known —
+                                                    // a 0 remote duration (cast track before the receiver
+                                                    // reports it) must not snap a forward seek back to 0.
+                                                    playerConnection.seekTo(
+                                                        SeekMath.forwardSeekTarget(
+                                                            currentPosition, skipAmount.toLong(), duration,
+                                                        )
                                                     )
                                                     seekDirection = context.getString(R.string.seek_forward_dynamic, skipAmount / 1000)
                                                 }
@@ -369,6 +381,13 @@ fun Thumbnail(
                                             modifier = Modifier.fillMaxSize()
                                         )
                                     }
+
+                                    // Cast button at the top-right corner of the artwork
+                                    CastButton(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(8.dp),
+                                    )
                                 }
                             }
                         }

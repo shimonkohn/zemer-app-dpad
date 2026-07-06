@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -94,6 +95,7 @@ import com.jtech.zemer.utils.rememberEnumPreference
 import com.jtech.zemer.utils.rememberPreference
 import androidx.compose.ui.graphics.toArgb
 import kotlinx.coroutines.launch
+import com.jtech.zemer.ui.component.focusBorder
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import androidx.compose.ui.res.stringResource
@@ -471,12 +473,7 @@ private fun NewMiniPlayer(
                                 shape = CircleShape
                             )
                             .clickable {
-                                if (playbackState == Player.STATE_ENDED) {
-                                    playerConnection.player.seekTo(0, 0)
-                                    playerConnection.player.playWhenReady = true
-                                } else {
-                                    playerConnection.player.togglePlayPause()
-                                }
+                                playerConnection.playPauseOrReplay(playbackState == Player.STATE_ENDED)
                             }
                     ) {
                         // Thumbnail background
@@ -577,6 +574,39 @@ private fun NewMiniPlayer(
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
+                    }
+                }
+
+                rememberCastButtonState()?.let { castState ->
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .border(
+                                width = 1.dp,
+                                color = if (castState.connected)
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                else
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                shape = CircleShape
+                            )
+                            .background(
+                                color = if (castState.connected)
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                else
+                                    Color.Transparent,
+                                shape = CircleShape
+                            )
+                            .focusBorder(CircleShape)
+                            .clickable(onClick = castState.onClick)
+                    ) {
+                        CastIcon(
+                            connected = castState.connected,
+                            idleTint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            size = 20.dp,
+                        )
                     }
                 }
 
@@ -885,14 +915,19 @@ private fun LegacyMiniPlayer(
                 }
             }
 
+            rememberCastButtonState()?.let { castState ->
+                IconButton(onClick = castState.onClick) {
+                    CastIcon(
+                        connected = castState.connected,
+                        idleTint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        size = 24.dp,
+                    )
+                }
+            }
+
             IconButton(
                 onClick = {
-                    if (playbackState == Player.STATE_ENDED) {
-                        playerConnection.player.seekTo(0, 0)
-                        playerConnection.player.playWhenReady = true
-                    } else {
-                        playerConnection.player.togglePlayPause()
-                    }
+                    playerConnection.playPauseOrReplay(playbackState == Player.STATE_ENDED)
                 },
             ) {
                 Icon(
