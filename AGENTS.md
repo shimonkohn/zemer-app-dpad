@@ -146,6 +146,19 @@ Five events (`open`/`search`/`play`/`click`/`action`) POSTed to `tracking.zemer.
   (loss-free resume), a persisted max-id bound so live-tracked rows never double-upload, device-zone
   timestamp conversion (wall-clock-as-UTC drops east-of-UTC users' freshest history), permanently
   off once its done-flag is set, paced under the server's per-device batch limit.
+- The one-shot **library-action backfill** (`LibraryActionBackfill`) uploads the currently-liked /
+  currently-downloaded song **snapshot** as `action_backfill` events (`favorite`|`download` only)
+  through the same `Tracker.uploadBackfill` path and pacing. Differences from plays that must not
+  regress: **10-year** acceptance window, not 3 (an old `likedDate` on a still-liked song is a
+  long-standing favorite — don't "fix" the constant back); resume is by persisted **acked-line
+  count**, not a row cursor — snapshot timestamps are NOT stable across attempts (zone changes
+  shift every `t`; `SyncUtils.likedSongs` rewrites `likedDate` to sync time), so server dedup
+  cannot absorb a full replay and the prefix skip is what bounds it; favorites upload before
+  downloads (stable order the prefix skip depends on); pacing sleeps only BETWEEN batches (the
+  done-flag lands immediately after the last ack); downloads include machine enqueues (snapshot
+  can't see `fromUser`) so the server weights them as weak corroboration. Same device-zone
+  timestamp conversion; 90 s start delay (load spreading, NOT an ordering guarantee). Full
+  contract: `handoff-docs/zemer-tracking-action-backfill-request.md` (SETTLED).
 
 ### The player background system (one effective style, one extractor)
 

@@ -63,7 +63,13 @@ internal fun planBackfillBatch(rows: List<Event>, nowMillis: Long, zone: ZoneId)
 }
 
 private const val MAX_BACKFILL_AGE_MS = 3L * 365 * 24 * 60 * 60 * 1000 // server accepts now−3y
-private const val FUTURE_TOLERANCE_MS = 5L * 60 * 1000 // …to now+5min
+internal const val FUTURE_TOLERANCE_MS = 5L * 60 * 1000 // …to now+5min (shared with LibraryActionBackfill)
+
+// The server's per-device batch limit — one definition for BOTH backfills (PlayHistoryBackfill and
+// LibraryActionBackfill), so a server-side limit change can never be applied to one and missed in
+// the other.
+internal const val BACKFILL_BATCH_ROWS = 100
+internal const val BACKFILL_BATCH_PACE_MS = 3_000L
 
 /**
  * One-time upload of the device's local listen history (the Room `event` table) as `play_backfill`
@@ -84,8 +90,8 @@ private const val FUTURE_TOLERANCE_MS = 5L * 60 * 1000 // …to now+5min
  *   failure aborts silently and a later launch resumes. Server dedup makes a replayed boundary
  *   batch harmless. The done-flag stops it permanently — checked BEFORE the database is ever
  *   opened, so completed installs never pay a Room open on this path.
- * - **Paced**: ≤100-row batches, one per [BATCH_PACE_MS] AFTER a real upload only (all-filtered
- *   pages advance without sleeping), started [START_DELAY_MS] after launch.
+ * - **Paced**: ≤100-row batches, one per [BACKFILL_BATCH_PACE_MS] AFTER a real upload only
+ *   (all-filtered pages advance without sleeping), started [START_DELAY_MS] after launch.
  */
 object PlayHistoryBackfill {
     private val started = AtomicBoolean(false)
@@ -124,7 +130,7 @@ object PlayHistoryBackfill {
         var droppedRows = 0
         val zone = ZoneId.systemDefault()
         while (true) {
-            val rows = database.eventsForBackfill(cursorId, bound, BATCH_ROWS)
+            val rows = database.eventsForBackfill(cursorId, bound, BACKFILL_BATCH_ROWS)
             val batch = planBackfillBatch(rows, System.currentTimeMillis(), zone)
             if (batch == null) {
                 context.dataStore.edit { it[TrackingBackfillDoneKey] = true }
@@ -151,12 +157,10 @@ object PlayHistoryBackfill {
             cursorId = batch.nextCursorId
             context.dataStore.edit { it[TrackingBackfillCursorKey] = cursorId }
             // Pace only actual uploads; all-filtered pages advance without burning wall-clock.
-            if (batch.lines.isNotEmpty()) delay(BATCH_PACE_MS)
+            if (batch.lines.isNotEmpty()) delay(BACKFILL_BATCH_PACE_MS)
         }
     }
 
     private const val TAG = "Zemer_Tracker"
-    private const val BATCH_ROWS = 100
-    private const val BATCH_PACE_MS = 3_000L
     private const val START_DELAY_MS = 45_000L
 }

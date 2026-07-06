@@ -143,6 +143,38 @@ Client rules that must not regress:
   `backfillLine`) is pure and tested; the remaining shell is a thin DataStore/loop wrapper,
   verified on-device.
 
+## One-time library-action backfill (`action_backfill`)
+
+The favorites/downloads companion (contract: `handoff-docs/zemer-tracking-action-backfill-request.md`,
+SETTLED and built server-side): `LibraryActionBackfill` uploads the currently-liked and
+currently-downloaded song snapshot once — `SongEntity.liked+likedDate` / `isDownloaded+dateDownload`
+— as `action_backfill` events (`kind` = `favorite`|`download` only; the other action kinds have no
+durable timestamp). It reuses the play backfill's queue-bypass, pacing (100-row batches / 3 s), and
+zone-correct conversion (`historyEventEpochMillis` — same regression class), with the differences
+the contract settled:
+
+- **Snapshot, not a log; resume by acked-line COUNT, not a row cursor.** The snapshot's timestamps
+  are NOT stable across attempts — a device-zone change shifts every converted `t`, and
+  `SyncUtils.likedSongs` rewrites every synced song's `likedDate` to sync time — so server dedup on
+  (device, kind, id, t) canNOT be relied on to absorb a full-snapshot replay. A persisted acked-line
+  count skips the acked prefix on restart (the line order is stable: favorites before downloads —
+  the primary signal lands first — both `ORDER BY id`), bounding any replay to the unacked tail.
+  Rows acted on after live tracking shipped are also live-tracked — a total, permanent overlap the
+  server keeps segregated. Note the sync rewrite also means a personal-account user's favorite `t`s
+  are really "last sync time", not original like time.
+- **10-year window, not plays' 3** (`now−10y..now+5min`, separate constant): an old `likedDate` on
+  a still-liked song is a long-standing favorite, not stale data. The server skips out-of-window
+  rows PER-ROW (never a batch-level 400), so the client-side window filter is bandwidth hygiene,
+  not a safety requirement.
+- **Downloads are a weak signal by contract**: the snapshot can't reconstruct `fromUser`, so
+  machine-initiated downloads (auto-download-on-like, self-repair) are included and the server
+  weights backfilled `download` as corroboration of `favorite`, never equal-weight.
+- Own start delay (90 s — spreads first-launch load; wire serialization comes from
+  `Tracker.uploadBackfill`'s single-in-flight discipline, NOT from the delay); done-flag checked
+  before any DB work and written immediately after the last ack (pacing sleeps only BETWEEN
+  batches — a trailing sleep was a window for a process kill to discard a completed drain). The
+  conversion policy (`actionBackfillLine` + `actionBackfillLines`) is pure and tested.
+
 ## Verifying a build
 
 `curl 'https://tracking.zemer.io/stats?key=<KEY>&days=1'` or the dashboard at

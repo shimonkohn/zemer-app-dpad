@@ -79,6 +79,22 @@ internal object TrackingEvents {
         put("videoId", videoId)
         put("secs", secs)
     }
+
+    /**
+     * One-time favorite/download snapshot backfill row (contract:
+     * handoff-docs/zemer-tracking-action-backfill-request.md — SETTLED, server-side built). [t]
+     * is the ORIGINAL action time; the server accepts now−10y..now+5min (wider floor than plays —
+     * an old likedDate on a still-liked song is a long-standing favorite, not stale data), stores
+     * it segregated from live actions, dedupes on (device, kind, id, t), and skips out-of-window
+     * rows PER-ROW (never a batch-level failure). [kind] is restricted server-side to
+     * favorite|download — the other action kinds have no durable timestamp to backfill.
+     */
+    fun actionBackfill(t: Long, kind: String, id: String): JsonObject = buildJsonObject {
+        put("type", "action_backfill")
+        put("t", t)
+        put("kind", kind)
+        put("id", id)
+    }
 }
 
 /** The `action` kinds the server accepts. */

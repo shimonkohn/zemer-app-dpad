@@ -19,6 +19,7 @@ import com.jtech.zemer.constants.PlaylistSortType
 import com.jtech.zemer.constants.SongSortType
 import com.jtech.zemer.tracking.Tracker
 import com.jtech.zemer.tracking.TrackingActionKind
+import com.jtech.zemer.db.entities.ActionSnapshotRow
 import com.jtech.zemer.db.entities.Album
 import com.jtech.zemer.db.entities.AlbumArtistMap
 import com.jtech.zemer.db.entities.AlbumEntity
@@ -1197,6 +1198,18 @@ interface DatabaseDao {
     /** The highest listen-history row id (0 when empty) — the backfill's one-time upper bound. */
     @Query("SELECT COALESCE(MAX(id), 0) FROM event")
     fun maxEventId(): Long
+
+    /**
+     * Currently-liked / currently-downloaded snapshot rows for the one-shot library-action
+     * telemetry backfill (tracking/LibraryActionBackfill.kt). Snapshot semantics: rows whose
+     * timestamp an unfavorite/removal has since nulled are correctly absent. Plain blocking
+     * reads; called off-main.
+     */
+    @Query("SELECT id, likedDate AS timestamp FROM song WHERE liked = 1 AND likedDate IS NOT NULL ORDER BY id")
+    fun likedSongsForBackfill(): List<ActionSnapshotRow>
+
+    @Query("SELECT id, dateDownload AS timestamp FROM song WHERE isDownloaded = 1 AND dateDownload IS NOT NULL ORDER BY id")
+    fun downloadedSongsForBackfill(): List<ActionSnapshotRow>
 
     @Transaction
     @Query("SELECT * FROM event ORDER BY rowId ASC LIMIT 1")
