@@ -1184,6 +1184,20 @@ interface DatabaseDao {
     @Query("SELECT COUNT(*) FROM event")
     fun eventCount(): Flow<Int>
 
+    /**
+     * Listen-history rows for the one-shot telemetry backfill (tracking/PlayHistoryBackfill.kt),
+     * keyed on the autoincrement id: strictly after the [afterId] resume cursor (id order is
+     * loss-free — a timestamp cursor skips equal-timestamp rows at batch boundaries) and at most
+     * [maxId], the bound captured when the backfill first ran (rows above it were already reported
+     * live). Plain blocking read; called off-main.
+     */
+    @Query("SELECT * FROM event WHERE id > :afterId AND id <= :maxId ORDER BY id ASC LIMIT :limit")
+    fun eventsForBackfill(afterId: Long, maxId: Long, limit: Int): List<Event>
+
+    /** The highest listen-history row id (0 when empty) — the backfill's one-time upper bound. */
+    @Query("SELECT COALESCE(MAX(id), 0) FROM event")
+    fun maxEventId(): Long
+
     @Transaction
     @Query("SELECT * FROM event ORDER BY rowId ASC LIMIT 1")
     fun firstEvent(): Flow<EventWithSong?>

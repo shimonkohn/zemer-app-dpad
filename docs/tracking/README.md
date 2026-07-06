@@ -116,6 +116,33 @@ deciphered web clients in `WEB_STREAM_CLIENTS`, `CipherDeobfuscator.lastUsedPlay
 stream-resolution time via `Tracker.onStreamResolved`; the play event attaches them. Absent for
 downloaded/local playback. Session-level caveat: the last resolution per videoId wins.
 
+## One-time history backfill (`play_backfill`)
+
+The recommender's warm start (contract: `handoff-docs/zemer-tracking-history-backfill-request.md`,
+shipped server-side): `PlayHistoryBackfill` uploads the device's LOCAL listen history (the Room
+`event` table — listens over the user's history threshold; a cleared history sends nothing) once,
+as `play_backfill` events carrying the ORIGINAL listen time. The server stores them unclamped
+(now−3y..now+5min), segregated from live plays and dashboards, deduped on (device, videoId, t).
+Client rules that must not regress:
+
+- **Bypasses the live queue** (`Tracker.uploadBackfill`) — thousands of rows must never flood the
+  500-cap live event queue — but SHARES the single-in-flight discipline and the failure backoff
+  with the live path: a rate-limited server is never poked by backfill mid-ladder.
+- **Zone-correct timestamps**: the local history stores wall-clock `LocalDateTime`s, converted
+  with the DEVICE ZONE (`historyEventEpochMillis`, tested) — the naive UTC reading shifted every
+  `t` by the zone offset and silently dropped the freshest hours for east-of-UTC users.
+- **Bounded against double-counting**: the max event-row id is captured and persisted on the first
+  run; rows above it were already reported live and never upload as backfill.
+- **Resumable + loss-free + one-shot**: the cursor is the last acked row's autoincrement ID (a
+  timestamp cursor skips equal-timestamp rows at batch boundaries), advanced per acked batch; the
+  done-flag ends it forever and is checked before the DB is ever opened. Server dedup makes a
+  replayed boundary batch harmless. A server-rejected (400) batch advances but is LOGGED and
+  counted separately — never silently folded into success.
+- **Paced**: ≤100-row batches, one per 3 s after REAL uploads only (all-filtered pages advance
+  without sleeping), started 45 s after launch. The per-batch policy (`planBackfillBatch` +
+  `backfillLine`) is pure and tested; the remaining shell is a thin DataStore/loop wrapper,
+  verified on-device.
+
 ## Verifying a build
 
 `curl 'https://tracking.zemer.io/stats?key=<KEY>&days=1'` or the dashboard at

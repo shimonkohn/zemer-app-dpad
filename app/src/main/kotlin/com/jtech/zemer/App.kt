@@ -19,6 +19,8 @@ import coil3.request.CachePolicy
 import coil3.request.allowHardware
 import coil3.request.crossfade
 import coil3.svg.SvgDecoder
+import com.jtech.zemer.db.MusicDatabase
+import com.jtech.zemer.tracking.PlayHistoryBackfill
 import com.jtech.zemer.tracking.Tracker
 import com.jtech.zemer.tracking.TrackingLifecycle
 import com.metrolist.innertube.YouTube
@@ -80,6 +82,10 @@ class App : Application(), SingletonImageLoader.Factory {
     @Inject
     lateinit var syncUtils: SyncUtils
 
+    // Lazy so app start never pays for opening the DB before something else needs it.
+    @Inject
+    lateinit var databaseLazy: dagger.Lazy<MusicDatabase>
+
     override fun onCreate() {
         super.onCreate()
 
@@ -100,9 +106,11 @@ class App : Application(), SingletonImageLoader.Factory {
 
         // Anonymous usage telemetry (docs/tracking/README.md): fire-and-forget by contract, so a
         // failure here can never affect startup. The lifecycle callbacks own the `open` session
-        // semantics and the flush-on-background trigger.
+        // semantics and the flush-on-background trigger; the one-shot history backfill self-delays
+        // 45 s and no-ops forever once its done-flag is set.
         Tracker.initialize(this)
         registerActivityLifecycleCallbacks(TrackingLifecycle())
+        PlayHistoryBackfill.maybeStart(this) { databaseLazy.get() }
 
         // Initialize cipher library for WEB_REMIX streaming
         ZemerCipher.initialize(

@@ -377,6 +377,12 @@ enum class SearchSource {
 
 // Anonymous telemetry install id (a random UUID, the ONLY identity the tracking server ever sees).
 val TrackingDeviceIdKey = stringPreferencesKey("trackingDeviceId")
+// One-shot listen-history backfill: resume cursor (row id of the last acked event), the upper
+// bound (max event id when the backfill first ran — later rows were already reported live), and
+// the done flag.
+val TrackingBackfillCursorKey = longPreferencesKey("trackingBackfillCursor")
+val TrackingBackfillBoundKey = longPreferencesKey("trackingBackfillBound")
+val TrackingBackfillDoneKey = booleanPreferencesKey("trackingBackfillDone")
 val VisitorDataKey = stringPreferencesKey("visitorData")
 val DataSyncIdKey = stringPreferencesKey("dataSyncId")
 val AndroidAutoYouTubePlaylistsKey = booleanPreferencesKey("androidAutoYoutubePlaylists")

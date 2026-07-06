@@ -41,7 +41,8 @@ object Tracker {
     val playSources = PlaySourceResolver()
 
     @Suppress("OPT_IN_USAGE")
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
+    private val confined = Dispatchers.IO.limitedParallelism(1)
+    private val scope = CoroutineScope(SupervisorJob() + confined)
     private val ready = CompletableDeferred<Unit>()
 
     private var queue: TrackingQueue? = null
@@ -102,6 +103,47 @@ object Tracker {
     }
 
     private val streamInfo = ConcurrentHashMap<String, Pair<String, String?>>()
+
+    /**
+     * Upload path for the one-shot history backfill ([PlayHistoryBackfill]): bypasses the live
+     * QUEUE — its 500 cap must never be flooded by thousands of backfill rows — but shares
+     * everything else: identity, debug flag, uploader, the single-in-flight discipline AND the
+     * failure backoff ([FlushSchedule]), so a rate-limited/failing server is never poked by the
+     * backfill while the live path is waiting out the ladder (and vice versa: a backfill failure
+     * opens the same window for the live path). Null until initialization provides a device id.
+     */
+    internal suspend fun uploadBackfill(eventLines: List<String>): TrackingUploader.Result? {
+        ready.await()
+        return kotlinx.coroutines.withContext(confined) {
+            val device = deviceId ?: return@withContext null
+            // Honor the shared backoff window and never overlap a live upload.
+            while (true) {
+                val wait = schedule.delayUntilAllowed()
+                if (wait > 0) {
+                    delay(wait)
+                    continue
+                }
+                if (inFlight) {
+                    delay(IN_FLIGHT_POLL_MS)
+                    continue
+                }
+                break
+            }
+            inFlight = true
+            try {
+                val result = uploader.upload(device, appVer, BuildConfig.DEBUG, eventLines)
+                when (result) {
+                    TrackingUploader.Result.Success, TrackingUploader.Result.DropBatch ->
+                        schedule.onSuccess()
+                    TrackingUploader.Result.RateLimited -> schedule.onFailure(rateLimited = true)
+                    TrackingUploader.Result.Retry -> schedule.onFailure(rateLimited = false)
+                }
+                result
+            } finally {
+                inFlight = false
+            }
+        }
+    }
 
     /** Background transition: flush whatever is queued (spec §2), still honoring the backoff. */
     fun onAppBackgrounded() {
@@ -182,6 +224,7 @@ object Tracker {
     private const val FLUSH_THRESHOLD = 20
     private const val TIMER_FLUSH_MS = 60_000L
     private const val STREAM_INFO_MAX = 300
+    private const val IN_FLIGHT_POLL_MS = 250L
 }
 
 /** The server rejects any device id that isn't a canonical UUID (verified live) — enforce it here. */

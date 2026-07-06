@@ -140,6 +140,12 @@ Five events (`open`/`search`/`play`/`click`/`action`) POSTed to `tracking.zemer.
 - One `search` event per executed query (the per-query ViewModel guard) — never per keystroke or
   per chip switch. Everything is tracked (KidZone and the YouTube engine included), no opt-out —
   a product decision, 2026-07-05.
+- The one-shot **history backfill** (`PlayHistoryBackfill`) uploads the local listen history as
+  `play_backfill` events through `Tracker.uploadBackfill` — NEVER through the live queue (its 500
+  cap must not be flooded) but sharing the single-in-flight + backoff discipline; row-ID cursor
+  (loss-free resume), a persisted max-id bound so live-tracked rows never double-upload, device-zone
+  timestamp conversion (wall-clock-as-UTC drops east-of-UTC users' freshest history), permanently
+  off once its done-flag is set, paced under the server's per-device batch limit.
 
 ### The player background system (one effective style, one extractor)
 
