@@ -65,6 +65,7 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionError
 import androidx.media3.session.SessionToken
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.utils.ResilientDns
@@ -197,6 +198,7 @@ class MusicService :
     private var hasAudioFocus = false
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var startRadioJob: Job? = null
     private val binder = MusicBinder()
 
     private lateinit var connectivityManager: ConnectivityManager
@@ -870,39 +872,70 @@ class MusicService :
     }
 
     fun startRadioSeamlessly() {
+        // Ignore re-taps while a radio fetch is in flight — two concurrent runs would both
+        // append their radio items, duplicating the queue (#89).
+        if (startRadioJob?.isActive == true) return
         val currentMediaMetadata = player.currentMetadata ?: return
 
-        // Save current song
-        val currentSong = player.currentMediaItem
+        // The queue swap itself is invisible on the Now Playing screen (Android Auto included),
+        // so surface a transient session message as immediate feedback (#89). INFO_CANCELLED is
+        // media3's non-fatal informational code — controllers show the message and move on.
+        mediaSession.sendError(
+            SessionError(SessionError.INFO_CANCELLED, getString(R.string.starting_radio)),
+        )
 
-        // Remove other songs from queue
-        if (player.currentMediaItemIndex > 0) {
-            player.removeMediaItems(0, player.currentMediaItemIndex)
-        }
-        if (player.currentMediaItemIndex < player.mediaItemCount - 1) {
-            player.removeMediaItems(player.currentMediaItemIndex + 1, player.mediaItemCount)
-        }
-
-        scope.launch(SilentHandler) {
+        startRadioJob = scope.launch(SilentHandler) {
             val radioQueue = YouTubeQueue(
                 endpoint = WatchEndpoint(videoId = currentMediaMetadata.id),
                 preloadItem = null,
                 database = database
             )
-            val initialStatus = radioQueue.getInitialStatus()
+            val initialStatus = try {
+                radioQueue.getInitialStatus()
+            } catch (e: Exception) {
+                reportException(e)
+                onStartRadioFailed()
+                return@launch
+            }
+            // Item 0 is the seed (currently-playing) song; only the rest gets appended.
+            val radioItems = initialStatus.items.drop(1)
+            if (radioItems.isEmpty()) {
+                // Fetch came back empty (e.g. everything whitelist-filtered) — leave the
+                // existing queue alone instead of having wiped it for nothing.
+                onStartRadioFailed()
+                return@launch
+            }
+            // The user may have skipped to another song during the fetch — don't replace
+            // their queue with a radio seeded from the previous song.
+            if (player.currentMetadata?.id != currentMediaMetadata.id) return@launch
+
+            // Only now, with radio items in hand, drop the rest of the old queue. Doing this
+            // before the fetch stranded the user on a 1-song queue whenever it failed (#89).
+            if (player.currentMediaItemIndex > 0) {
+                player.removeMediaItems(0, player.currentMediaItemIndex)
+            }
+            if (player.currentMediaItemIndex < player.mediaItemCount - 1) {
+                player.removeMediaItems(player.currentMediaItemIndex + 1, player.mediaItemCount)
+            }
 
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
-
-            // Add radio songs after current song
-            player.addMediaItems(initialStatus.items.drop(1))
-            // Tracking: only the ADDED items are autoplay — item 0 is the currently-playing song,
-            // which must keep whatever source it already had (registerRadio would flip an
-            // unregistered current song to "radio" mid-listen).
-            Tracker.playSources.registerRadio(initialStatus.items.drop(1).map { it.mediaId })
+            player.addMediaItems(radioItems)
+            // Tracking: only the ADDED items are autoplay — the currently-playing song must
+            // keep whatever source it already had (registerRadio would flip an unregistered
+            // current song to "radio" mid-listen).
+            Tracker.playSources.registerRadio(radioItems.map { it.mediaId })
             currentQueue = radioQueue
         }
+    }
+
+    private fun onStartRadioFailed() {
+        // Car screens don't show toasts — the session error is what Android Auto displays.
+        mediaSession.sendError(
+            SessionError(SessionError.ERROR_IO, getString(R.string.radio_start_failed)),
+        )
+        Toast.makeText(this, getString(R.string.radio_start_failed), Toast.LENGTH_SHORT).show()
     }
 
     fun getAutomixAlbum(albumId: String) {
