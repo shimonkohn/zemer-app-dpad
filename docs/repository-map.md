@@ -598,7 +598,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/res/drawable/ic_launcher_background_v31.xml` | 8 lines | `.xml` |
 | `app/src/main/res/drawable/ic_launcher_foreground.xml` | 17 lines | `.xml` |
 | `app/src/main/res/drawable/ic_launcher_foreground_v31.xml` | 17 lines | `.xml` |
-| `app/src/main/res/drawable/ic_launcher_monochrome.xml` | 17 lines | `.xml` |
+| `app/src/main/res/drawable/ic_launcher_monochrome.xml` | 14 lines | `.xml` |
 | `app/src/main/res/drawable/ic_pip.xml` | 9 lines | `.xml` |
 | `app/src/main/res/drawable/ic_rotate_screen.xml` | 9 lines | `.xml` |
 | `app/src/main/res/drawable/ic_speedometer.xml` | 9 lines | `.xml` |
@@ -695,8 +695,8 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/res/drawable/widget_preview.xml` | 18 lines | `.xml` |
 | `app/src/main/res/drawable/wifi_proxy.xml` | 9 lines | `.xml` |
 | `app/src/main/res/layout/widget_loading.xml` | 45 lines | `.xml` |
-| `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml` | 5 lines | `.xml` |
-| `app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml` | 5 lines | `.xml` |
+| `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml` | 6 lines | `.xml` |
+| `app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml` | 6 lines | `.xml` |
 | `app/src/main/res/mipmap-hdpi/ic_launcher.webp` | 730 bytes | `.webp` |
 | `app/src/main/res/mipmap-hdpi/ic_launcher_foreground.webp` | 744 bytes | `.webp` |
 | `app/src/main/res/mipmap-hdpi/ic_launcher_round.webp` | 1610 bytes | `.webp` |

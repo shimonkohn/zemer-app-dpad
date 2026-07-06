@@ -124,7 +124,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `app/src/main/res/drawable/ic_launcher_background_v31.xml` | 8 lines | text `.xml`; XML root `shape` |
 | `app/src/main/res/drawable/ic_launcher_foreground.xml` | 17 lines | text `.xml`; XML root `vector` |
 | `app/src/main/res/drawable/ic_launcher_foreground_v31.xml` | 17 lines | text `.xml`; XML root `vector` |
-| `app/src/main/res/drawable/ic_launcher_monochrome.xml` | 17 lines | text `.xml`; XML root `vector` |
+| `app/src/main/res/drawable/ic_launcher_monochrome.xml` | 14 lines | text `.xml`; XML root `vector` |
 | `app/src/main/res/drawable/ic_pip.xml` | 9 lines | text `.xml`; XML root `vector` |
 | `app/src/main/res/drawable/ic_rotate_screen.xml` | 9 lines | text `.xml`; XML root `vector` |
 | `app/src/main/res/drawable/ic_speedometer.xml` | 9 lines | text `.xml`; XML root `vector` |
@@ -221,8 +221,8 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `app/src/main/res/drawable/widget_preview.xml` | 18 lines | text `.xml`; XML root `layer-list` |
 | `app/src/main/res/drawable/wifi_proxy.xml` | 9 lines | text `.xml`; XML root `vector` |
 | `app/src/main/res/layout/widget_loading.xml` | 45 lines | text `.xml`; XML root `LinearLayout` |
-| `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml` | 5 lines | text `.xml`; XML root `adaptive-icon` |
-| `app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml` | 5 lines | text `.xml`; XML root `adaptive-icon` |
+| `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml` | 6 lines | text `.xml`; XML root `adaptive-icon` |
+| `app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml` | 6 lines | text `.xml`; XML root `adaptive-icon` |
 | `app/src/main/res/mipmap-hdpi/ic_launcher.webp` | 730 bytes | binary `.webp` |
 | `app/src/main/res/mipmap-hdpi/ic_launcher_foreground.webp` | 744 bytes | binary `.webp` |
 | `app/src/main/res/mipmap-hdpi/ic_launcher_round.webp` | 1610 bytes | binary `.webp` |
