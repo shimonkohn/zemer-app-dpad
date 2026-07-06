@@ -824,12 +824,12 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/build-release.md` | 67 lines | `.md` |
 | `docs/fcast/01-architecture.md` | 116 lines | `.md` |
 | `docs/fcast/02-on-demand-native-lib.md` | 134 lines | `.md` |
-| `docs/fcast/03-discovery-and-connection.md` | 238 lines | `.md` |
-| `docs/fcast/04-playback-and-transport.md` | 248 lines | `.md` |
+| `docs/fcast/03-discovery-and-connection.md` | 253 lines | `.md` |
+| `docs/fcast/04-playback-and-transport.md` | 288 lines | `.md` |
 | `docs/fcast/05-auto-advance.md` | 176 lines | `.md` |
-| `docs/fcast/06-ui.md` | 123 lines | `.md` |
-| `docs/fcast/07-testing-and-troubleshooting.md` | 157 lines | `.md` |
-| `docs/fcast/README.md` | 78 lines | `.md` |
+| `docs/fcast/06-ui.md` | 131 lines | `.md` |
+| `docs/fcast/07-testing-and-troubleshooting.md` | 176 lines | `.md` |
+| `docs/fcast/README.md` | 79 lines | `.md` |
 | `docs/generate.py` | 487 lines | `.py` |
 | `docs/innertube/README.md` | 183 lines | `.md` |
 | `docs/latest_releases/01-architecture-and-data-flow.md` | 94 lines | `.md` |
