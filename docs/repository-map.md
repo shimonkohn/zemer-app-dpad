@@ -955,7 +955,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `tests/broken-clients.mjs` | 142 lines | `.mjs` |
 | `tests/check-live-player.mjs` | 81 lines | `.mjs` |
 | `tests/cipher-check.mjs` | 86 lines | `.mjs` |
-| `tests/cipher.mjs` | 197 lines | `.mjs` |
+| `tests/cipher.mjs` | 205 lines | `.mjs` |
 | `tests/client-fulldownload.mjs` | 109 lines | `.mjs` |
 | `tests/clients.mjs` | 69 lines | `.mjs` |
 | `tests/config-covers.mjs` | 24 lines | `.mjs` |

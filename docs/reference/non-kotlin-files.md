@@ -263,7 +263,7 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `tests/broken-clients.mjs` | 142 lines | text `.mjs` |
 | `tests/check-live-player.mjs` | 81 lines | text `.mjs` |
 | `tests/cipher-check.mjs` | 86 lines | text `.mjs` |
-| `tests/cipher.mjs` | 197 lines | text `.mjs` |
+| `tests/cipher.mjs` | 205 lines | text `.mjs` |
 | `tests/client-fulldownload.mjs` | 109 lines | text `.mjs` |
 | `tests/clients.mjs` | 69 lines | text `.mjs` |
 | `tests/config-covers.mjs` | 24 lines | text `.mjs` |
