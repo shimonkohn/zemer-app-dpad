@@ -77,7 +77,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 
 ### Counts
 
-- Files counted: `914`
+- Files counted: `916`
 - By extension:
   - `.kt`: `533`
   - `.xml`: `155`
@@ -87,20 +87,20 @@ The following inventory is generated from repository files outside `.git`, `.gra
   - `.webp`: `15`
   - `[none]`: `7`
   - `.kts`: `6`
+  - `.sh`: `5`
   - `.yml`: `5`
-  - `.sh`: `4`
   - `.js`: `3`
   - `.properties`: `3`
   - `.dm`: `2`
   - `.lottie`: `2`
   - `.png`: `2`
   - `.py`: `2`
+  - `.txt`: `2`
   - `.bat`: `1`
   - `.jar`: `1`
   - `.pro`: `1`
   - `.toml`: `1`
   - `.tsv`: `1`
-  - `.txt`: `1`
 
 ### Every counted file
 
@@ -806,7 +806,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/recognize_music/06-testing-and-maintenance.md` | 54 lines | `.md` |
 | `docs/recognize_music/README.md` | 71 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 556 lines | `.md` |
-| `docs/reference/non-kotlin-files.md` | 334 lines | `.md` |
+| `docs/reference/non-kotlin-files.md` | 336 lines | `.md` |
 | `docs/reference/resource-index.md` | 255 lines | `.md` |
 | `docs/remote_cipher_config/01-why-it-exists.md` | 88 lines | `.md` |
 | `docs/remote_cipher_config/02-file-format.md` | 116 lines | `.md` |
@@ -816,7 +816,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/remote_cipher_config/06-harness-and-monitor.md` | 101 lines | `.md` |
 | `docs/remote_cipher_config/07-runbook.md` | 101 lines | `.md` |
 | `docs/remote_cipher_config/README.md` | 112 lines | `.md` |
-| `docs/repository-map.md` | 1022 lines | `.md` |
+| `docs/repository-map.md` | 1024 lines | `.md` |
 | `docs/tracking/README.md` | 184 lines | `.md` |
 | `docs/ui/README.md` | 317 lines | `.md` |
 | `docs/ui/standards.md` | 290 lines | `.md` |
@@ -931,7 +931,9 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `lrclib/src/main/kotlin/com/metrolist/lrclib/LrcLib.kt` | 286 lines | `.kt` |
 | `lrclib/src/main/kotlin/com/metrolist/lrclib/models/Track.kt` | 137 lines | `.kt` |
 | `scripts/check-16kb-alignment.sh` | 67 lines | `.sh` |
+| `scripts/check-dead-resources.sh` | 94 lines | `.sh` |
 | `scripts/check-download-unification.sh` | 58 lines | `.sh` |
+| `scripts/dead-resources-baseline.txt` | 125 lines | `.txt` |
 | `scripts/telegram-chats.sh` | 38 lines | `.sh` |
 | `scripts/ui-audit-baseline.tsv` | 13 lines | `.tsv` |
 | `scripts/ui-audit.sh` | 125 lines | `.sh` |
