@@ -1,6 +1,6 @@
 # Non-Kotlin file reference
 
-Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `330`.
+Every tracked non-Kotlin path outside `docs/` is listed. Text files report line counts; binary files report byte counts; gitlinks are recorded as non-file tracked paths. Total paths: `332`.
 
 | Path | Size/status | Type metadata |
 | --- | ---: | --- |
@@ -60,6 +60,8 @@ Every tracked non-Kotlin path outside `docs/` is listed. Text files report line 
 | `app/src/main/cpp/CMakeLists.txt` | 5 lines | text `.txt` |
 | `app/src/main/cpp/bento4` | gitlink/non-file | tracked path is not a regular file in this checkout |
 | `app/src/main/ic_launcher-playstore.png` | 23742 bytes | binary `.png` |
+| `app/src/main/jniLibs/arm64-v8a/libcoverart.so` | 644248 bytes | binary `.so` |
+| `app/src/main/jniLibs/armeabi-v7a/libcoverart.so` | 406200 bytes | binary `.so` |
 | `app/src/main/res/drawable-night/widget_background.xml` | 6 lines | text `.xml`; XML root `shape` |
 | `app/src/main/res/drawable-v31/ic_launcher_background_v31.xml` | 7 lines | text `.xml`; XML root `shape` |
 | `app/src/main/res/drawable/account.xml` | 9 lines | text `.xml`; XML root `vector` |

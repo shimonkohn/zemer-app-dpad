@@ -2,7 +2,7 @@
 
 Every tracked Kotlin file is listed with hard metadata extracted from the file text: line count, package, whether it declares any `@Composable`, import count, top-level declaration count (`Decls` — a high value flags a god-file), and the external import roots it depends on. Declaration counting is regex-based (after stripping comments and string literals). For the actual declaration names, read the file or use your editor's outline — they are not duplicated here.
 
-## `app` Kotlin files (434)
+## `app` Kotlin files (437)
 
 | File | Lines | Package | Compose | Imports | Decls | External import roots |
 | --- | ---: | --- | --- | ---: | ---: | --- |
@@ -330,6 +330,7 @@ Every tracked Kotlin file is listed with hard metadata extracted from the file t
 | `app/src/main/kotlin/com/jtech/zemer/utils/NetworkConnectivityObserver.kt` | 74 | `com.jtech.zemer.utils` | no | 7 | 15 | android.content, android.net, kotlinx.coroutines |
 | `app/src/main/kotlin/com/jtech/zemer/utils/NotificationUtils.kt` | 35 | `com.jtech.zemer.utils` | no | 6 | 2 | android.Manifest, android.content, android.os, androidx.core |
 | `app/src/main/kotlin/com/jtech/zemer/utils/PermissionHelper.kt` | 247 | `com.jtech.zemer.utils` | no | 10 | 19 | android.Manifest, android.app, android.content, android.os, androidx.activity, androidx.core, timber.log |
+| `app/src/main/kotlin/com/jtech/zemer/utils/PlaylistRemoteEdits.kt` | 49 | `com.jtech.zemer.utils` | no | 2 | 6 |  |
 | `app/src/main/kotlin/com/jtech/zemer/utils/StringUtils.kt` | 31 | `com.jtech.zemer.utils` | no | 2 | 8 | java.math, java.security |
 | `app/src/main/kotlin/com/jtech/zemer/utils/SyncUtils.kt` | 726 | `com.jtech.zemer.utils` | no | 33 | 96 | android.content, android.util, androidx.datastore, dagger.hilt, java.time, javax.inject, kotlinx.coroutines |
 | `app/src/main/kotlin/com/jtech/zemer/utils/UpdateChecker.kt` | 250 | `com.jtech.zemer.utils` | no | 19 | 67 | android.content, android.net, io.ktor, java.io, kotlinx.coroutines, kotlinx.serialization |
@@ -389,6 +390,7 @@ Every tracked Kotlin file is listed with hard metadata extracted from the file t
 | `app/src/main/kotlin/com/jtech/zemer/viewmodels/ZemerCuratedPlaylistsViewModel.kt` | 84 | `com.jtech.zemer.viewmodels` | no | 23 | 10 | android.content, androidx.lifecycle, dagger.hilt, javax.inject, kotlinx.coroutines |
 | `app/src/main/kotlin/com/jtech/zemer/widget/MusicWidget.kt` | 391 | `com.jtech.zemer.widget` | no | 62 | 49 | android.content, android.graphics, androidx.compose, androidx.datastore, androidx.glance, coil3.SingletonImageLoader, coil3.request, coil3.toBitmap, java.io, kotlinx.coroutines |
 | `app/src/main/kotlin/com/jtech/zemer/widget/WidgetLayout.kt` | 14 | `com.jtech.zemer.widget` | no | 0 | 3 |  |
+| `app/src/test/kotlin/com/jtech/zemer/constants/PreferenceKeysTest.kt` | 26 | `com.jtech.zemer.constants` | no | 4 | 3 | androidx.datastore, java.lang, org.junit |
 | `app/src/test/kotlin/com/jtech/zemer/latestreleases/LatestReleaseFilterTest.kt` | 46 | `com.jtech.zemer.latestreleases` | no | 2 | 11 | org.junit |
 | `app/src/test/kotlin/com/jtech/zemer/latestreleases/LatestReleasePlaybackTest.kt` | 120 | `com.jtech.zemer.latestreleases` | no | 6 | 9 | org.junit |
 | `app/src/test/kotlin/com/jtech/zemer/latestreleases/LatestReleasesStoreTest.kt` | 120 | `com.jtech.zemer.latestreleases` | no | 8 | 8 | java.io, java.nio, kotlinx.coroutines, org.junit |
@@ -435,6 +437,7 @@ Every tracked Kotlin file is listed with hard metadata extracted from the file t
 | `app/src/test/kotlin/com/jtech/zemer/utils/ArtistThumbResolverTest.kt` | 62 | `com.jtech.zemer.utils` | no | 5 | 6 | org.junit |
 | `app/src/test/kotlin/com/jtech/zemer/utils/BlockedIdsCacheTest.kt` | 62 | `com.jtech.zemer.utils` | no | 5 | 7 | org.junit |
 | `app/src/test/kotlin/com/jtech/zemer/utils/CrashReportingTreeTest.kt` | 64 | `com.jtech.zemer.utils` | no | 6 | 6 | org.junit, timber.log |
+| `app/src/test/kotlin/com/jtech/zemer/utils/PlaylistRemoteEditsTest.kt` | 89 | `com.jtech.zemer.utils` | no | 8 | 6 | org.junit |
 | `app/src/test/kotlin/com/jtech/zemer/utils/PlaylistSongWhitelistTest.kt` | 52 | `com.jtech.zemer.utils` | no | 3 | 2 | org.junit |
 | `app/src/test/kotlin/com/jtech/zemer/utils/ZemerContentClientTest.kt` | 97 | `com.jtech.zemer.utils` | no | 7 | 11 | kotlinx.coroutines, kotlinx.serialization, org.junit |
 | `app/src/test/kotlin/com/jtech/zemer/utils/updater/InstallerTest.kt` | 43 | `com.jtech.zemer.utils.updater` | no | 3 | 1 | org.junit |
