@@ -807,7 +807,7 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `docs/recognize_music/README.md` | 71 lines | `.md` |
 | `docs/reference/kotlin-files.md` | 556 lines | `.md` |
 | `docs/reference/non-kotlin-files.md` | 334 lines | `.md` |
-| `docs/reference/resource-index.md` | 288 lines | `.md` |
+| `docs/reference/resource-index.md` | 255 lines | `.md` |
 | `docs/remote_cipher_config/01-why-it-exists.md` | 88 lines | `.md` |
 | `docs/remote_cipher_config/02-file-format.md` | 116 lines | `.md` |
 | `docs/remote_cipher_config/03-runtime-store.md` | 156 lines | `.md` |
