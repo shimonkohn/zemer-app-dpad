@@ -700,8 +700,8 @@ The following inventory is generated from repository files outside `.git`, `.gra
 | `app/src/main/res/raw/loading_dots_blue.lottie` | 1221 bytes | `.lottie` |
 | `app/src/main/res/raw/welcome.lottie` | 2138 bytes | `.lottie` |
 | `app/src/main/res/resources.properties` | 1 lines | `.properties` |
-| `app/src/main/res/values-iw/metrolist_strings.xml` | 44 lines | `.xml` |
-| `app/src/main/res/values-iw/strings.xml` | 376 lines | `.xml` |
+| `app/src/main/res/values-iw/metrolist_strings.xml` | 36 lines | `.xml` |
+| `app/src/main/res/values-iw/strings.xml` | 294 lines | `.xml` |
 | `app/src/main/res/values-night/colors.xml` | 6 lines | `.xml` |
 | `app/src/main/res/values/app_name.xml` | 4 lines | `.xml` |
 | `app/src/main/res/values/colors.xml` | 9 lines | `.xml` |
